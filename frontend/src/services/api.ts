@@ -101,6 +101,13 @@ export const payrollApi = {
   closePayroll: (id: string) => api.post(`/payroll/periods/${id}/close`),
   getEmployeeHistory: (employeeId: string, limit?: number) =>
     api.get(`/payroll/employee/${employeeId}/history`, { params: { limit } }),
+  // Recibos de nomina
+  getEmployeeReceipts: (employeeId: string, year?: number) =>
+    api.get(`/payroll/employee/${employeeId}/receipts`, { params: { year } }),
+  downloadReceipt: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/pdf`, { responseType: 'blob' }),
+  viewReceipt: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/view`, { responseType: 'blob' }),
 };
 
 export const attendanceApi = {
@@ -125,6 +132,8 @@ export const vacationsApi = {
     api.get(`/vacations/employee/${employeeId}`, { params: { year } }),
   getPendingRequests: (companyId: string) =>
     api.get('/vacations/pending', { params: { companyId } }),
+  // Configuracion de tipos de ausencia
+  getLeaveTypeConfigs: () => api.get('/vacations/leave-types'),
 };
 
 export const benefitsApi = {

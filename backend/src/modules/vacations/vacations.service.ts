@@ -243,4 +243,11 @@ export class VacationsService {
 
     return 12;
   }
+
+  async getLeaveTypeConfigs() {
+    return this.prisma.leaveTypeConfig.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+    });
+  }
 }

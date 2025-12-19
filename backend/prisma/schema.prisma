@@ -320,6 +320,8 @@ model VacationRequest {
   endDate       DateTime @map("end_date") @db.Date
   totalDays     Int      @map("total_days")
   reason        String?
+  documentPath  String?  @map("document_path") // Documento de soporte (incapacidad IMSS, acta defuncion, etc)
+  isPaid        Boolean  @default(true) @map("is_paid") // Si es con goce de sueldo
   status        RequestStatus @default(PENDING)
   approvedById  String?  @map("approved_by_id")
   approvedAt    DateTime? @map("approved_at")
@@ -328,6 +330,22 @@ model VacationRequest {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("vacation_requests")
+}
+
+// Configuracion de dias de permiso por tipo de ausencia
+model LeaveTypeConfig {
+  id            String   @id @default(uuid())
+  type          LeaveType @unique
+  name          String
+  description   String?
+  maxDays       Int      @map("max_days") // Dias maximos permitidos
+  isPaid        Boolean  @default(true) @map("is_paid")
+  requiresDocument Boolean @default(false) @map("requires_document")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("leave_type_configs")
 }
 
 model VacationBalance {
@@ -354,8 +372,10 @@ model PayrollPeriod {
   companyId       String   @map("company_id")
   company         Company  @relation(fields: [companyId], references: [id])
   periodType      PeriodType @map("period_type")
+  extraordinaryType ExtraordinaryType? @map("extraordinary_type") // Solo para periodos extraordinarios
   periodNumber    Int      @map("period_number")
   year            Int
+  description     String?  // Descripcion del periodo (util para extraordinarios)
   startDate       DateTime @map("start_date") @db.Date
   endDate         DateTime @map("end_date") @db.Date
   paymentDate     DateTime @map("payment_date") @db.Date
@@ -716,14 +736,20 @@ enum AttendanceStatus {
 }
 
 enum LeaveType {
-  VACATION
-  SICK_LEAVE
-  MATERNITY
-  PATERNITY
-  BEREAVEMENT
-  PERSONAL
-  UNPAID
-  OTHER
+  VACATION              // Vacaciones
+  SICK_LEAVE            // Incapacidad por enfermedad
+  SICK_LEAVE_IMSS       // Incapacidad IMSS (enfermedad general)
+  WORK_ACCIDENT         // Accidente de trabajo
+  MATERNITY             // Maternidad
+  PATERNITY             // Paternidad
+  BEREAVEMENT_DIRECT    // Duelo familiar directo (padres, hijos, conyuge)
+  BEREAVEMENT_INDIRECT  // Duelo familiar indirecto (abuelos, hermanos)
+  PERSONAL              // Personal con goce de sueldo
+  UNPAID                // Sin goce de sueldo
+  MEDICAL_APPOINTMENT   // Cita medica
+  GOVERNMENT_PROCEDURE  // Tramite gubernamental
+  STUDY_PERMIT          // Permiso de estudios
+  OTHER                 // Otro
 }
 
 enum RequestStatus {
@@ -737,6 +763,19 @@ enum PeriodType {
   WEEKLY
   BIWEEKLY
   MONTHLY
+  EXTRAORDINARY  // Periodos extraordinarios
+}
+
+// Tipo de periodo extraordinario
+enum ExtraordinaryType {
+  AGUINALDO           // Aguinaldo / Christmas bonus
+  VACATION_PREMIUM    // Prima vacacional
+  PTU                 // Participacion de los trabajadores en las utilidades
+  SETTLEMENT          // Finiquito
+  LIQUIDATION         // Liquidacion
+  BONUS               // Bono extraordinario
+  RETROACTIVE         // Pago retroactivo
+  OTHER               // Otro
 }
 
 enum PayrollStatus {
