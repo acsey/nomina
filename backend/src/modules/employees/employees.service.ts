@@ -153,12 +153,38 @@ export class EmployeesService {
   async update(id: string, updateEmployeeDto: UpdateEmployeeDto) {
     await this.findOne(id);
 
-    // Extract relation IDs that need special handling
-    const { companyId, departmentId, jobPositionId, bankId, workScheduleId, ...directFields } = updateEmployeeDto;
+    // Extract relation IDs and enum fields that need special handling
+    const {
+      companyId,
+      departmentId,
+      jobPositionId,
+      bankId,
+      workScheduleId,
+      gender,
+      maritalStatus,
+      contractType,
+      employmentType,
+      salaryType,
+      paymentMethod,
+      birthDate,
+      hireDate,
+      ...directFields
+    } = updateEmployeeDto;
 
-    // Build the update data with proper relation connections
+    // Build the update data with proper relation connections and type casting
     const updateData: Prisma.EmployeeUpdateInput = {
       ...directFields,
+      // Handle enum fields with proper casting
+      ...(gender && { gender: gender as Gender }),
+      ...(maritalStatus && { maritalStatus: maritalStatus as MaritalStatus }),
+      ...(contractType && { contractType: contractType as ContractType }),
+      ...(employmentType && { employmentType: employmentType as EmploymentType }),
+      ...(salaryType && { salaryType: salaryType as SalaryType }),
+      ...(paymentMethod && { paymentMethod: paymentMethod as PaymentMethod }),
+      // Handle date fields
+      ...(birthDate && { birthDate: new Date(birthDate) }),
+      ...(hireDate && { hireDate: new Date(hireDate) }),
+      // Handle relation connections
       ...(companyId && { company: { connect: { id: companyId } } }),
       ...(departmentId && { department: { connect: { id: departmentId } } }),
       ...(jobPositionId && { jobPosition: { connect: { id: jobPositionId } } }),
