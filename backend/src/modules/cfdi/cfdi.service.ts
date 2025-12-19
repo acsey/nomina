@@ -61,6 +61,13 @@ export class CfdiService {
   async stampCfdi(cfdiId: string) {
     const cfdi = await this.prisma.cfdiNomina.findUnique({
       where: { id: cfdiId },
+      include: {
+        employee: {
+          include: {
+            company: true,
+          },
+        },
+      },
     });
 
     if (!cfdi) {
@@ -75,9 +82,22 @@ export class CfdiService {
       throw new BadRequestException('El CFDI no tiene XML original');
     }
 
+    // Obtener configuración PAC de la empresa
+    const company = cfdi.employee.company;
+    const companyConfig = {
+      pacProvider: company.pacProvider || undefined,
+      pacUser: company.pacUser || undefined,
+      pacPassword: company.pacPassword || undefined,
+      pacMode: company.pacMode || undefined,
+      certificadoCer: company.certificadoCer || undefined,
+      certificadoKey: company.certificadoKey || undefined,
+      certificadoPassword: company.certificadoPassword || undefined,
+      noCertificado: company.noCertificado || undefined,
+    };
+
     try {
-      // Enviar a timbrar al PAC
-      const stampingResult = await this.stampingService.stamp(cfdi.xmlOriginal);
+      // Enviar a timbrar al PAC con configuración de la empresa
+      const stampingResult = await this.stampingService.stamp(cfdi.xmlOriginal, companyConfig);
 
       // Actualizar con datos del timbrado
       return this.prisma.cfdiNomina.update({
@@ -108,6 +128,13 @@ export class CfdiService {
   async cancelCfdi(cfdiId: string, reason: string) {
     const cfdi = await this.prisma.cfdiNomina.findUnique({
       where: { id: cfdiId },
+      include: {
+        employee: {
+          include: {
+            company: true,
+          },
+        },
+      },
     });
 
     if (!cfdi) {
@@ -118,9 +145,18 @@ export class CfdiService {
       throw new BadRequestException('Solo se pueden cancelar CFDIs timbrados');
     }
 
+    // Obtener configuración PAC de la empresa
+    const company = cfdi.employee.company;
+    const companyConfig = {
+      pacProvider: company.pacProvider || undefined,
+      pacUser: company.pacUser || undefined,
+      pacPassword: company.pacPassword || undefined,
+      pacMode: company.pacMode || undefined,
+    };
+
     try {
       // Cancelar en el PAC
-      await this.stampingService.cancel(cfdi.uuid!, reason);
+      await this.stampingService.cancel(cfdi.uuid!, reason, companyConfig);
 
       return this.prisma.cfdiNomina.update({
         where: { id: cfdiId },
