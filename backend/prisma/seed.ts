@@ -146,7 +146,31 @@ async function main() {
     },
   });
 
-  console.log('✅ 3 Empresas creadas con diferentes configuraciones');
+  // Empresa 4: INSABI (Instituto de Salud para el Bienestar) - Gobierno
+  const insabiCompany = await prisma.company.upsert({
+    where: { rfc: 'ISB191202GH1' },
+    update: {},
+    create: {
+      name: 'Instituto de Salud para el Bienestar',
+      rfc: 'ISB191202GH1',
+      institutionType: 'GOVERNMENT',
+      govInstitution: 'ISSSTE',
+      registroPatronalIssste: 'ISB-ISSSTE-001',
+      regimenFiscal: '603',
+      address: 'Av. Paseo de la Reforma 156',
+      city: 'Ciudad de Mexico',
+      state: 'CDMX',
+      zipCode: '06600',
+      phone: '55 5080 5600',
+      email: 'contacto@insabi.gob.mx',
+      primaryColor: '#691C32', // Guinda - color institucional gobierno
+      secondaryColor: '#BC955C', // Dorado - color secundario gobierno
+      pacProvider: 'FINKOK',
+      pacMode: 'sandbox',
+    },
+  });
+
+  console.log('✅ 4 Empresas creadas con diferentes configuraciones');
 
   // ============================================
   // CREAR USUARIOS POR EMPRESA
@@ -213,10 +237,37 @@ async function main() {
     create: {
       email: 'rh@comnorte.mx',
       password: hashedPassword,
-      firstName: 'Mónica',
+      firstName: 'Monica',
       lastName: 'Villarreal',
       roleId: rhRole.id,
       companyId: norteCompany.id,
+    },
+  });
+
+  // Usuarios INSABI
+  await prisma.user.upsert({
+    where: { email: 'rh@insabi.gob.mx' },
+    update: { companyId: insabiCompany.id },
+    create: {
+      email: 'rh@insabi.gob.mx',
+      password: hashedPassword,
+      firstName: 'Laura',
+      lastName: 'Martinez',
+      roleId: rhRole.id,
+      companyId: insabiCompany.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'director@insabi.gob.mx' },
+    update: { companyId: insabiCompany.id },
+    create: {
+      email: 'director@insabi.gob.mx',
+      password: hashedPassword,
+      firstName: 'Carlos',
+      lastName: 'Hernandez',
+      roleId: managerRole.id,
+      companyId: insabiCompany.id,
     },
   });
 
@@ -246,8 +297,17 @@ async function main() {
   const norteDepts = {
     rh: await prisma.department.create({ data: { name: 'Capital Humano', companyId: norteCompany.id } }),
     ventas: await prisma.department.create({ data: { name: 'Ventas', companyId: norteCompany.id } }),
-    almacen: await prisma.department.create({ data: { name: 'Almacén', companyId: norteCompany.id } }),
+    almacen: await prisma.department.create({ data: { name: 'Almacen', companyId: norteCompany.id } }),
     finanzas: await prisma.department.create({ data: { name: 'Finanzas', companyId: norteCompany.id } }),
+  };
+
+  // Departamentos INSABI (Gobierno)
+  const insabiDepts = {
+    rh: await prisma.department.create({ data: { name: 'Recursos Humanos', companyId: insabiCompany.id } }),
+    medico: await prisma.department.create({ data: { name: 'Servicios Medicos', companyId: insabiCompany.id } }),
+    admin: await prisma.department.create({ data: { name: 'Direccion Administrativa', companyId: insabiCompany.id } }),
+    juridico: await prisma.department.create({ data: { name: 'Asuntos Juridicos', companyId: insabiCompany.id } }),
+    sistemas: await prisma.department.create({ data: { name: 'Tecnologias de la Informacion', companyId: insabiCompany.id } }),
   };
 
   console.log('✅ Departamentos creados para cada empresa');
@@ -265,6 +325,13 @@ async function main() {
     prisma.jobPosition.upsert({ where: { id: 'puesto-6' }, update: {}, create: { id: 'puesto-6', name: 'Vendedor', minSalary: 12000, maxSalary: 25000, riskLevel: 'CLASE_I' }}),
     prisma.jobPosition.upsert({ where: { id: 'puesto-7' }, update: {}, create: { id: 'puesto-7', name: 'Almacenista', minSalary: 10000, maxSalary: 18000, riskLevel: 'CLASE_II' }}),
     prisma.jobPosition.upsert({ where: { id: 'puesto-8' }, update: {}, create: { id: 'puesto-8', name: 'Ingeniero de Soporte', minSalary: 25000, maxSalary: 45000, riskLevel: 'CLASE_I' }}),
+    // Puestos de gobierno
+    prisma.jobPosition.upsert({ where: { id: 'puesto-9' }, update: {}, create: { id: 'puesto-9', name: 'Director General', minSalary: 80000, maxSalary: 150000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-10' }, update: {}, create: { id: 'puesto-10', name: 'Subdirector', minSalary: 50000, maxSalary: 80000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-11' }, update: {}, create: { id: 'puesto-11', name: 'Jefe de Departamento', minSalary: 35000, maxSalary: 55000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-12' }, update: {}, create: { id: 'puesto-12', name: 'Medico General', minSalary: 25000, maxSalary: 45000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-13' }, update: {}, create: { id: 'puesto-13', name: 'Enfermera(o)', minSalary: 15000, maxSalary: 28000, riskLevel: 'CLASE_II' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-14' }, update: {}, create: { id: 'puesto-14', name: 'Analista Administrativo', minSalary: 18000, maxSalary: 32000, riskLevel: 'CLASE_I' }}),
   ]);
 
   const bancos = await Promise.all([
@@ -349,11 +416,21 @@ async function main() {
 
   // EMPLEADOS COMERCIALIZADORA DEL NORTE (5 empleados)
   const norteEmployees = [
-    { employeeNumber: 'NTE001', firstName: 'Mónica', lastName: 'Villarreal', secondLastName: 'Garza', email: 'monica.v@comnorte.mx', rfc: 'VIGM860418BCD', curp: 'VIGM860418MNLRLR01', nss: '70028219189', birthDate: new Date('1986-04-18'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2019-02-01'), baseSalary: 42000, departmentId: norteDepts.rh.id, jobPositionId: puestos[1].id },
-    { employeeNumber: 'NTE002', firstName: 'Jorge', lastName: 'Treviño', secondLastName: 'Salinas', email: 'jorge.t@comnorte.mx', rfc: 'TESJ840725EFG', curp: 'TESJ840725HNLRVR02', nss: '70028219190', birthDate: new Date('1984-07-25'), gender: 'MALE' as const, maritalStatus: 'DIVORCED' as const, hireDate: new Date('2018-06-15'), baseSalary: 55000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[0].id },
-    { employeeNumber: 'NTE003', firstName: 'Lucía', lastName: 'Cantú', secondLastName: 'Lozano', email: 'lucia.c@comnorte.mx', rfc: 'CALL890112HIJ', curp: 'CALL890112MNLNZC03', nss: '70028219191', birthDate: new Date('1989-01-12'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2021-09-01'), baseSalary: 18000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[5].id },
+    { employeeNumber: 'NTE001', firstName: 'Monica', lastName: 'Villarreal', secondLastName: 'Garza', email: 'monica.v@comnorte.mx', rfc: 'VIGM860418BCD', curp: 'VIGM860418MNLRLR01', nss: '70028219189', birthDate: new Date('1986-04-18'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2019-02-01'), baseSalary: 42000, departmentId: norteDepts.rh.id, jobPositionId: puestos[1].id },
+    { employeeNumber: 'NTE002', firstName: 'Jorge', lastName: 'Trevino', secondLastName: 'Salinas', email: 'jorge.t@comnorte.mx', rfc: 'TESJ840725EFG', curp: 'TESJ840725HNLRVR02', nss: '70028219190', birthDate: new Date('1984-07-25'), gender: 'MALE' as const, maritalStatus: 'DIVORCED' as const, hireDate: new Date('2018-06-15'), baseSalary: 55000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[0].id },
+    { employeeNumber: 'NTE003', firstName: 'Lucia', lastName: 'Cantu', secondLastName: 'Lozano', email: 'lucia.c@comnorte.mx', rfc: 'CALL890112HIJ', curp: 'CALL890112MNLNZC03', nss: '70028219191', birthDate: new Date('1989-01-12'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2021-09-01'), baseSalary: 18000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[5].id },
     { employeeNumber: 'NTE004', firstName: 'Roberto', lastName: 'Guajardo', secondLastName: 'Hinojosa', email: 'roberto.g@comnorte.mx', rfc: 'GUHR910830KLM', curp: 'GUHR910830HNLJRB04', nss: '70028219192', birthDate: new Date('1991-08-30'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2022-04-01'), baseSalary: 14000, departmentId: norteDepts.almacen.id, jobPositionId: puestos[6].id },
     { employeeNumber: 'NTE005', firstName: 'Diana', lastName: 'Elizondo', secondLastName: 'Cavazos', email: 'diana.e@comnorte.mx', rfc: 'EICD930605NOP', curp: 'EICD930605MNLLZN05', nss: '70028219193', birthDate: new Date('1993-06-05'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2023-11-01'), baseSalary: 28000, departmentId: norteDepts.finanzas.id, jobPositionId: puestos[4].id },
+  ];
+
+  // EMPLEADOS INSABI - Instituto de Salud (5 empleados de gobierno)
+  // Prestaciones tipicas de gobierno: Aguinaldo 40 dias, Prima Vacacional 50%, Estimulos, Seguro de Vida
+  const insabiEmployees = [
+    { employeeNumber: 'ISB001', firstName: 'Carlos', lastName: 'Hernandez', secondLastName: 'Rojas', email: 'carlos.h@insabi.gob.mx', rfc: 'HERC750210QRS', curp: 'HERC750210HDFRNR01', nss: '60028219194', birthDate: new Date('1975-02-10'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2010-03-15'), baseSalary: 85000, departmentId: insabiDepts.admin.id, jobPositionId: puestos[8].id },
+    { employeeNumber: 'ISB002', firstName: 'Laura', lastName: 'Martinez', secondLastName: 'Solis', email: 'laura.m@insabi.gob.mx', rfc: 'MASL800515TUV', curp: 'MASL800515MDFRTL02', nss: '60028219195', birthDate: new Date('1980-05-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2015-08-01'), baseSalary: 45000, departmentId: insabiDepts.rh.id, jobPositionId: puestos[10].id },
+    { employeeNumber: 'ISB003', firstName: 'Ricardo', lastName: 'Perez', secondLastName: 'Vega', email: 'ricardo.p@insabi.gob.mx', rfc: 'PEVR780820WXY', curp: 'PEVR780820HDFRGC03', nss: '60028219196', birthDate: new Date('1978-08-20'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2012-01-16'), baseSalary: 38000, departmentId: insabiDepts.medico.id, jobPositionId: puestos[11].id },
+    { employeeNumber: 'ISB004', firstName: 'Ana', lastName: 'Lopez', secondLastName: 'Cruz', email: 'ana.l@insabi.gob.mx', rfc: 'LOCA850930ZAB', curp: 'LOCA850930MDFPRN04', nss: '60028219197', birthDate: new Date('1985-09-30'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2018-06-01'), baseSalary: 22000, departmentId: insabiDepts.medico.id, jobPositionId: puestos[12].id },
+    { employeeNumber: 'ISB005', firstName: 'Jose', lastName: 'Garcia', secondLastName: 'Mendez', email: 'jose.g@insabi.gob.mx', rfc: 'GAMJ900115CDE', curp: 'GAMJ900115HDFRRN05', nss: '60028219198', birthDate: new Date('1990-01-15'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2020-02-01'), baseSalary: 25000, departmentId: insabiDepts.sistemas.id, jobPositionId: puestos[13].id },
   ];
 
   // Insertar empleados
@@ -429,7 +506,32 @@ async function main() {
     });
   }
 
-  console.log('✅ 15 Empleados creados (5 por empresa)');
+  // Insertar empleados INSABI (gobierno con ISSSTE)
+  for (const emp of insabiEmployees) {
+    await prisma.employee.upsert({
+      where: { employeeNumber: emp.employeeNumber },
+      update: {},
+      create: {
+        ...emp,
+        companyId: insabiCompany.id,
+        workScheduleId: scheduleOficina.id,
+        contractType: 'INDEFINITE',
+        employmentType: 'FULL_TIME',
+        salaryType: 'MONTHLY',
+        paymentMethod: 'TRANSFER',
+        bankId: bancos[Math.floor(Math.random() * bancos.length)].id,
+        bankAccount: Math.random().toString().slice(2, 12),
+        clabe: Math.random().toString().slice(2, 20),
+        tipoSalarioImss: 'FIJO',
+        address: 'Av. Paseo de la Reforma 156',
+        city: 'Ciudad de Mexico',
+        state: 'CDMX',
+        zipCode: '06600',
+      },
+    });
+  }
+
+  console.log('✅ 20 Empleados creados (5 por empresa)');
 
   // ============================================
   // CREAR USUARIOS EMPLEADOS
@@ -439,6 +541,7 @@ async function main() {
     ...bfsEmployees.map(e => ({ email: e.email, firstName: e.firstName, lastName: e.lastName, companyId: bfsCompany.id })),
     ...techEmployees.map(e => ({ email: e.email, firstName: e.firstName, lastName: e.lastName, companyId: techCompany.id })),
     ...norteEmployees.map(e => ({ email: e.email, firstName: e.firstName, lastName: e.lastName, companyId: norteCompany.id })),
+    ...insabiEmployees.map(e => ({ email: e.email, firstName: e.firstName, lastName: e.lastName, companyId: insabiCompany.id })),
   ];
 
   for (const empUser of allEmployeeEmails) {
@@ -456,7 +559,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Usuarios empleados creados (15 usuarios)');
+  console.log('✅ Usuarios empleados creados (20 usuarios)');
 
   // ============================================
   // CREAR CONCEPTOS DE NÓMINA
@@ -493,17 +596,150 @@ async function main() {
   console.log('✅ Tipos de incidencias creados');
 
   // ============================================
-  // CREAR SALDOS DE VACACIONES
+  // CREAR PRESTACIONES (BENEFITS)
   // ============================================
 
+  // Prestaciones generales (Ley Federal del Trabajo - LFT)
+  await Promise.all([
+    // Aguinaldo - 15 días mínimo por ley
+    prisma.payrollConcept.upsert({
+      where: { code: 'PREST001' },
+      update: {},
+      create: { code: 'PREST001', name: 'Aguinaldo', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false, description: 'Aguinaldo anual - 15 días mínimo LFT' },
+    }),
+    // Prima Vacacional - 25% mínimo por ley
+    prisma.payrollConcept.upsert({
+      where: { code: 'PREST002' },
+      update: {},
+      create: { code: 'PREST002', name: 'Prima Vacacional', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false, description: 'Prima vacacional - 25% mínimo LFT' },
+    }),
+    // Vales de Despensa
+    prisma.payrollConcept.upsert({
+      where: { code: 'PREST003' },
+      update: {},
+      create: { code: 'PREST003', name: 'Vales de Despensa', type: 'PERCEPTION', satCode: '029', isTaxable: false, isFixed: true, description: 'Vales de despensa mensuales' },
+    }),
+    // Fondo de Ahorro (Aportación empresa)
+    prisma.payrollConcept.upsert({
+      where: { code: 'PREST004' },
+      update: {},
+      create: { code: 'PREST004', name: 'Fondo de Ahorro Patronal', type: 'PERCEPTION', satCode: '005', isTaxable: false, isFixed: true, description: 'Aportación patronal al fondo de ahorro' },
+    }),
+    // Seguro de Vida
+    prisma.payrollConcept.upsert({
+      where: { code: 'PREST005' },
+      update: {},
+      create: { code: 'PREST005', name: 'Seguro de Vida', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true, description: 'Prima de seguro de vida pagada por empresa' },
+    }),
+    // Seguro de Gastos Médicos Mayores
+    prisma.payrollConcept.upsert({
+      where: { code: 'PREST006' },
+      update: {},
+      create: { code: 'PREST006', name: 'Seguro Gastos Médicos', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true, description: 'Seguro de gastos médicos mayores' },
+    }),
+    // PTU - Reparto de Utilidades
+    prisma.payrollConcept.upsert({
+      where: { code: 'PREST007' },
+      update: {},
+      create: { code: 'PREST007', name: 'PTU', type: 'PERCEPTION', satCode: '003', isTaxable: true, isFixed: false, description: 'Participación de los Trabajadores en las Utilidades' },
+    }),
+  ]);
+
+  // Prestaciones específicas de gobierno (ISSSTE)
+  await Promise.all([
+    // Aguinaldo gobierno - 40 días
+    prisma.payrollConcept.upsert({
+      where: { code: 'GOB001' },
+      update: {},
+      create: { code: 'GOB001', name: 'Aguinaldo Gobierno', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false, description: 'Aguinaldo gobierno - 40 días' },
+    }),
+    // Prima Vacacional gobierno - 50%
+    prisma.payrollConcept.upsert({
+      where: { code: 'GOB002' },
+      update: {},
+      create: { code: 'GOB002', name: 'Prima Vacacional Gobierno', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false, description: 'Prima vacacional gobierno - 50%' },
+    }),
+    // Estímulos al desempeño
+    prisma.payrollConcept.upsert({
+      where: { code: 'GOB003' },
+      update: {},
+      create: { code: 'GOB003', name: 'Estímulos al Desempeño', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false, description: 'Estímulos por productividad y desempeño' },
+    }),
+    // Ayuda para lentes
+    prisma.payrollConcept.upsert({
+      where: { code: 'GOB004' },
+      update: {},
+      create: { code: 'GOB004', name: 'Ayuda para Lentes', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: false, description: 'Apoyo para adquisición de lentes' },
+    }),
+    // Canasta Navideña
+    prisma.payrollConcept.upsert({
+      where: { code: 'GOB005' },
+      update: {},
+      create: { code: 'GOB005', name: 'Canasta Navideña', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: false, description: 'Canasta navideña de fin de año' },
+    }),
+    // Ayuda de transporte
+    prisma.payrollConcept.upsert({
+      where: { code: 'GOB006' },
+      update: {},
+      create: { code: 'GOB006', name: 'Ayuda de Transporte', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true, description: 'Apoyo mensual para transporte' },
+    }),
+  ]);
+
+  // Deducciones específicas de gobierno (ISSSTE)
+  await Promise.all([
+    prisma.payrollConcept.upsert({
+      where: { code: 'DED_ISSSTE' },
+      update: {},
+      create: { code: 'DED_ISSSTE', name: 'ISSSTE Trabajador', type: 'DEDUCTION', satCode: '001', description: 'Cuota ISSSTE trabajador' },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'DED_FOVISSSTE' },
+      update: {},
+      create: { code: 'DED_FOVISSSTE', name: 'FOVISSSTE', type: 'DEDUCTION', satCode: '010', description: 'Fondo de Vivienda ISSSTE' },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'DED_SAR' },
+      update: {},
+      create: { code: 'DED_SAR', name: 'SAR', type: 'DEDUCTION', satCode: '017', description: 'Sistema de Ahorro para el Retiro' },
+    }),
+  ]);
+
+  console.log('✅ Prestaciones y deducciones creadas (LFT y Gobierno)');
+
+  // ============================================
+  // CREAR SALDOS DE VACACIONES (LFT Art. 76-81)
+  // ============================================
+  // Según LFT: Sin vacaciones hasta cumplir 1 año
+  // Año 1: 12 días | Año 2: 14 días | Año 3: 16 días | Año 4: 18 días
+  // Año 5+: 20 días | +2 días por cada 5 años adicionales
+
   const currentYear = new Date().getFullYear();
+  const today = new Date();
   const allEmployees = await prisma.employee.findMany();
 
   for (const emp of allEmployees) {
-    const yearsWorked = Math.max(0, currentYear - new Date(emp.hireDate).getFullYear());
-    let earnedDays = 12;
-    if (yearsWorked >= 1) earnedDays = Math.min(12 + yearsWorked * 2, 20);
-    if (yearsWorked >= 5) earnedDays = 20 + Math.floor((yearsWorked - 4) / 5) * 2;
+    const hireDate = new Date(emp.hireDate);
+    const anniversaryThisYear = new Date(hireDate.getFullYear() + (currentYear - hireDate.getFullYear()), hireDate.getMonth(), hireDate.getDate());
+
+    // Calcular años completos trabajados
+    let yearsCompleted = currentYear - hireDate.getFullYear();
+    if (today < anniversaryThisYear) {
+      yearsCompleted--; // No ha cumplido el aniversario este año
+    }
+    yearsCompleted = Math.max(0, yearsCompleted);
+
+    // Calcular días según LFT Art. 76
+    let earnedDays = 0;
+    if (yearsCompleted >= 1) {
+      if (yearsCompleted === 1) earnedDays = 12;
+      else if (yearsCompleted === 2) earnedDays = 14;
+      else if (yearsCompleted === 3) earnedDays = 16;
+      else if (yearsCompleted === 4) earnedDays = 18;
+      else if (yearsCompleted >= 5 && yearsCompleted < 10) earnedDays = 20;
+      else if (yearsCompleted >= 10 && yearsCompleted < 15) earnedDays = 22;
+      else if (yearsCompleted >= 15 && yearsCompleted < 20) earnedDays = 24;
+      else earnedDays = 26; // 20+ años
+    }
 
     await prisma.vacationBalance.upsert({
       where: { employeeId_year: { employeeId: emp.id, year: currentYear }},
@@ -512,7 +748,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Saldos de vacaciones creados');
+  console.log('✅ Saldos de vacaciones creados (según LFT Art. 76)');
 
   // ============================================
   // RESUMEN FINAL
@@ -525,23 +761,32 @@ async function main() {
   console.log('\n👑 SUPER ADMINISTRADOR (acceso a todas las empresas):');
   console.log('   Email: admin@sistema.com');
   console.log('   Password: admin123');
-  console.log('\n🏢 BFS INGENIERÍA APLICADA:');
+  console.log('\n🏢 BFS INGENIERÍA APLICADA (Color: Azul):');
   console.log('   RH: rh@bfs.com.mx / admin123');
   console.log('   Gerente: gerente@bfs.com.mx / admin123');
   console.log('   Empleados: david.sc@bfs.com.mx, patricia.g@bfs.com.mx, etc.');
-  console.log('\n🏢 TECH SOLUTIONS MÉXICO:');
+  console.log('\n🏢 TECH SOLUTIONS MÉXICO (Color: Morado):');
   console.log('   RH: rh@techsolutions.mx / admin123');
   console.log('   Gerente: gerente@techsolutions.mx / admin123');
   console.log('   Empleados: andrea.r@techsolutions.mx, fernando.c@techsolutions.mx, etc.');
-  console.log('\n🏢 COMERCIALIZADORA DEL NORTE:');
+  console.log('\n🏢 COMERCIALIZADORA DEL NORTE (Color: Verde):');
   console.log('   RH: rh@comnorte.mx / admin123');
   console.log('   Empleados: monica.v@comnorte.mx, jorge.t@comnorte.mx, etc.');
+  console.log('\n🏛️ INSABI - GOBIERNO (Color: Guinda/Dorado, ISSSTE):');
+  console.log('   RH: rh@insabi.gob.mx / admin123');
+  console.log('   Director: director@insabi.gob.mx / admin123');
+  console.log('   Empleados: carlos.h@insabi.gob.mx, laura.m@insabi.gob.mx, etc.');
+  console.log('   🔸 Prestaciones gobierno: Aguinaldo 40 días, Prima Vac 50%');
+  console.log('   🔸 Deducciones: ISSSTE, FOVISSSTE, SAR');
   console.log('\n' + '='.repeat(60));
   console.log('📊 RESUMEN:');
-  console.log('   - 3 Empresas con diferentes colores/configuraciones');
-  console.log('   - 15 Empleados (5 por empresa)');
-  console.log('   - 1 Super Admin + 5 usuarios RH/Gerente + 15 usuarios empleado');
+  console.log('   - 4 Empresas con diferentes colores/configuraciones');
+  console.log('   - 20 Empleados (5 por empresa)');
+  console.log('   - 1 Super Admin + 7 usuarios RH/Gerente + 20 usuarios empleado');
   console.log('   - Cada empresa tiene su propia configuración de colores');
+  console.log('   - Prestaciones LFT: Aguinaldo, Prima Vacacional, Vales, etc.');
+  console.log('   - Prestaciones Gobierno: ISSSTE, FOVISSSTE, SAR, Estímulos');
+  console.log('   - Vacaciones según LFT Art. 76 (0 días primer año, 12 días al cumplir 1 año)');
   console.log('='.repeat(60));
 }
 

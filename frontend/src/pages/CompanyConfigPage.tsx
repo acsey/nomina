@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CogIcon,
@@ -8,33 +8,34 @@ import {
   PhotoIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
+  BuildingOffice2Icon,
 } from '@heroicons/react/24/outline';
 import { catalogsApi, api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-// Lista de regímenes fiscales del SAT
+// Lista de regimenes fiscales del SAT
 const REGIMENES_FISCALES = [
   { value: '', label: 'Seleccionar...' },
   { value: '601', label: '601 - General de Ley Personas Morales' },
   { value: '603', label: '603 - Personas Morales con Fines no Lucrativos' },
   { value: '605', label: '605 - Sueldos y Salarios' },
   { value: '606', label: '606 - Arrendamiento' },
-  { value: '607', label: '607 - Régimen de Enajenación o Adquisición de Bienes' },
-  { value: '608', label: '608 - Demás ingresos' },
+  { value: '607', label: '607 - Regimen de Enajenacion o Adquisicion de Bienes' },
+  { value: '608', label: '608 - Demas ingresos' },
   { value: '610', label: '610 - Residentes en el Extranjero' },
   { value: '611', label: '611 - Ingresos por Dividendos' },
-  { value: '612', label: '612 - Personas Físicas con Actividades Empresariales' },
+  { value: '612', label: '612 - Personas Fisicas con Actividades Empresariales' },
   { value: '614', label: '614 - Ingresos por intereses' },
-  { value: '615', label: '615 - Régimen de los ingresos por obtención de premios' },
+  { value: '615', label: '615 - Regimen de los ingresos por obtencion de premios' },
   { value: '616', label: '616 - Sin obligaciones fiscales' },
-  { value: '620', label: '620 - Sociedades Cooperativas de Producción' },
-  { value: '621', label: '621 - Incorporación Fiscal' },
-  { value: '622', label: '622 - Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras' },
+  { value: '620', label: '620 - Sociedades Cooperativas de Produccion' },
+  { value: '621', label: '621 - Incorporacion Fiscal' },
+  { value: '622', label: '622 - Actividades Agricolas, Ganaderas, Silvicolas y Pesqueras' },
   { value: '623', label: '623 - Opcional para Grupos de Sociedades' },
   { value: '624', label: '624 - Coordinados' },
-  { value: '625', label: '625 - Régimen de las Actividades Empresariales (Plataformas)' },
-  { value: '626', label: '626 - Régimen Simplificado de Confianza' },
+  { value: '625', label: '625 - Regimen de las Actividades Empresariales (Plataformas)' },
+  { value: '626', label: '626 - Regimen Simplificado de Confianza' },
 ];
 
 // Proveedores PAC disponibles
@@ -47,57 +48,68 @@ const PAC_PROVIDERS = [
 ];
 
 interface ConfigFormData {
-  // Branding
   logo: string;
   primaryColor: string;
   secondaryColor: string;
-  // CFDI
   regimenFiscal: string;
   certificadoCer: string;
   certificadoKey: string;
   certificadoPassword: string;
   noCertificado: string;
-  // PAC
   pacProvider: string;
   pacUser: string;
   pacPassword: string;
   pacMode: string;
 }
 
+const defaultFormData: ConfigFormData = {
+  logo: '',
+  primaryColor: '#1E40AF',
+  secondaryColor: '#3B82F6',
+  regimenFiscal: '',
+  certificadoCer: '',
+  certificadoKey: '',
+  certificadoPassword: '',
+  noCertificado: '',
+  pacProvider: '',
+  pacUser: '',
+  pacPassword: '',
+  pacMode: 'sandbox',
+};
+
 export default function CompanyConfigPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [activeTab, setActiveTab] = useState<'branding' | 'cfdi' | 'pac'>('branding');
-  const [formData, setFormData] = useState<ConfigFormData>({
-    logo: '',
-    primaryColor: '#1E40AF',
-    secondaryColor: '#3B82F6',
-    regimenFiscal: '',
-    certificadoCer: '',
-    certificadoKey: '',
-    certificadoPassword: '',
-    noCertificado: '',
-    pacProvider: '',
-    pacUser: '',
-    pacPassword: '',
-    pacMode: 'sandbox',
-  });
+  const [formData, setFormData] = useState<ConfigFormData>(defaultFormData);
 
   const cerInputRef = useRef<HTMLInputElement>(null);
   const keyInputRef = useRef<HTMLInputElement>(null);
 
-  // Obtener la empresa del usuario
+  const isAdmin = user?.role === 'admin';
+
+  // Obtener empresas
   const { data: companiesData, isLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: () => catalogsApi.getCompanies(),
     select: (res) => res.data,
   });
 
-  // Cargar datos de la empresa cuando esté disponible
-  const company = companiesData?.[0];
+  const companies = companiesData || [];
 
-  // Cargar datos actuales
-  useState(() => {
+  // Seleccionar empresa por defecto
+  useEffect(() => {
+    if (companies.length > 0 && !selectedCompanyId) {
+      setSelectedCompanyId(companies[0].id);
+    }
+  }, [companies, selectedCompanyId]);
+
+  // Obtener empresa seleccionada
+  const company = companies.find((c: any) => c.id === selectedCompanyId);
+
+  // Cargar datos de la empresa seleccionada
+  useEffect(() => {
     if (company) {
       setFormData({
         logo: company.logo || '',
@@ -113,17 +125,19 @@ export default function CompanyConfigPage() {
         pacPassword: company.pacPassword ? '***CONFIGURADO***' : '',
         pacMode: company.pacMode || 'sandbox',
       });
+    } else {
+      setFormData(defaultFormData);
     }
-  });
+  }, [company]);
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<ConfigFormData>) =>
-      api.patch(`/catalogs/companies/${company?.id}`, data),
+      api.patch(`/catalogs/companies/${selectedCompanyId}`, data),
     onSuccess: () => {
-      toast.success('Configuración guardada exitosamente');
+      toast.success('Configuracion guardada exitosamente');
       queryClient.invalidateQueries({ queryKey: ['companies'] });
-      // Actualizar el localStorage para reflejar cambios de tema
-      if (user) {
+      // Actualizar el localStorage para reflejar cambios de tema (solo si es la empresa del usuario)
+      if (user?.company?.id === selectedCompanyId) {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const userData = JSON.parse(storedUser);
@@ -137,7 +151,7 @@ export default function CompanyConfigPage() {
       }
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al guardar configuración');
+      toast.error(error.response?.data?.message || 'Error al guardar configuracion');
     },
   });
 
@@ -168,7 +182,6 @@ export default function CompanyConfigPage() {
       regimenFiscal: formData.regimenFiscal,
       noCertificado: formData.noCertificado,
     };
-    // Solo enviar certificados si fueron modificados
     if (formData.certificadoCer && !formData.certificadoCer.includes('***')) {
       data.certificadoCer = formData.certificadoCer;
     }
@@ -201,7 +214,7 @@ export default function CompanyConfigPage() {
     );
   }
 
-  if (!company) {
+  if (companies.length === 0) {
     return (
       <div className="card text-center py-12">
         <ExclamationTriangleIcon className="h-12 w-12 text-amber-500 mx-auto mb-4" />
@@ -224,12 +237,70 @@ export default function CompanyConfigPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <CogIcon className="h-7 w-7" />
-          Configuración de Empresa
+          Configuracion de Empresa
         </h1>
         <p className="text-gray-500 mt-1">
-          Personaliza tu empresa: {company.name}
+          Personaliza la configuracion de la empresa
         </p>
       </div>
+
+      {/* Company Selector for Admin */}
+      {isAdmin && companies.length > 1 && (
+        <div className="card mb-6 bg-blue-50 border-blue-200">
+          <div className="flex items-center gap-4">
+            <BuildingOffice2Icon className="h-8 w-8 text-blue-600" />
+            <div className="flex-1">
+              <label className="label text-blue-800">Seleccionar Empresa a Configurar</label>
+              <select
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                className="input max-w-md"
+              >
+                {companies.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} - {c.rfc}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Company Info Banner */}
+      {company && (
+        <div className="card mb-6">
+          <div className="flex items-center gap-4">
+            {company.logo ? (
+              <img
+                src={company.logo.startsWith('data:') ? company.logo : `data:image/png;base64,${company.logo}`}
+                alt="Logo"
+                className="h-12 w-12 object-contain rounded border"
+              />
+            ) : (
+              <div className="h-12 w-12 bg-gray-100 rounded flex items-center justify-center">
+                <BuildingOffice2Icon className="h-6 w-6 text-gray-400" />
+              </div>
+            )}
+            <div>
+              <h2 className="text-lg font-semibold">{company.name}</h2>
+              <p className="text-sm text-gray-500">RFC: {company.rfc}</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <div
+                className="w-6 h-6 rounded border"
+                style={{ backgroundColor: company.primaryColor || '#1E40AF' }}
+                title="Color Primario"
+              />
+              <div
+                className="w-6 h-6 rounded border"
+                style={{ backgroundColor: company.secondaryColor || '#3B82F6' }}
+                title="Color Secundario"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -254,7 +325,7 @@ export default function CompanyConfigPage() {
       {/* Branding Tab */}
       {activeTab === 'branding' && (
         <div className="card max-w-2xl">
-          <h2 className="text-lg font-semibold mb-4">Personalización de Marca</h2>
+          <h2 className="text-lg font-semibold mb-4">Personalizacion de Marca</h2>
 
           {/* Logo */}
           <div className="mb-6">
@@ -291,7 +362,7 @@ export default function CompanyConfigPage() {
                 <label htmlFor="logo-input" className="btn btn-secondary cursor-pointer">
                   Cambiar Logo
                 </label>
-                <p className="text-sm text-gray-500 mt-1">PNG o JPG, máximo 500KB</p>
+                <p className="text-sm text-gray-500 mt-1">PNG o JPG, maximo 500KB</p>
               </div>
             </div>
           </div>
@@ -394,9 +465,9 @@ export default function CompanyConfigPage() {
             </div>
           </div>
 
-          {/* Régimen Fiscal */}
+          {/* Regimen Fiscal */}
           <div className="mb-4">
-            <label className="label">Régimen Fiscal</label>
+            <label className="label">Regimen Fiscal</label>
             <select
               name="regimenFiscal"
               value={formData.regimenFiscal}
@@ -469,22 +540,22 @@ export default function CompanyConfigPage() {
             </div>
           </div>
 
-          {/* Contraseña del certificado */}
+          {/* Contrasena del certificado */}
           <div className="mb-4">
-            <label className="label">Contraseña del Certificado</label>
+            <label className="label">Contrasena del Certificado</label>
             <input
               type="password"
               name="certificadoPassword"
               value={formData.certificadoPassword}
               onChange={handleChange}
               className="input"
-              placeholder={formData.certificadoPassword.includes('***') ? 'Ya configurada' : 'Ingresa la contraseña'}
+              placeholder={formData.certificadoPassword.includes('***') ? 'Ya configurada' : 'Ingresa la contrasena'}
             />
           </div>
 
-          {/* Número de certificado */}
+          {/* Numero de certificado */}
           <div className="mb-6">
-            <label className="label">Número de Certificado</label>
+            <label className="label">Numero de Certificado</label>
             <input
               type="text"
               name="noCertificado"
@@ -494,7 +565,7 @@ export default function CompanyConfigPage() {
               placeholder="Ej: 30001000000400002434"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Se obtiene automáticamente del archivo .cer
+              Se obtiene automaticamente del archivo .cer
             </p>
           </div>
 
@@ -511,12 +582,12 @@ export default function CompanyConfigPage() {
       {/* PAC Tab */}
       {activeTab === 'pac' && (
         <div className="card max-w-2xl">
-          <h2 className="text-lg font-semibold mb-4">Configuración del Proveedor PAC</h2>
+          <h2 className="text-lg font-semibold mb-4">Configuracion del Proveedor PAC</h2>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-blue-800">
-              El PAC (Proveedor Autorizado de Certificación) es necesario para el timbrado
-              de los CFDIs de nómina. Configura tus credenciales según el proveedor que utilices.
+              El PAC (Proveedor Autorizado de Certificacion) es necesario para el timbrado
+              de los CFDIs de nomina. Configura tus credenciales segun el proveedor que utilices.
             </p>
           </div>
 
@@ -550,16 +621,16 @@ export default function CompanyConfigPage() {
             />
           </div>
 
-          {/* Contraseña */}
+          {/* Contrasena */}
           <div className="mb-4">
-            <label className="label">Contraseña PAC</label>
+            <label className="label">Contrasena PAC</label>
             <input
               type="password"
               name="pacPassword"
               value={formData.pacPassword}
               onChange={handleChange}
               className="input"
-              placeholder={formData.pacPassword.includes('***') ? 'Ya configurada' : 'Contraseña o API Secret'}
+              placeholder={formData.pacPassword.includes('***') ? 'Ya configurada' : 'Contrasena o API Secret'}
             />
           </div>
 
@@ -587,11 +658,11 @@ export default function CompanyConfigPage() {
                   onChange={handleChange}
                   className="text-primary-600"
                 />
-                <span className="text-sm">Producción</span>
+                <span className="text-sm">Produccion</span>
               </label>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              En modo Sandbox los timbrados no son fiscalmente válidos
+              En modo Sandbox los timbrados no son fiscalmente validos
             </p>
           </div>
 
@@ -600,7 +671,7 @@ export default function CompanyConfigPage() {
             disabled={updateMutation.isPending}
             className="btn btn-primary"
           >
-            {updateMutation.isPending ? 'Guardando...' : 'Guardar Configuración PAC'}
+            {updateMutation.isPending ? 'Guardando...' : 'Guardar Configuracion PAC'}
           </button>
         </div>
       )}

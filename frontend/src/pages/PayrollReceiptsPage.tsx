@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   DocumentArrowDownIcon,
@@ -7,6 +7,7 @@ import {
   CodeBracketIcon,
 } from '@heroicons/react/24/outline';
 import { payrollApi, employeesApi, catalogsApi, cfdiApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 
@@ -18,24 +19,39 @@ const periodTypeLabels: Record<string, string> = {
 };
 
 export default function PayrollReceiptsPage() {
+  const { user } = useAuth();
+  const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  // Get company from first company (for now)
-  const { data: companiesData } = useQuery({
+  const isAdmin = user?.role === 'admin';
+
+  // Get companies
+  const { data: companiesData, isLoading: isLoadingCompanies } = useQuery({
     queryKey: ['companies'],
     queryFn: () => catalogsApi.getCompanies(),
   });
   const companies = companiesData?.data || [];
-  const companyId = companies[0]?.id || '';
 
-  // Get employees for selection
-  const { data: employeesData } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => employeesApi.getAll({ limit: 1000 }),
-    enabled: !!companyId,
+  // Set default company
+  useEffect(() => {
+    if (companies.length > 0 && !selectedCompanyId) {
+      setSelectedCompanyId(companies[0].id);
+    }
+  }, [companies, selectedCompanyId]);
+
+  // Get employees for the selected company
+  const { data: employeesData, isLoading: isLoadingEmployees } = useQuery({
+    queryKey: ['employees', selectedCompanyId],
+    queryFn: () => employeesApi.getAll({ companyId: selectedCompanyId, limit: 1000 }),
+    enabled: !!selectedCompanyId,
   });
   const employees = employeesData?.data || [];
+
+  // Reset employee selection when company changes
+  useEffect(() => {
+    setSelectedEmployeeId('');
+  }, [selectedCompanyId]);
 
   // Get employee's payroll receipts
   const { data: receiptsData, isLoading } = useQuery({
@@ -120,15 +136,37 @@ export default function PayrollReceiptsPage() {
 
       {/* Filters */}
       <div className="card mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          {/* Company selector for admin */}
+          {isAdmin && (
+            <div>
+              <label className="label">Empresa</label>
+              <select
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                className="input"
+                disabled={isLoadingCompanies}
+              >
+                <option value="">Seleccionar empresa...</option>
+                {companies.map((company: any) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="label">Empleado</label>
             <select
               value={selectedEmployeeId}
               onChange={(e) => setSelectedEmployeeId(e.target.value)}
               className="input"
+              disabled={!selectedCompanyId || isLoadingEmployees}
             >
-              <option value="">Seleccionar empleado...</option>
+              <option value="">
+                {isLoadingEmployees ? 'Cargando...' : 'Seleccionar empleado...'}
+              </option>
               {employees.map((emp: any) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.firstName} {emp.lastName} - {emp.employeeNumber}
