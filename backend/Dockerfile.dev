@@ -3,8 +3,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar dependencias del sistema
-RUN apk add --no-cache python3 make g++
+# Instalar dependencias del sistema (incluye OpenSSL para Prisma)
+RUN apk add --no-cache python3 make g++ openssl openssl-dev libc6-compat
 
 # Copiar archivos de configuración
 COPY package*.json ./
