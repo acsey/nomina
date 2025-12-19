@@ -16,6 +16,7 @@ import {
   XMarkIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Empleados', href: '/employees', icon: UsersIcon },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon },
   { name: 'Nómina', href: '/payroll', icon: BanknotesIcon },
+  { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon },
   { name: 'Asistencia', href: '/attendance', icon: ClockIcon },
   { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon },
   { name: 'Prestaciones', href: '/benefits', icon: GiftIcon },

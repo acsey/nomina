@@ -15,6 +15,7 @@ import { GovernmentModule } from './modules/government/government.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { CatalogsModule } from './modules/catalogs/catalogs.module';
 import { BulkUploadModule } from './modules/bulk-upload/bulk-upload.module';
+import { IncidentsModule } from './modules/incidents/incidents.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { BulkUploadModule } from './modules/bulk-upload/bulk-upload.module';
     ReportsModule,
     CatalogsModule,
     BulkUploadModule,
+    IncidentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

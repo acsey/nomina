@@ -15,6 +15,7 @@ import BenefitsPage from './pages/BenefitsPage';
 import ReportsPage from './pages/ReportsPage';
 import BulkUploadPage from './pages/BulkUploadPage';
 import CompaniesPage from './pages/CompaniesPage';
+import IncidentsPage from './pages/IncidentsPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -54,6 +55,7 @@ function App() {
             <Route path="departments" element={<DepartmentsPage />} />
             <Route path="payroll" element={<PayrollPage />} />
             <Route path="payroll/receipts" element={<PayrollReceiptsPage />} />
+            <Route path="incidents" element={<IncidentsPage />} />
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="vacations" element={<VacationsPage />} />
             <Route path="benefits" element={<BenefitsPage />} />

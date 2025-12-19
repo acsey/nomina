@@ -177,52 +177,57 @@ export default function PayrollReceiptsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {receipts.map((receipt: any) => (
-                <tr key={receipt.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {receipt.payrollPeriod.periodNumber}/{receipt.payrollPeriod.year}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {periodTypeLabels[receipt.payrollPeriod.periodType] || receipt.payrollPeriod.periodType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {dayjs(receipt.payrollPeriod.paymentDate).format('DD/MM/YYYY')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {Number(receipt.workedDays).toFixed(1)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-medium">
-                    {formatCurrency(Number(receipt.totalPerceptions))}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-medium">
-                    {formatCurrency(Number(receipt.totalDeductions))}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-600 font-bold">
-                    {formatCurrency(Number(receipt.netPay))}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => handleView(receipt.id)}
-                        className="text-primary-600 hover:text-primary-800 p-1"
-                        title="Ver PDF"
-                      >
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDownload(
-                          receipt.id,
-                          `${receipt.payrollPeriod.periodNumber}_${receipt.payrollPeriod.year}`
-                        )}
-                        className="text-green-600 hover:text-green-800 p-1"
-                        title="Descargar PDF"
-                      >
-                        <DocumentArrowDownIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {receipts.map((receipt: any) => {
+                const period = receipt.payrollPeriod;
+                if (!period) return null;
+
+                return (
+                  <tr key={receipt.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {period.periodNumber}/{period.year}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {periodTypeLabels[period.periodType] || period.periodType}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {dayjs(period.paymentDate).format('DD/MM/YYYY')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {Number(receipt.workedDays).toFixed(1)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-medium">
+                      {formatCurrency(Number(receipt.totalPerceptions))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-medium">
+                      {formatCurrency(Number(receipt.totalDeductions))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-600 font-bold">
+                      {formatCurrency(Number(receipt.netPay))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => handleView(receipt.id)}
+                          className="text-primary-600 hover:text-primary-800 p-1"
+                          title="Ver PDF"
+                        >
+                          <EyeIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDownload(
+                            receipt.id,
+                            `${period.periodNumber}_${period.year}`
+                          )}
+                          className="text-green-600 hover:text-green-800 p-1"
+                          title="Descargar PDF"
+                        >
+                          <DocumentArrowDownIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -235,7 +240,9 @@ export default function PayrollReceiptsPage() {
             <p className="text-sm text-green-600">Total Percepciones ({selectedYear})</p>
             <p className="text-2xl font-bold text-green-700">
               {formatCurrency(
-                receipts.reduce((sum: number, r: any) => sum + Number(r.totalPerceptions), 0)
+                receipts
+                  .filter((r: any) => r.payrollPeriod)
+                  .reduce((sum: number, r: any) => sum + Number(r.totalPerceptions || 0), 0)
               )}
             </p>
           </div>
@@ -243,7 +250,9 @@ export default function PayrollReceiptsPage() {
             <p className="text-sm text-red-600">Total Deducciones ({selectedYear})</p>
             <p className="text-2xl font-bold text-red-700">
               {formatCurrency(
-                receipts.reduce((sum: number, r: any) => sum + Number(r.totalDeductions), 0)
+                receipts
+                  .filter((r: any) => r.payrollPeriod)
+                  .reduce((sum: number, r: any) => sum + Number(r.totalDeductions || 0), 0)
               )}
             </p>
           </div>
@@ -251,7 +260,9 @@ export default function PayrollReceiptsPage() {
             <p className="text-sm text-blue-600">Total Neto ({selectedYear})</p>
             <p className="text-2xl font-bold text-blue-700">
               {formatCurrency(
-                receipts.reduce((sum: number, r: any) => sum + Number(r.netPay), 0)
+                receipts
+                  .filter((r: any) => r.payrollPeriod)
+                  .reduce((sum: number, r: any) => sum + Number(r.netPay || 0), 0)
               )}
             </p>
           </div>

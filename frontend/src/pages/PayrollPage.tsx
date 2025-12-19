@@ -8,6 +8,7 @@ import {
   DocumentArrowDownIcon,
   XMarkIcon,
   DocumentTextIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import { payrollApi, reportsApi, catalogsApi } from '../services/api';
 import toast from 'react-hot-toast';
@@ -54,6 +55,10 @@ interface PeriodFormData {
 export default function PayrollPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [previewPeriodId, setPreviewPeriodId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const today = new Date();
@@ -112,6 +117,42 @@ export default function PayrollPage() {
       queryClient.invalidateQueries({ queryKey: ['payroll-periods'] });
     },
   });
+
+  const handlePreview = async (periodId: string) => {
+    setIsLoadingPreview(true);
+    setPreviewPeriodId(periodId);
+    setIsPreviewModalOpen(true);
+    try {
+      const response = await payrollApi.previewPayroll(periodId);
+      setPreviewData(response.data);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Error al cargar la previsualizacion');
+      setIsPreviewModalOpen(false);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleCalculateFromPreview = async () => {
+    if (!previewPeriodId) return;
+    try {
+      await payrollApi.calculatePayroll(previewPeriodId);
+      toast.success('Nomina calculada correctamente');
+      queryClient.invalidateQueries({ queryKey: ['payroll-periods'] });
+      setIsPreviewModalOpen(false);
+      setPreviewData(null);
+      setPreviewPeriodId(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Error al calcular nomina');
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+    }).format(value);
+  };
 
   const downloadExcel = async (periodId: string) => {
     try {
@@ -263,14 +304,23 @@ export default function PayrollPage() {
                     <td>
                       <div className="flex gap-2">
                         {period.status === 'DRAFT' && (
-                          <button
-                            onClick={() => calculateMutation.mutate(period.id)}
-                            disabled={calculateMutation.isPending}
-                            className="text-primary-600 hover:text-primary-800"
-                            title="Calcular"
-                          >
-                            <CalculatorIcon className="h-5 w-5" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handlePreview(period.id)}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Previsualizar Nomina"
+                            >
+                              <EyeIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => calculateMutation.mutate(period.id)}
+                              disabled={calculateMutation.isPending}
+                              className="text-primary-600 hover:text-primary-800"
+                              title="Calcular Directamente"
+                            >
+                              <CalculatorIcon className="h-5 w-5" />
+                            </button>
+                          </>
                         )}
                         {period.status === 'CALCULATED' && (
                           <button
@@ -450,6 +500,168 @@ export default function PayrollPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {isPreviewModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => {
+              setIsPreviewModalOpen(false);
+              setPreviewData(null);
+              setPreviewPeriodId(null);
+            }} />
+
+            <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+              <div className="bg-white px-6 py-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Previsualizacion de Nomina
+                    {previewData?.period && (
+                      <span className="text-gray-500 ml-2">
+                        - {periodTypeLabels[previewData.period.periodType]} {previewData.period.periodNumber}/{previewData.period.year}
+                      </span>
+                    )}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setIsPreviewModalOpen(false);
+                      setPreviewData(null);
+                      setPreviewPeriodId(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
+                </div>
+
+                {isLoadingPreview ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    <span className="ml-3 text-gray-500">Calculando previsualizacion...</span>
+                  </div>
+                ) : previewData ? (
+                  <>
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-500">Empleados</p>
+                        <p className="text-2xl font-bold text-gray-900">{previewData.employeeCount}</p>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <p className="text-sm text-green-600">Total Percepciones</p>
+                        <p className="text-2xl font-bold text-green-700">{formatCurrency(previewData.totals.perceptions)}</p>
+                      </div>
+                      <div className="bg-red-50 rounded-lg p-4">
+                        <p className="text-sm text-red-600">Total Deducciones</p>
+                        <p className="text-2xl font-bold text-red-700">{formatCurrency(previewData.totals.deductions)}</p>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <p className="text-sm text-blue-600">Total Neto a Pagar</p>
+                        <p className="text-2xl font-bold text-blue-700">{formatCurrency(previewData.totals.netPay)}</p>
+                      </div>
+                    </div>
+
+                    {/* Employees Table */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empleado</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Departamento</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Dias</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Percepciones</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Deducciones</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Neto</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Incidencias</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {previewData.employees.map((emp: any) => (
+                            <tr key={emp.employee.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                <div>
+                                  <p className="font-medium text-gray-900">{emp.employee.firstName} {emp.employee.lastName}</p>
+                                  <p className="text-xs text-gray-500">{emp.employee.employeeNumber}</p>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">{emp.employee.department}</td>
+                              <td className="px-4 py-3 text-center text-sm">{emp.workedDays}</td>
+                              <td className="px-4 py-3 text-right">
+                                <span className="text-green-600 font-medium">{formatCurrency(emp.totalPerceptions)}</span>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {emp.perceptions.slice(0, 2).map((p: any, i: number) => (
+                                    <div key={i}>{p.conceptName}: {formatCurrency(p.amount)}</div>
+                                  ))}
+                                  {emp.perceptions.length > 2 && (
+                                    <div className="text-gray-400">+{emp.perceptions.length - 2} mas</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <span className="text-red-600 font-medium">{formatCurrency(emp.totalDeductions)}</span>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {emp.deductions.slice(0, 2).map((d: any, i: number) => (
+                                    <div key={i}>{d.conceptName}: {formatCurrency(d.amount)}</div>
+                                  ))}
+                                  {emp.deductions.length > 2 && (
+                                    <div className="text-gray-400">+{emp.deductions.length - 2} mas</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <span className="text-blue-600 font-bold">{formatCurrency(emp.netPay)}</span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {emp.incidents && emp.incidents.length > 0 ? (
+                                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                                    {emp.incidents.length}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-xs">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                      <p className="text-sm text-gray-500">
+                        Esta es una previsualizacion. Los datos no se guardaran hasta que confirmes el calculo.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            setIsPreviewModalOpen(false);
+                            setPreviewData(null);
+                            setPreviewPeriodId(null);
+                          }}
+                          className="btn btn-secondary"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleCalculateFromPreview}
+                          className="btn btn-primary"
+                        >
+                          <CalculatorIcon className="h-5 w-5 mr-2" />
+                          Confirmar y Calcular Nomina
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No se pudo cargar la previsualizacion
+                  </div>
+                )}
               </div>
             </div>
           </div>

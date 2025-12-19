@@ -48,6 +48,13 @@ export class PayrollController {
     return this.payrollService.findPeriod(id);
   }
 
+  @Get('periods/:id/preview')
+  @Roles('admin', 'rh')
+  @ApiOperation({ summary: 'Previsualizar calculo de nomina sin guardar' })
+  previewPayroll(@Param('id') id: string) {
+    return this.payrollService.previewPayroll(id);
+  }
+
   @Post('periods/:id/calculate')
   @Roles('admin', 'rh')
   @ApiOperation({ summary: 'Calcular nomina del periodo' })

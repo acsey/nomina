@@ -68,27 +68,33 @@ export class PayrollReceiptService {
 
   private async createPdf(detail: any): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
-      const chunks: Buffer[] = [];
+      try {
+        const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
+        const chunks: Buffer[] = [];
 
-      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
 
-      const { employee, payrollPeriod, perceptions, deductions } = detail;
-      const company = payrollPeriod.company;
+        const { employee, payrollPeriod, perceptions, deductions } = detail;
+        const company = payrollPeriod?.company || employee?.company || {};
+
+        if (!payrollPeriod) {
+          reject(new Error('Periodo de nomina no encontrado'));
+          return;
+        }
 
       // Header
       doc.fontSize(16).font('Helvetica-Bold').text('RECIBO DE NOMINA', { align: 'center' });
       doc.moveDown(0.5);
 
       // Company Info
-      doc.fontSize(12).font('Helvetica-Bold').text(company.name);
-      doc.fontSize(10).font('Helvetica').text(`RFC: ${company.rfc}`);
+      doc.fontSize(12).font('Helvetica-Bold').text(company.name || 'Empresa');
+      doc.fontSize(10).font('Helvetica').text(`RFC: ${company.rfc || 'N/A'}`);
       if (company.registroPatronal) {
         doc.text(`Registro Patronal: ${company.registroPatronal}`);
       }
-      doc.text(`${company.address || ''} ${company.city || ''}, ${company.state || ''}`);
+      doc.text(`${company.address || ''} ${company.city || ''}, ${company.state || ''}`.trim() || 'Sin direccion');
       doc.moveDown();
 
       // Period Info
@@ -206,6 +212,9 @@ export class PayrollReceiptService {
       }
 
       doc.end();
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
