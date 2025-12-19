@@ -1,11 +1,24 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
-import { employeesApi } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  ArrowLeftIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  XMarkIcon,
+  TrashIcon,
+  GiftIcon,
+} from '@heroicons/react/24/outline';
+import { employeesApi, benefitsApi } from '../services/api';
 import dayjs from 'dayjs';
+import toast from 'react-hot-toast';
 
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBenefitId, setSelectedBenefitId] = useState('');
+  const [customValue, setCustomValue] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['employee', id],
@@ -13,7 +26,91 @@ export default function EmployeeDetailPage() {
     enabled: !!id,
   });
 
+  const { data: allBenefitsData } = useQuery({
+    queryKey: ['benefits'],
+    queryFn: () => benefitsApi.getAll(),
+  });
+
+  const { data: employeeBenefitsData, refetch: refetchBenefits } = useQuery({
+    queryKey: ['employee-benefits', id],
+    queryFn: () => benefitsApi.getEmployeeBenefits(id!),
+    enabled: !!id,
+  });
+
   const employee = data?.data;
+  const allBenefits = allBenefitsData?.data || [];
+  const employeeBenefits = employeeBenefitsData?.data || [];
+
+  // Get list of benefits not yet assigned
+  const assignedBenefitIds = employeeBenefits.map((eb: any) => eb.benefitId);
+  const availableBenefits = allBenefits.filter(
+    (b: any) => !assignedBenefitIds.includes(b.id)
+  );
+
+  const assignMutation = useMutation({
+    mutationFn: (data: any) => benefitsApi.assignToEmployee(data),
+    onSuccess: () => {
+      toast.success('Prestacion asignada exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      refetchBenefits();
+      closeModal();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al asignar prestacion');
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (benefitId: string) => benefitsApi.removeFromEmployee(id!, benefitId),
+    onSuccess: () => {
+      toast.success('Prestacion removida');
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      refetchBenefits();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al remover prestacion');
+    },
+  });
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedBenefitId('');
+    setCustomValue('');
+  };
+
+  const handleAssign = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBenefitId) return;
+
+    assignMutation.mutate({
+      employeeId: id,
+      benefitId: selectedBenefitId,
+      customValue: customValue ? Number(customValue) : undefined,
+      startDate: new Date(),
+    });
+  };
+
+  const handleRemove = (benefitId: string, benefitName: string) => {
+    if (confirm(`¿Remover la prestacion "${benefitName}" de este empleado?`)) {
+      removeMutation.mutate(benefitId);
+    }
+  };
+
+  const getValueDisplay = (eb: any) => {
+    const value = eb.customValue ?? eb.benefit.value;
+    if (!value) return '-';
+
+    switch (eb.benefit.valueType) {
+      case 'FIXED_AMOUNT':
+        return `$${Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+      case 'PERCENTAGE_SALARY':
+        return `${value}% del salario`;
+      case 'DAYS_SALARY':
+        return `${value} dias de salario`;
+      default:
+        return value;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -225,31 +322,149 @@ export default function EmployeeDetailPage() {
 
         {/* Prestaciones */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Prestaciones Asignadas
-          </h2>
-          {employee.benefits && employee.benefits.length > 0 ? (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Prestaciones Asignadas
+            </h2>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="btn btn-primary btn-sm"
+              disabled={availableBenefits.length === 0}
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              Agregar
+            </button>
+          </div>
+
+          {employeeBenefits.length > 0 ? (
             <ul className="divide-y divide-gray-200">
-              {employee.benefits.map((eb: any) => (
-                <li key={eb.id} className="py-3 flex justify-between">
-                  <span className="font-medium">{eb.benefit.name}</span>
-                  <span className="text-gray-500">
-                    {eb.customValue
-                      ? `$${Number(eb.customValue).toLocaleString()}`
-                      : eb.benefit.value
-                      ? `$${Number(eb.benefit.value).toLocaleString()}`
-                      : '-'}
-                  </span>
+              {employeeBenefits.map((eb: any) => (
+                <li key={eb.id} className="py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary-50">
+                      <GiftIcon className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{eb.benefit.name}</p>
+                      <p className="text-sm text-gray-500">{eb.benefit.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-green-600 font-medium">
+                      {getValueDisplay(eb)}
+                    </span>
+                    <button
+                      onClick={() => handleRemove(eb.benefitId, eb.benefit.name)}
+                      className="p-1 text-gray-400 hover:text-red-600"
+                      title="Remover prestacion"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500 text-sm">
-              No hay prestaciones asignadas
-            </p>
+            <div className="text-center py-8">
+              <GiftIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500 text-sm">
+                No hay prestaciones asignadas
+              </p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-primary-600 hover:text-primary-700 text-sm mt-2"
+                disabled={availableBenefits.length === 0}
+              >
+                Agregar primera prestacion
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Modal para asignar prestacion */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={closeModal}
+            />
+
+            <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md">
+              <div className="bg-white px-4 pb-4 pt-5 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Asignar Prestacion</h3>
+                  <button
+                    onClick={closeModal}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAssign} className="space-y-4">
+                  <div>
+                    <label className="label">Prestacion *</label>
+                    <select
+                      value={selectedBenefitId}
+                      onChange={(e) => setSelectedBenefitId(e.target.value)}
+                      className="input"
+                      required
+                    >
+                      <option value="">Seleccionar prestacion...</option>
+                      {availableBenefits.map((benefit: any) => (
+                        <option key={benefit.id} value={benefit.id}>
+                          {benefit.name} - {benefit.valueType === 'FIXED_AMOUNT'
+                            ? `$${Number(benefit.value).toLocaleString()}`
+                            : benefit.valueType === 'PERCENTAGE_SALARY'
+                            ? `${benefit.value}%`
+                            : `${benefit.value} dias`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="label">
+                      Valor personalizado (opcional)
+                    </label>
+                    <input
+                      type="number"
+                      value={customValue}
+                      onChange={(e) => setCustomValue(e.target.value)}
+                      className="input"
+                      placeholder="Dejar vacio para usar el valor por defecto"
+                      min="0"
+                      step="0.01"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Si no se especifica, se usara el valor configurado en la prestacion
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="btn btn-secondary"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={assignMutation.isPending || !selectedBenefitId}
+                    >
+                      {assignMutation.isPending ? 'Asignando...' : 'Asignar'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
