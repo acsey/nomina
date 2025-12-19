@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Param,
-  Body,
   Res,
   UseGuards,
   UseInterceptors,
@@ -19,8 +18,17 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import { BulkUploadService } from './bulk-upload.service';
+import { BulkUploadService, UploadResult } from './bulk-upload.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+}
 
 @ApiTags('bulk-upload')
 @Controller('bulk-upload')
@@ -110,8 +118,8 @@ export class BulkUploadController {
   @UseInterceptors(FileInterceptor('file'))
   async importEmployees(
     @Param('companyId') companyId: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+    @UploadedFile() file: MulterFile,
+  ): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
@@ -136,7 +144,7 @@ export class BulkUploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-  async importCompanies(@UploadedFile() file: Express.Multer.File) {
+  async importCompanies(@UploadedFile() file: MulterFile): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
@@ -161,7 +169,7 @@ export class BulkUploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-  async importDepartments(@UploadedFile() file: Express.Multer.File) {
+  async importDepartments(@UploadedFile() file: MulterFile): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
@@ -186,7 +194,7 @@ export class BulkUploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-  async importBenefits(@UploadedFile() file: Express.Multer.File) {
+  async importBenefits(@UploadedFile() file: MulterFile): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
@@ -211,7 +219,7 @@ export class BulkUploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-  async importJobPositions(@UploadedFile() file: Express.Multer.File) {
+  async importJobPositions(@UploadedFile() file: MulterFile): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
