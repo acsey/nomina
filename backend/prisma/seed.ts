@@ -14,19 +14,11 @@ async function main() {
       name: 'admin',
       description: 'Administrador del sistema',
       permissions: JSON.stringify([
-        'users:read',
-        'users:write',
-        'users:delete',
-        'employees:read',
-        'employees:write',
-        'employees:delete',
-        'payroll:read',
-        'payroll:write',
-        'payroll:approve',
-        'reports:read',
-        'reports:export',
-        'settings:read',
-        'settings:write',
+        'users:read', 'users:write', 'users:delete',
+        'employees:read', 'employees:write', 'employees:delete',
+        'payroll:read', 'payroll:write', 'payroll:approve',
+        'reports:read', 'reports:export',
+        'settings:read', 'settings:write',
       ]),
     },
   });
@@ -38,12 +30,9 @@ async function main() {
       name: 'rh',
       description: 'Recursos Humanos',
       permissions: JSON.stringify([
-        'employees:read',
-        'employees:write',
-        'payroll:read',
-        'payroll:write',
-        'reports:read',
-        'reports:export',
+        'employees:read', 'employees:write',
+        'payroll:read', 'payroll:write',
+        'reports:read', 'reports:export',
       ]),
     },
   });
@@ -54,11 +43,7 @@ async function main() {
     create: {
       name: 'manager',
       description: 'Gerente de departamento',
-      permissions: JSON.stringify([
-        'employees:read',
-        'payroll:read',
-        'reports:read',
-      ]),
+      permissions: JSON.stringify(['employees:read', 'payroll:read', 'reports:read']),
     },
   });
 
@@ -68,550 +53,239 @@ async function main() {
     create: {
       name: 'employee',
       description: 'Empleado',
-      permissions: JSON.stringify([
-        'profile:read',
-        'payroll:read:own',
-      ]),
+      permissions: JSON.stringify(['profile:read', 'payroll:read:own']),
     },
   });
 
   console.log('✅ Roles creados');
 
-  // Crear usuario administrador
   const hashedPassword = await bcrypt.hash('admin123', 10);
 
+  // Crear usuario super administrador (sin empresa)
   await prisma.user.upsert({
-    where: { email: 'admin@empresa.com' },
+    where: { email: 'admin@sistema.com' },
     update: {},
     create: {
-      email: 'admin@empresa.com',
+      email: 'admin@sistema.com',
       password: hashedPassword,
-      firstName: 'Administrador',
-      lastName: 'Sistema',
+      firstName: 'Super',
+      lastName: 'Administrador',
       roleId: adminRole.id,
     },
   });
 
-  console.log('✅ Usuario administrador creado');
+  console.log('✅ Usuario super administrador creado');
 
-  // Crear empresa demo
-  const company = await prisma.company.upsert({
-    where: { rfc: 'XAXX010101000' },
+  // ============================================
+  // CREAR 3 EMPRESAS CON DIFERENTES CONFIGURACIONES
+  // ============================================
+
+  // Empresa 1: BFS Ingeniería (basada en el XML de ejemplo)
+  const bfsCompany = await prisma.company.upsert({
+    where: { rfc: 'BIA191106ET2' },
     update: {},
     create: {
-      name: 'Empresa Demo S.A. de C.V.',
-      rfc: 'XAXX010101000',
-      registroPatronal: 'Y12345678901',
-      address: 'Av. Reforma 123',
+      name: 'BFS Ingeniería Aplicada S.A. de C.V.',
+      rfc: 'BIA191106ET2',
+      registroPatronal: 'Y5481967106',
+      regimenFiscal: '601',
+      address: 'Av. Tecnológico 500',
+      city: 'Aguascalientes',
+      state: 'AGS',
+      zipCode: '20328',
+      phone: '449 123 4567',
+      email: 'contacto@bfs.com.mx',
+      primaryColor: '#0066CC',
+      secondaryColor: '#00AAFF',
+      pacProvider: 'FINKOK',
+      pacMode: 'sandbox',
+    },
+  });
+
+  // Empresa 2: Tech Solutions
+  const techCompany = await prisma.company.upsert({
+    where: { rfc: 'TSO201215ABC' },
+    update: {},
+    create: {
+      name: 'Tech Solutions México S.A. de C.V.',
+      rfc: 'TSO201215ABC',
+      registroPatronal: 'Y1234567890',
+      regimenFiscal: '601',
+      address: 'Av. Reforma 222',
       city: 'Ciudad de México',
       state: 'CDMX',
       zipCode: '06600',
-      phone: '55 1234 5678',
-      email: 'contacto@empresademo.com',
+      phone: '55 9876 5432',
+      email: 'info@techsolutions.mx',
+      primaryColor: '#7C3AED',
+      secondaryColor: '#A78BFA',
+      pacProvider: 'FINKOK',
+      pacMode: 'sandbox',
     },
   });
 
-  console.log('✅ Empresa demo creada');
-
-  // Crear usuario RH asignado a la empresa
-  const rhUser = await prisma.user.upsert({
-    where: { email: 'rh@empresa.com' },
-    update: { companyId: company.id },
+  // Empresa 3: Comercializadora del Norte
+  const norteCompany = await prisma.company.upsert({
+    where: { rfc: 'CNO180520XYZ' },
+    update: {},
     create: {
-      email: 'rh@empresa.com',
+      name: 'Comercializadora del Norte S.A. de C.V.',
+      rfc: 'CNO180520XYZ',
+      registroPatronal: 'Z9876543210',
+      regimenFiscal: '601',
+      address: 'Blvd. Industrial 1500',
+      city: 'Monterrey',
+      state: 'NL',
+      zipCode: '64000',
+      phone: '81 4567 8901',
+      email: 'admin@comnorte.mx',
+      primaryColor: '#059669',
+      secondaryColor: '#34D399',
+      pacProvider: 'FINKOK',
+      pacMode: 'sandbox',
+    },
+  });
+
+  console.log('✅ 3 Empresas creadas con diferentes configuraciones');
+
+  // ============================================
+  // CREAR USUARIOS POR EMPRESA
+  // ============================================
+
+  // Usuarios BFS
+  await prisma.user.upsert({
+    where: { email: 'rh@bfs.com.mx' },
+    update: { companyId: bfsCompany.id },
+    create: {
+      email: 'rh@bfs.com.mx',
       password: hashedPassword,
-      firstName: 'Recursos',
-      lastName: 'Humanos',
+      firstName: 'Patricia',
+      lastName: 'González',
       roleId: rhRole.id,
-      companyId: company.id,
+      companyId: bfsCompany.id,
     },
   });
 
-  // Crear usuario gerente asignado a la empresa
-  const managerUser = await prisma.user.upsert({
-    where: { email: 'gerente@empresa.com' },
-    update: { companyId: company.id },
+  await prisma.user.upsert({
+    where: { email: 'gerente@bfs.com.mx' },
+    update: { companyId: bfsCompany.id },
     create: {
-      email: 'gerente@empresa.com',
+      email: 'gerente@bfs.com.mx',
       password: hashedPassword,
-      firstName: 'Gerente',
-      lastName: 'Departamento',
+      firstName: 'Ricardo',
+      lastName: 'Mendoza',
       roleId: managerRole.id,
-      companyId: company.id,
+      companyId: bfsCompany.id,
     },
   });
 
-  console.log('✅ Usuarios RH y Gerente creados (asignados a empresa)');
-
-  // Crear departamentos
-  const rhDept = await prisma.department.create({
-    data: {
-      name: 'Recursos Humanos',
-      description: 'Departamento de Recursos Humanos',
-      companyId: company.id,
+  // Usuarios Tech Solutions
+  await prisma.user.upsert({
+    where: { email: 'rh@techsolutions.mx' },
+    update: { companyId: techCompany.id },
+    create: {
+      email: 'rh@techsolutions.mx',
+      password: hashedPassword,
+      firstName: 'Andrea',
+      lastName: 'Ramírez',
+      roleId: rhRole.id,
+      companyId: techCompany.id,
     },
   });
 
-  const finanzasDept = await prisma.department.create({
-    data: {
-      name: 'Finanzas',
-      description: 'Departamento de Finanzas y Contabilidad',
-      companyId: company.id,
+  await prisma.user.upsert({
+    where: { email: 'gerente@techsolutions.mx' },
+    update: { companyId: techCompany.id },
+    create: {
+      email: 'gerente@techsolutions.mx',
+      password: hashedPassword,
+      firstName: 'Fernando',
+      lastName: 'Castro',
+      roleId: managerRole.id,
+      companyId: techCompany.id,
     },
   });
 
-  const operacionesDept = await prisma.department.create({
-    data: {
-      name: 'Operaciones',
-      description: 'Departamento de Operaciones',
-      companyId: company.id,
+  // Usuarios Comercializadora del Norte
+  await prisma.user.upsert({
+    where: { email: 'rh@comnorte.mx' },
+    update: { companyId: norteCompany.id },
+    create: {
+      email: 'rh@comnorte.mx',
+      password: hashedPassword,
+      firstName: 'Mónica',
+      lastName: 'Villarreal',
+      roleId: rhRole.id,
+      companyId: norteCompany.id,
     },
   });
 
-  const tiDept = await prisma.department.create({
-    data: {
-      name: 'Tecnología',
-      description: 'Departamento de Tecnología de la Información',
-      companyId: company.id,
-    },
-  });
+  console.log('✅ Usuarios RH y Gerentes creados para cada empresa');
 
-  console.log('✅ Departamentos creados');
+  // ============================================
+  // CREAR DEPARTAMENTOS POR EMPRESA
+  // ============================================
 
-  // Crear puestos
+  // Departamentos BFS
+  const bfsDepts = {
+    rh: await prisma.department.create({ data: { name: 'Recursos Humanos', companyId: bfsCompany.id } }),
+    ti: await prisma.department.create({ data: { name: 'Tecnología', companyId: bfsCompany.id } }),
+    ops: await prisma.department.create({ data: { name: 'Operaciones', companyId: bfsCompany.id } }),
+    admin: await prisma.department.create({ data: { name: 'Administración', companyId: bfsCompany.id } }),
+  };
+
+  // Departamentos Tech Solutions
+  const techDepts = {
+    rh: await prisma.department.create({ data: { name: 'People & Culture', companyId: techCompany.id } }),
+    dev: await prisma.department.create({ data: { name: 'Desarrollo', companyId: techCompany.id } }),
+    qa: await prisma.department.create({ data: { name: 'QA', companyId: techCompany.id } }),
+    pm: await prisma.department.create({ data: { name: 'Project Management', companyId: techCompany.id } }),
+  };
+
+  // Departamentos Comercializadora del Norte
+  const norteDepts = {
+    rh: await prisma.department.create({ data: { name: 'Capital Humano', companyId: norteCompany.id } }),
+    ventas: await prisma.department.create({ data: { name: 'Ventas', companyId: norteCompany.id } }),
+    almacen: await prisma.department.create({ data: { name: 'Almacén', companyId: norteCompany.id } }),
+    finanzas: await prisma.department.create({ data: { name: 'Finanzas', companyId: norteCompany.id } }),
+  };
+
+  console.log('✅ Departamentos creados para cada empresa');
+
+  // ============================================
+  // CREAR PUESTOS Y BANCOS (COMPARTIDOS)
+  // ============================================
+
   const puestos = await Promise.all([
-    prisma.jobPosition.create({
-      data: {
-        name: 'Gerente General',
-        description: 'Dirección general de la empresa',
-        minSalary: 50000,
-        maxSalary: 100000,
-        riskLevel: 'CLASE_I',
-      },
-    }),
-    prisma.jobPosition.create({
-      data: {
-        name: 'Gerente de Recursos Humanos',
-        description: 'Gestión del personal',
-        minSalary: 35000,
-        maxSalary: 60000,
-        riskLevel: 'CLASE_I',
-      },
-    }),
-    prisma.jobPosition.create({
-      data: {
-        name: 'Contador',
-        description: 'Contabilidad y finanzas',
-        minSalary: 20000,
-        maxSalary: 40000,
-        riskLevel: 'CLASE_I',
-      },
-    }),
-    prisma.jobPosition.create({
-      data: {
-        name: 'Desarrollador de Software',
-        description: 'Desarrollo de aplicaciones',
-        minSalary: 25000,
-        maxSalary: 60000,
-        riskLevel: 'CLASE_I',
-      },
-    }),
-    prisma.jobPosition.create({
-      data: {
-        name: 'Operador',
-        description: 'Operaciones generales',
-        minSalary: 8000,
-        maxSalary: 15000,
-        riskLevel: 'CLASE_II',
-      },
-    }),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-1' }, update: {}, create: { id: 'puesto-1', name: 'Gerente General', minSalary: 50000, maxSalary: 100000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-2' }, update: {}, create: { id: 'puesto-2', name: 'Gerente de RH', minSalary: 35000, maxSalary: 60000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-3' }, update: {}, create: { id: 'puesto-3', name: 'Desarrollador Sr', minSalary: 40000, maxSalary: 70000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-4' }, update: {}, create: { id: 'puesto-4', name: 'Desarrollador Jr', minSalary: 18000, maxSalary: 35000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-5' }, update: {}, create: { id: 'puesto-5', name: 'Contador', minSalary: 20000, maxSalary: 40000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-6' }, update: {}, create: { id: 'puesto-6', name: 'Vendedor', minSalary: 12000, maxSalary: 25000, riskLevel: 'CLASE_I' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-7' }, update: {}, create: { id: 'puesto-7', name: 'Almacenista', minSalary: 10000, maxSalary: 18000, riskLevel: 'CLASE_II' }}),
+    prisma.jobPosition.upsert({ where: { id: 'puesto-8' }, update: {}, create: { id: 'puesto-8', name: 'Ingeniero de Soporte', minSalary: 25000, maxSalary: 45000, riskLevel: 'CLASE_I' }}),
   ]);
 
-  console.log('✅ Puestos creados');
-
-  // Crear bancos
   const bancos = await Promise.all([
-    prisma.bank.upsert({
-      where: { code: '002' },
-      update: {},
-      create: { code: '002', name: 'BANAMEX' },
-    }),
-    prisma.bank.upsert({
-      where: { code: '012' },
-      update: {},
-      create: { code: '012', name: 'BBVA MEXICO' },
-    }),
-    prisma.bank.upsert({
-      where: { code: '014' },
-      update: {},
-      create: { code: '014', name: 'SANTANDER' },
-    }),
-    prisma.bank.upsert({
-      where: { code: '021' },
-      update: {},
-      create: { code: '021', name: 'HSBC' },
-    }),
-    prisma.bank.upsert({
-      where: { code: '072' },
-      update: {},
-      create: { code: '072', name: 'BANORTE' },
-    }),
+    prisma.bank.upsert({ where: { code: '002' }, update: {}, create: { code: '002', name: 'BANAMEX' }}),
+    prisma.bank.upsert({ where: { code: '012' }, update: {}, create: { code: '012', name: 'BBVA MEXICO' }}),
+    prisma.bank.upsert({ where: { code: '014' }, update: {}, create: { code: '014', name: 'SANTANDER' }}),
+    prisma.bank.upsert({ where: { code: '021' }, update: {}, create: { code: '021', name: 'HSBC' }}),
+    prisma.bank.upsert({ where: { code: '072' }, update: {}, create: { code: '072', name: 'BANORTE' }}),
   ]);
 
-  console.log('✅ Bancos creados');
+  console.log('✅ Puestos y Bancos creados');
 
-  // Crear conceptos de nómina (completos según SAT)
-  const conceptos = await Promise.all([
-    // ===========================================
-    // PERCEPCIONES (códigos SAT del catálogo CFDI)
-    // ===========================================
-    prisma.payrollConcept.upsert({
-      where: { code: 'P001' },
-      update: {},
-      create: { code: 'P001', name: 'Sueldo', type: 'PERCEPTION', satCode: '001', isTaxable: true, isFixed: true },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P002' },
-      update: {},
-      create: { code: 'P002', name: 'Horas Extra', type: 'PERCEPTION', satCode: '019', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P003' },
-      update: {},
-      create: { code: 'P003', name: 'Prima Vacacional', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P004' },
-      update: {},
-      create: { code: 'P004', name: 'Aguinaldo', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P005' },
-      update: {},
-      create: { code: 'P005', name: 'Bono de Puntualidad', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P006' },
-      update: {},
-      create: { code: 'P006', name: 'Bono de Asistencia', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P007' },
-      update: {},
-      create: { code: 'P007', name: 'Vales de Despensa', type: 'PERCEPTION', satCode: '029', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P008' },
-      update: {},
-      create: { code: 'P008', name: 'Fondo de Ahorro (Aportación Empresa)', type: 'PERCEPTION', satCode: '005', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P009' },
-      update: {},
-      create: { code: 'P009', name: 'PTU', type: 'PERCEPTION', satCode: '003', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P010' },
-      update: {},
-      create: { code: 'P010', name: 'Comisiones', type: 'PERCEPTION', satCode: '028', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P011' },
-      update: {},
-      create: { code: 'P011', name: 'Bono de Productividad', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P012' },
-      update: {},
-      create: { code: 'P012', name: 'Prima Dominical', type: 'PERCEPTION', satCode: '020', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P013' },
-      update: {},
-      create: { code: 'P013', name: 'Gratificación', type: 'PERCEPTION', satCode: '023', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P014' },
-      update: {},
-      create: { code: 'P014', name: 'Subsidio por Incapacidad', type: 'PERCEPTION', satCode: '014', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P015' },
-      update: {},
-      create: { code: 'P015', name: 'Ayuda de Transporte', type: 'PERCEPTION', satCode: '046', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P016' },
-      update: {},
-      create: { code: 'P016', name: 'Séptimo Día', type: 'PERCEPTION', satCode: '001', isTaxable: true, isFixed: true },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P017' },
-      update: {},
-      create: { code: 'P017', name: 'Finiquito', type: 'PERCEPTION', satCode: '022', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P018' },
-      update: {},
-      create: { code: 'P018', name: 'Liquidación', type: 'PERCEPTION', satCode: '025', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P019' },
-      update: {},
-      create: { code: 'P019', name: 'Indemnización', type: 'PERCEPTION', satCode: '025', isTaxable: true, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'P020' },
-      update: {},
-      create: { code: 'P020', name: 'Pago Retroactivo', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
-    }),
-    // ===========================================
-    // DEDUCCIONES (códigos SAT del catálogo CFDI)
-    // ===========================================
-    prisma.payrollConcept.upsert({
-      where: { code: 'D001' },
-      update: {},
-      create: { code: 'D001', name: 'ISR', type: 'DEDUCTION', satCode: '002', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D002' },
-      update: {},
-      create: { code: 'D002', name: 'IMSS (Cuota Obrero)', type: 'DEDUCTION', satCode: '001', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D003' },
-      update: {},
-      create: { code: 'D003', name: 'INFONAVIT', type: 'DEDUCTION', satCode: '010', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D004' },
-      update: {},
-      create: { code: 'D004', name: 'Pensión Alimenticia', type: 'DEDUCTION', satCode: '007', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D005' },
-      update: {},
-      create: { code: 'D005', name: 'Fondo de Ahorro (Aportación Trabajador)', type: 'DEDUCTION', satCode: '004', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D006' },
-      update: {},
-      create: { code: 'D006', name: 'Préstamo Empresa', type: 'DEDUCTION', satCode: '006', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D007' },
-      update: {},
-      create: { code: 'D007', name: 'Caja de Ahorro', type: 'DEDUCTION', satCode: '008', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D008' },
-      update: {},
-      create: { code: 'D008', name: 'Descuento por Falta', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D009' },
-      update: {},
-      create: { code: 'D009', name: 'Descuento por Retardo', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D010' },
-      update: {},
-      create: { code: 'D010', name: 'Seguro Gastos Médicos', type: 'DEDUCTION', satCode: '011', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D011' },
-      update: {},
-      create: { code: 'D011', name: 'Cuota Sindical', type: 'DEDUCTION', satCode: '003', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D012' },
-      update: {},
-      create: { code: 'D012', name: 'Anticipo de Salario', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'D013' },
-      update: {},
-      create: { code: 'D013', name: 'Otros Descuentos', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
-    }),
-  ]);
+  // ============================================
+  // CREAR HORARIOS
+  // ============================================
 
-  console.log('✅ Conceptos de nómina creados');
-
-  // Crear tipos de incidencias
-  const incidentTypes = await Promise.all([
-    // Faltas y ausencias
-    prisma.incidentType.upsert({
-      where: { code: 'FALTA' },
-      update: {},
-      create: { code: 'FALTA', name: 'Falta injustificada', category: 'ABSENCE', affectsPayroll: true, isDeduction: true, valueType: 'DAYS', defaultValue: 1 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'FALTA_JUST' },
-      update: {},
-      create: { code: 'FALTA_JUST', name: 'Falta justificada', category: 'JUSTIFIED_ABSENCE', affectsPayroll: false, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
-    }),
-    // Retardos
-    prisma.incidentType.upsert({
-      where: { code: 'RETARDO' },
-      update: {},
-      create: { code: 'RETARDO', name: 'Retardo', category: 'TARDINESS', affectsPayroll: true, isDeduction: true, valueType: 'HOURS', defaultValue: 1 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'RETARDO_GRAVE' },
-      update: {},
-      create: { code: 'RETARDO_GRAVE', name: 'Retardo grave (mas de 30 min)', category: 'TARDINESS', affectsPayroll: true, isDeduction: true, valueType: 'HOURS', defaultValue: 2 },
-    }),
-    // Salidas anticipadas
-    prisma.incidentType.upsert({
-      where: { code: 'SALIDA_ANT' },
-      update: {},
-      create: { code: 'SALIDA_ANT', name: 'Salida anticipada', category: 'EARLY_LEAVE', affectsPayroll: true, isDeduction: true, valueType: 'HOURS', defaultValue: 1 },
-    }),
-    // Horas extra
-    prisma.incidentType.upsert({
-      where: { code: 'HORAS_EXTRA' },
-      update: {},
-      create: { code: 'HORAS_EXTRA', name: 'Horas extra', category: 'OVERTIME', affectsPayroll: true, isDeduction: false, valueType: 'HOURS', defaultValue: 1 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'HORAS_EXTRA_DOM' },
-      update: {},
-      create: { code: 'HORAS_EXTRA_DOM', name: 'Horas extra domingo/festivo', category: 'OVERTIME', affectsPayroll: true, isDeduction: false, valueType: 'HOURS', defaultValue: 1 },
-    }),
-    // Bonos
-    prisma.incidentType.upsert({
-      where: { code: 'BONO_PUNTUALIDAD' },
-      update: {},
-      create: { code: 'BONO_PUNTUALIDAD', name: 'Bono de puntualidad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 500 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'BONO_ASISTENCIA' },
-      update: {},
-      create: { code: 'BONO_ASISTENCIA', name: 'Bono de asistencia', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 500 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'BONO_PRODUCTIVIDAD' },
-      update: {},
-      create: { code: 'BONO_PRODUCTIVIDAD', name: 'Bono de productividad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 1000 },
-    }),
-    // Descuentos
-    prisma.incidentType.upsert({
-      where: { code: 'DESCUENTO' },
-      update: {},
-      create: { code: 'DESCUENTO', name: 'Descuento general', category: 'DEDUCTION', affectsPayroll: true, isDeduction: true, valueType: 'AMOUNT', defaultValue: 0 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'DESCUENTO_UNIFORME' },
-      update: {},
-      create: { code: 'DESCUENTO_UNIFORME', name: 'Descuento por uniforme', category: 'DEDUCTION', affectsPayroll: true, isDeduction: true, valueType: 'AMOUNT', defaultValue: 0 },
-    }),
-    // Incapacidades
-    prisma.incidentType.upsert({
-      where: { code: 'INCAP_ENF' },
-      update: {},
-      create: { code: 'INCAP_ENF', name: 'Incapacidad por enfermedad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'INCAP_ACC' },
-      update: {},
-      create: { code: 'INCAP_ACC', name: 'Incapacidad por accidente', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
-    }),
-    prisma.incidentType.upsert({
-      where: { code: 'INCAP_MATERNIDAD' },
-      update: {},
-      create: { code: 'INCAP_MATERNIDAD', name: 'Incapacidad por maternidad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
-    }),
-  ]);
-
-  console.log('✅ Tipos de incidencias creados');
-
-  // Crear prestaciones
-  const prestaciones = await Promise.all([
-    prisma.benefit.create({
-      data: {
-        name: 'Vales de Despensa',
-        description: 'Vales mensuales para despensa',
-        type: 'FOOD_VOUCHERS',
-        value: 1500,
-        valueType: 'FIXED_AMOUNT',
-      },
-    }),
-    prisma.benefit.create({
-      data: {
-        name: 'Fondo de Ahorro',
-        description: 'Ahorro del 5% del salario',
-        type: 'SAVINGS_FUND',
-        value: 5,
-        valueType: 'PERCENTAGE_SALARY',
-      },
-    }),
-    prisma.benefit.create({
-      data: {
-        name: 'Bono de Puntualidad',
-        description: 'Bono mensual por asistencia puntual',
-        type: 'PUNCTUALITY_BONUS',
-        value: 500,
-        valueType: 'FIXED_AMOUNT',
-      },
-    }),
-    prisma.benefit.create({
-      data: {
-        name: 'Bono de Asistencia',
-        description: 'Bono mensual por asistencia perfecta',
-        type: 'ATTENDANCE_BONUS',
-        value: 500,
-        valueType: 'FIXED_AMOUNT',
-      },
-    }),
-    prisma.benefit.create({
-      data: {
-        name: 'Seguro de Vida',
-        description: 'Seguro de vida básico',
-        type: 'LIFE_INSURANCE',
-        value: 12,
-        valueType: 'DAYS_SALARY',
-      },
-    }),
-  ]);
-
-  console.log('✅ Prestaciones creadas');
-
-  // Crear días festivos 2024
-  const diasFestivos2024 = [
-    { name: 'Año Nuevo', date: new Date('2024-01-01') },
-    { name: 'Día de la Constitución', date: new Date('2024-02-05') },
-    { name: 'Natalicio de Benito Juárez', date: new Date('2024-03-18') },
-    { name: 'Día del Trabajo', date: new Date('2024-05-01') },
-    { name: 'Día de la Independencia', date: new Date('2024-09-16') },
-    { name: 'Día de la Revolución', date: new Date('2024-11-18') },
-    { name: 'Transmisión del Poder Ejecutivo', date: new Date('2024-10-01') },
-    { name: 'Navidad', date: new Date('2024-12-25') },
-  ];
-
-  for (const dia of diasFestivos2024) {
-    await prisma.holiday.upsert({
-      where: {
-        date_year: {
-          date: dia.date,
-          year: 2024,
-        },
-      },
-      update: {},
-      create: {
-        name: dia.name,
-        date: dia.date,
-        year: 2024,
-        isNational: true,
-        isPaid: true,
-      },
-    });
-  }
-
-  console.log('✅ Días festivos 2024 creados');
-
-  // Crear horarios de trabajo
-  const workSchedule = await prisma.workSchedule.create({
-    data: {
+  const scheduleOficina = await prisma.workSchedule.upsert({
+    where: { id: 'schedule-oficina' },
+    update: {},
+    create: {
+      id: 'schedule-oficina',
       name: 'Horario Oficina',
       description: 'Lunes a Viernes 9:00 - 18:00',
       scheduleDetails: {
@@ -628,442 +302,247 @@ async function main() {
     },
   });
 
-  const workSchedule6Days = await prisma.workSchedule.create({
-    data: {
-      name: 'Horario Operaciones',
-      description: 'Lunes a Sabado 8:00 - 16:00',
-      scheduleDetails: {
-        create: [
-          { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorkDay: false },
-          { dayOfWeek: 1, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
-          { dayOfWeek: 2, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
-          { dayOfWeek: 3, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
-          { dayOfWeek: 4, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
-          { dayOfWeek: 5, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
-          { dayOfWeek: 6, startTime: '08:00', endTime: '14:00', isWorkDay: true },
-        ],
-      },
-    },
-  });
-
-  const workScheduleMixto = await prisma.workSchedule.create({
-    data: {
+  const scheduleMixto = await prisma.workSchedule.upsert({
+    where: { id: 'schedule-mixto' },
+    update: {},
+    create: {
+      id: 'schedule-mixto',
       name: 'Horario Mixto',
-      description: 'Lunes a Viernes + medio Sabado',
+      description: 'Lunes a Viernes 8:00 - 17:00 + Sábado medio día',
       scheduleDetails: {
         create: [
           { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorkDay: false },
-          { dayOfWeek: 1, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
-          { dayOfWeek: 2, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
-          { dayOfWeek: 3, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
-          { dayOfWeek: 4, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
-          { dayOfWeek: 5, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
-          { dayOfWeek: 6, startTime: '09:00', endTime: '13:00', isWorkDay: true },
+          { dayOfWeek: 1, startTime: '08:00', endTime: '17:00', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 2, startTime: '08:00', endTime: '17:00', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 3, startTime: '08:00', endTime: '17:00', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 4, startTime: '08:00', endTime: '17:00', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 5, startTime: '08:00', endTime: '17:00', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 6, startTime: '09:00', endTime: '14:00', isWorkDay: true },
         ],
       },
     },
   });
 
-  console.log('✅ Horarios de trabajo creados');
+  console.log('✅ Horarios creados');
 
-  // Crear empleados de prueba
-  const empleados = [
-    {
-      employeeNumber: 'EMP001',
-      firstName: 'Juan',
-      lastName: 'García',
-      secondLastName: 'López',
-      email: 'juan.garcia@empresa.com',
-      phone: '55 1234 0001',
-      birthDate: new Date('1985-03-15'),
-      gender: 'MALE' as const,
-      maritalStatus: 'MARRIED' as const,
-      rfc: 'GALJ850315ABC',
-      curp: 'GALJ850315HDFRPN01',
-      nss: '12345678901',
-      address: 'Calle Principal 123',
-      colony: 'Centro',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '06000',
-      hireDate: new Date('2020-01-15'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[0].id, // Gerente General
-      departmentId: rhDept.id,
-      companyId: company.id,
-      workScheduleId: workSchedule.id,
-      baseSalary: 75000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[1].id, // BBVA
-      bankAccount: '0123456789',
-      clabe: '012345678901234567',
-      tipoSalarioImss: 'FIJO' as const,
-    },
-    {
-      employeeNumber: 'EMP002',
-      firstName: 'María',
-      lastName: 'Rodríguez',
-      secondLastName: 'Hernández',
-      email: 'maria.rodriguez@empresa.com',
-      phone: '55 1234 0002',
-      birthDate: new Date('1990-07-22'),
-      gender: 'FEMALE' as const,
-      maritalStatus: 'SINGLE' as const,
-      rfc: 'ROHM900722XYZ',
-      curp: 'ROHM900722MDFRDR02',
-      nss: '12345678902',
-      address: 'Av. Insurgentes 456',
-      colony: 'Roma Norte',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '06700',
-      hireDate: new Date('2021-03-01'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[1].id, // Gerente RH
-      departmentId: rhDept.id,
-      companyId: company.id,
-      workScheduleId: workSchedule.id,
-      baseSalary: 45000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[0].id, // BANAMEX
-      bankAccount: '9876543210',
-      clabe: '002345678901234567',
-      tipoSalarioImss: 'FIJO' as const,
-    },
-    {
-      employeeNumber: 'EMP003',
-      firstName: 'Carlos',
-      lastName: 'Martínez',
-      secondLastName: 'Sánchez',
-      email: 'carlos.martinez@empresa.com',
-      phone: '55 1234 0003',
-      birthDate: new Date('1988-11-10'),
-      gender: 'MALE' as const,
-      maritalStatus: 'MARRIED' as const,
-      rfc: 'MASC881110DEF',
-      curp: 'MASC881110HDFRRR03',
-      nss: '12345678903',
-      address: 'Calle Reforma 789',
-      colony: 'Polanco',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '11550',
-      hireDate: new Date('2019-06-15'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[2].id, // Contador
-      departmentId: finanzasDept.id,
-      companyId: company.id,
-      workScheduleId: workSchedule.id,
-      baseSalary: 35000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[2].id, // SANTANDER
-      bankAccount: '1111222233',
-      clabe: '014345678901234567',
-      tipoSalarioImss: 'FIJO' as const,
-    },
-    {
-      employeeNumber: 'EMP004',
-      firstName: 'Ana',
-      lastName: 'López',
-      secondLastName: 'Pérez',
-      email: 'ana.lopez@empresa.com',
-      phone: '55 1234 0004',
-      birthDate: new Date('1992-04-05'),
-      gender: 'FEMALE' as const,
-      maritalStatus: 'SINGLE' as const,
-      rfc: 'LOPA920405GHI',
-      curp: 'LOPA920405MDFPPR04',
-      nss: '12345678904',
-      address: 'Calle Madero 321',
-      colony: 'Centro Histórico',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '06010',
-      hireDate: new Date('2022-01-10'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[3].id, // Desarrollador
-      departmentId: tiDept.id,
-      companyId: company.id,
-      workScheduleId: workSchedule.id,
-      baseSalary: 42000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[4].id, // BANORTE
-      bankAccount: '4444555566',
-      clabe: '072345678901234567',
-      tipoSalarioImss: 'FIJO' as const,
-    },
-    {
-      employeeNumber: 'EMP005',
-      firstName: 'Roberto',
-      lastName: 'Hernández',
-      secondLastName: 'Díaz',
-      email: 'roberto.hernandez@empresa.com',
-      phone: '55 1234 0005',
-      birthDate: new Date('1995-09-18'),
-      gender: 'MALE' as const,
-      maritalStatus: 'SINGLE' as const,
-      rfc: 'HEDR950918JKL',
-      curp: 'HEDR950918HDFRZR05',
-      nss: '12345678905',
-      address: 'Av. Universidad 555',
-      colony: 'Del Valle',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '03100',
-      hireDate: new Date('2023-02-20'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[3].id, // Desarrollador
-      departmentId: tiDept.id,
-      companyId: company.id,
-      workScheduleId: workSchedule.id,
-      baseSalary: 38000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[1].id, // BBVA
-      bankAccount: '7777888899',
-      clabe: '012987654321234567',
-      tipoSalarioImss: 'FIJO' as const,
-    },
-    {
-      employeeNumber: 'EMP006',
-      firstName: 'Laura',
-      lastName: 'Fernández',
-      secondLastName: 'Mora',
-      email: 'laura.fernandez@empresa.com',
-      phone: '55 1234 0006',
-      birthDate: new Date('1987-12-03'),
-      gender: 'FEMALE' as const,
-      maritalStatus: 'DIVORCED' as const,
-      rfc: 'FEML871203MNO',
-      curp: 'FEML871203MDFRRR06',
-      nss: '12345678906',
-      address: 'Calle Juárez 888',
-      colony: 'Cuauhtémoc',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '06600',
-      hireDate: new Date('2018-08-01'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[2].id, // Contador
-      departmentId: finanzasDept.id,
-      companyId: company.id,
-      workScheduleId: workSchedule.id,
-      baseSalary: 32000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[3].id, // HSBC
-      bankAccount: '2222333344',
-      clabe: '021345678901234567',
-      tipoSalarioImss: 'FIJO' as const,
-    },
-    {
-      employeeNumber: 'EMP007',
-      firstName: 'Pedro',
-      lastName: 'Ramírez',
-      secondLastName: 'Vargas',
-      email: 'pedro.ramirez@empresa.com',
-      phone: '55 1234 0007',
-      birthDate: new Date('1993-06-25'),
-      gender: 'MALE' as const,
-      maritalStatus: 'MARRIED' as const,
-      rfc: 'RAVP930625PQR',
-      curp: 'RAVP930625HDFMRR07',
-      nss: '12345678907',
-      address: 'Av. Chapultepec 999',
-      colony: 'Condesa',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '06140',
-      hireDate: new Date('2021-11-15'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[4].id, // Operador
-      departmentId: operacionesDept.id,
-      companyId: company.id,
-      workScheduleId: workSchedule6Days.id, // Horario de 6 dias
-      baseSalary: 12000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[0].id, // BANAMEX
-      bankAccount: '5555666677',
-      clabe: '002987654321234567',
-      tipoSalarioImss: 'FIJO' as const,
-    },
-    {
-      employeeNumber: 'EMP008',
-      firstName: 'Sofía',
-      lastName: 'Torres',
-      secondLastName: 'Luna',
-      email: 'sofia.torres@empresa.com',
-      phone: '55 1234 0008',
-      birthDate: new Date('1994-02-14'),
-      gender: 'FEMALE' as const,
-      maritalStatus: 'SINGLE' as const,
-      rfc: 'TOLS940214STU',
-      curp: 'TOLS940214MDFRRF08',
-      nss: '12345678908',
-      address: 'Calle Durango 222',
-      colony: 'Roma Sur',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '06760',
-      hireDate: new Date('2022-07-01'),
-      contractType: 'INDEFINITE' as const,
-      employmentType: 'FULL_TIME' as const,
-      jobPositionId: puestos[4].id, // Operador
-      departmentId: operacionesDept.id,
-      companyId: company.id,
-      workScheduleId: workScheduleMixto.id, // Horario mixto
-      baseSalary: 11000,
-      salaryType: 'MONTHLY' as const,
-      paymentMethod: 'TRANSFER' as const,
-      bankId: bancos[2].id, // SANTANDER
-      bankAccount: '8888999900',
-      clabe: '014111222333444555',
-      tipoSalarioImss: 'FIJO' as const,
-    },
+  // ============================================
+  // CREAR EMPLEADOS POR EMPRESA
+  // ============================================
+
+  // EMPLEADOS BFS INGENIERÍA (5 empleados)
+  const bfsEmployees = [
+    { employeeNumber: 'BFS001', firstName: 'David', lastName: 'Sánchez', secondLastName: 'Correa', email: 'david.sc@bfs.com.mx', rfc: 'SACD8201146R9', curp: 'SACD820114HDFNRV06', nss: '90028219179', birthDate: new Date('1982-01-14'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2025-09-05'), baseSalary: 49903, departmentId: bfsDepts.ti.id, jobPositionId: puestos[2].id },
+    { employeeNumber: 'BFS002', firstName: 'Patricia', lastName: 'González', secondLastName: 'Ruiz', email: 'patricia.g@bfs.com.mx', rfc: 'GORP850322ABC', curp: 'GORP850322MASNZR01', nss: '90028219180', birthDate: new Date('1985-03-22'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2023-01-15'), baseSalary: 45000, departmentId: bfsDepts.rh.id, jobPositionId: puestos[1].id },
+    { employeeNumber: 'BFS003', firstName: 'Ricardo', lastName: 'Mendoza', secondLastName: 'López', email: 'ricardo.m@bfs.com.mx', rfc: 'MELR880510DEF', curp: 'MELR880510HASNZR02', nss: '90028219181', birthDate: new Date('1988-05-10'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2022-06-01'), baseSalary: 52000, departmentId: bfsDepts.ops.id, jobPositionId: puestos[7].id },
+    { employeeNumber: 'BFS004', firstName: 'Carmen', lastName: 'Torres', secondLastName: 'Vega', email: 'carmen.t@bfs.com.mx', rfc: 'TOVC900815GHI', curp: 'TOVC900815MASNZR03', nss: '90028219182', birthDate: new Date('1990-08-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-02-20'), baseSalary: 28000, departmentId: bfsDepts.ti.id, jobPositionId: puestos[3].id },
+    { employeeNumber: 'BFS005', firstName: 'Miguel', lastName: 'Herrera', secondLastName: 'Soto', email: 'miguel.h@bfs.com.mx', rfc: 'HESM920420JKL', curp: 'HESM920420HASNZR04', nss: '90028219183', birthDate: new Date('1992-04-20'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-08-01'), baseSalary: 25000, departmentId: bfsDepts.admin.id, jobPositionId: puestos[4].id },
   ];
 
-  for (const emp of empleados) {
+  // EMPLEADOS TECH SOLUTIONS (5 empleados)
+  const techEmployees = [
+    { employeeNumber: 'TECH001', firstName: 'Andrea', lastName: 'Ramírez', secondLastName: 'Castro', email: 'andrea.r@techsolutions.mx', rfc: 'RACA870612MNO', curp: 'RACA870612MDFRMS01', nss: '80028219184', birthDate: new Date('1987-06-12'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2021-03-01'), baseSalary: 48000, departmentId: techDepts.rh.id, jobPositionId: puestos[1].id },
+    { employeeNumber: 'TECH002', firstName: 'Fernando', lastName: 'Castro', secondLastName: 'Reyes', email: 'fernando.c@techsolutions.mx', rfc: 'CARF850928PQR', curp: 'CARF850928HDFRSY02', nss: '80028219185', birthDate: new Date('1985-09-28'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2020-08-15'), baseSalary: 65000, departmentId: techDepts.dev.id, jobPositionId: puestos[2].id },
+    { employeeNumber: 'TECH003', firstName: 'Gabriela', lastName: 'Morales', secondLastName: 'Díaz', email: 'gabriela.m@techsolutions.mx', rfc: 'MODG910305STU', curp: 'MODG910305MDFRLS03', nss: '80028219186', birthDate: new Date('1991-03-05'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2022-01-10'), baseSalary: 42000, departmentId: techDepts.qa.id, jobPositionId: puestos[7].id },
+    { employeeNumber: 'TECH004', firstName: 'Alejandro', lastName: 'Núñez', secondLastName: 'Ibarra', email: 'alejandro.n@techsolutions.mx', rfc: 'NUIA930720VWX', curp: 'NUIA930720HDFXRB04', nss: '80028219187', birthDate: new Date('1993-07-20'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2023-05-01'), baseSalary: 35000, departmentId: techDepts.dev.id, jobPositionId: puestos[3].id },
+    { employeeNumber: 'TECH005', firstName: 'Sofía', lastName: 'Vargas', secondLastName: 'Luna', email: 'sofia.v@techsolutions.mx', rfc: 'VALS950215YZA', curp: 'VALS950215MDFRGS05', nss: '80028219188', birthDate: new Date('1995-02-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-01-15'), baseSalary: 22000, departmentId: techDepts.pm.id, jobPositionId: puestos[3].id },
+  ];
+
+  // EMPLEADOS COMERCIALIZADORA DEL NORTE (5 empleados)
+  const norteEmployees = [
+    { employeeNumber: 'NTE001', firstName: 'Mónica', lastName: 'Villarreal', secondLastName: 'Garza', email: 'monica.v@comnorte.mx', rfc: 'VIGM860418BCD', curp: 'VIGM860418MNLRLR01', nss: '70028219189', birthDate: new Date('1986-04-18'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2019-02-01'), baseSalary: 42000, departmentId: norteDepts.rh.id, jobPositionId: puestos[1].id },
+    { employeeNumber: 'NTE002', firstName: 'Jorge', lastName: 'Treviño', secondLastName: 'Salinas', email: 'jorge.t@comnorte.mx', rfc: 'TESJ840725EFG', curp: 'TESJ840725HNLRVR02', nss: '70028219190', birthDate: new Date('1984-07-25'), gender: 'MALE' as const, maritalStatus: 'DIVORCED' as const, hireDate: new Date('2018-06-15'), baseSalary: 55000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[0].id },
+    { employeeNumber: 'NTE003', firstName: 'Lucía', lastName: 'Cantú', secondLastName: 'Lozano', email: 'lucia.c@comnorte.mx', rfc: 'CALL890112HIJ', curp: 'CALL890112MNLNZC03', nss: '70028219191', birthDate: new Date('1989-01-12'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2021-09-01'), baseSalary: 18000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[5].id },
+    { employeeNumber: 'NTE004', firstName: 'Roberto', lastName: 'Guajardo', secondLastName: 'Hinojosa', email: 'roberto.g@comnorte.mx', rfc: 'GUHR910830KLM', curp: 'GUHR910830HNLJRB04', nss: '70028219192', birthDate: new Date('1991-08-30'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2022-04-01'), baseSalary: 14000, departmentId: norteDepts.almacen.id, jobPositionId: puestos[6].id },
+    { employeeNumber: 'NTE005', firstName: 'Diana', lastName: 'Elizondo', secondLastName: 'Cavazos', email: 'diana.e@comnorte.mx', rfc: 'EICD930605NOP', curp: 'EICD930605MNLLZN05', nss: '70028219193', birthDate: new Date('1993-06-05'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2023-11-01'), baseSalary: 28000, departmentId: norteDepts.finanzas.id, jobPositionId: puestos[4].id },
+  ];
+
+  // Insertar empleados
+  for (const emp of bfsEmployees) {
     await prisma.employee.upsert({
       where: { employeeNumber: emp.employeeNumber },
       update: {},
-      create: emp,
+      create: {
+        ...emp,
+        companyId: bfsCompany.id,
+        workScheduleId: scheduleOficina.id,
+        contractType: 'INDEFINITE',
+        employmentType: 'FULL_TIME',
+        salaryType: 'MONTHLY',
+        paymentMethod: 'TRANSFER',
+        bankId: bancos[Math.floor(Math.random() * bancos.length)].id,
+        bankAccount: Math.random().toString().slice(2, 12),
+        clabe: Math.random().toString().slice(2, 20),
+        tipoSalarioImss: 'MIXTO',
+        address: 'Dirección de prueba',
+        city: 'Aguascalientes',
+        state: 'AGS',
+        zipCode: '20000',
+      },
     });
   }
 
-  console.log('✅ Empleados de prueba creados (8 empleados)');
+  for (const emp of techEmployees) {
+    await prisma.employee.upsert({
+      where: { employeeNumber: emp.employeeNumber },
+      update: {},
+      create: {
+        ...emp,
+        companyId: techCompany.id,
+        workScheduleId: scheduleOficina.id,
+        contractType: 'INDEFINITE',
+        employmentType: 'FULL_TIME',
+        salaryType: 'MONTHLY',
+        paymentMethod: 'TRANSFER',
+        bankId: bancos[Math.floor(Math.random() * bancos.length)].id,
+        bankAccount: Math.random().toString().slice(2, 12),
+        clabe: Math.random().toString().slice(2, 20),
+        tipoSalarioImss: 'FIJO',
+        address: 'Dirección de prueba',
+        city: 'Ciudad de México',
+        state: 'CDMX',
+        zipCode: '06600',
+      },
+    });
+  }
 
-  // Crear usuarios para empleados (para que puedan acceder al portal)
-  const employeeUsers = [
-    { email: 'juan.garcia@empresa.com', firstName: 'Juan', lastName: 'García' },
-    { email: 'maria.rodriguez@empresa.com', firstName: 'María', lastName: 'Rodríguez' },
-    { email: 'carlos.martinez@empresa.com', firstName: 'Carlos', lastName: 'Martínez' },
-    { email: 'ana.lopez@empresa.com', firstName: 'Ana', lastName: 'López' },
-    { email: 'roberto.hernandez@empresa.com', firstName: 'Roberto', lastName: 'Hernández' },
+  for (const emp of norteEmployees) {
+    await prisma.employee.upsert({
+      where: { employeeNumber: emp.employeeNumber },
+      update: {},
+      create: {
+        ...emp,
+        companyId: norteCompany.id,
+        workScheduleId: scheduleMixto.id,
+        contractType: 'INDEFINITE',
+        employmentType: 'FULL_TIME',
+        salaryType: 'MONTHLY',
+        paymentMethod: 'TRANSFER',
+        bankId: bancos[Math.floor(Math.random() * bancos.length)].id,
+        bankAccount: Math.random().toString().slice(2, 12),
+        clabe: Math.random().toString().slice(2, 20),
+        tipoSalarioImss: 'FIJO',
+        address: 'Dirección de prueba',
+        city: 'Monterrey',
+        state: 'NL',
+        zipCode: '64000',
+      },
+    });
+  }
+
+  console.log('✅ 15 Empleados creados (5 por empresa)');
+
+  // ============================================
+  // CREAR USUARIOS EMPLEADOS
+  // ============================================
+
+  const allEmployeeEmails = [
+    ...bfsEmployees.map(e => ({ email: e.email, firstName: e.firstName, lastName: e.lastName, companyId: bfsCompany.id })),
+    ...techEmployees.map(e => ({ email: e.email, firstName: e.firstName, lastName: e.lastName, companyId: techCompany.id })),
+    ...norteEmployees.map(e => ({ email: e.email, firstName: e.firstName, lastName: e.lastName, companyId: norteCompany.id })),
   ];
 
-  for (const empUser of employeeUsers) {
+  for (const empUser of allEmployeeEmails) {
     await prisma.user.upsert({
       where: { email: empUser.email },
-      update: { companyId: company.id },
+      update: { companyId: empUser.companyId },
       create: {
         email: empUser.email,
-        password: hashedPassword, // Mismo password: admin123
+        password: hashedPassword,
         firstName: empUser.firstName,
         lastName: empUser.lastName,
         roleId: employeeRole.id,
-        companyId: company.id,
+        companyId: empUser.companyId,
       },
     });
   }
 
-  console.log('✅ Usuarios de empleados creados (5 empleados, asignados a empresa)');
+  console.log('✅ Usuarios empleados creados (15 usuarios)');
 
-  // Crear saldos de vacaciones para los empleados
+  // ============================================
+  // CREAR CONCEPTOS DE NÓMINA
+  // ============================================
+
+  await Promise.all([
+    prisma.payrollConcept.upsert({ where: { code: 'P001' }, update: {}, create: { code: 'P001', name: 'Sueldo', type: 'PERCEPTION', satCode: '001', isTaxable: true, isFixed: true }}),
+    prisma.payrollConcept.upsert({ where: { code: 'P002' }, update: {}, create: { code: 'P002', name: 'Horas Extra', type: 'PERCEPTION', satCode: '019', isTaxable: true }}),
+    prisma.payrollConcept.upsert({ where: { code: 'P003' }, update: {}, create: { code: 'P003', name: 'Prima Vacacional', type: 'PERCEPTION', satCode: '021', isTaxable: true }}),
+    prisma.payrollConcept.upsert({ where: { code: 'P004' }, update: {}, create: { code: 'P004', name: 'Aguinaldo', type: 'PERCEPTION', satCode: '002', isTaxable: true }}),
+    prisma.payrollConcept.upsert({ where: { code: 'P005' }, update: {}, create: { code: 'P005', name: 'Fondo Ahorro Empresa', type: 'PERCEPTION', satCode: '005', isTaxable: false }}),
+    prisma.payrollConcept.upsert({ where: { code: 'P006' }, update: {}, create: { code: 'P006', name: 'Vales de Despensa', type: 'PERCEPTION', satCode: '029', isTaxable: false }}),
+    prisma.payrollConcept.upsert({ where: { code: 'D001' }, update: {}, create: { code: 'D001', name: 'ISR', type: 'DEDUCTION', satCode: '002' }}),
+    prisma.payrollConcept.upsert({ where: { code: 'D002' }, update: {}, create: { code: 'D002', name: 'IMSS Trabajador', type: 'DEDUCTION', satCode: '001' }}),
+    prisma.payrollConcept.upsert({ where: { code: 'D003' }, update: {}, create: { code: 'D003', name: 'Fondo Ahorro Empleado', type: 'DEDUCTION', satCode: '004' }}),
+    prisma.payrollConcept.upsert({ where: { code: 'D004' }, update: {}, create: { code: 'D004', name: 'INFONAVIT', type: 'DEDUCTION', satCode: '010' }}),
+  ]);
+
+  console.log('✅ Conceptos de nómina creados');
+
+  // ============================================
+  // CREAR TIPOS DE INCIDENCIAS
+  // ============================================
+
+  await Promise.all([
+    prisma.incidentType.upsert({ where: { code: 'FALTA' }, update: {}, create: { code: 'FALTA', name: 'Falta injustificada', category: 'ABSENCE', affectsPayroll: true, isDeduction: true, valueType: 'DAYS', defaultValue: 1 }}),
+    prisma.incidentType.upsert({ where: { code: 'FALTA_JUST' }, update: {}, create: { code: 'FALTA_JUST', name: 'Falta justificada', category: 'JUSTIFIED_ABSENCE', affectsPayroll: false, valueType: 'DAYS', defaultValue: 1 }}),
+    prisma.incidentType.upsert({ where: { code: 'RETARDO' }, update: {}, create: { code: 'RETARDO', name: 'Retardo', category: 'TARDINESS', affectsPayroll: true, isDeduction: true, valueType: 'HOURS', defaultValue: 1 }}),
+    prisma.incidentType.upsert({ where: { code: 'HORAS_EXTRA' }, update: {}, create: { code: 'HORAS_EXTRA', name: 'Horas extra', category: 'OVERTIME', affectsPayroll: true, isDeduction: false, valueType: 'HOURS', defaultValue: 1 }}),
+    prisma.incidentType.upsert({ where: { code: 'BONO' }, update: {}, create: { code: 'BONO', name: 'Bono', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 500 }}),
+    prisma.incidentType.upsert({ where: { code: 'INCAP_ENF' }, update: {}, create: { code: 'INCAP_ENF', name: 'Incapacidad por enfermedad', category: 'DISABILITY', affectsPayroll: true, valueType: 'DAYS', defaultValue: 1 }}),
+  ]);
+
+  console.log('✅ Tipos de incidencias creados');
+
+  // ============================================
+  // CREAR SALDOS DE VACACIONES
+  // ============================================
+
   const currentYear = new Date().getFullYear();
-  const createdEmployees = await prisma.employee.findMany();
+  const allEmployees = await prisma.employee.findMany();
 
-  for (const emp of createdEmployees) {
-    const hireDate = new Date(emp.hireDate);
-    const yearsWorked = currentYear - hireDate.getFullYear();
-    // Días de vacaciones según LFT México (12 días primer año, +2 por año hasta 20, después +2 cada 5 años)
+  for (const emp of allEmployees) {
+    const yearsWorked = Math.max(0, currentYear - new Date(emp.hireDate).getFullYear());
     let earnedDays = 12;
-    if (yearsWorked >= 1) earnedDays = Math.min(12 + (yearsWorked * 2), 20);
+    if (yearsWorked >= 1) earnedDays = Math.min(12 + yearsWorked * 2, 20);
     if (yearsWorked >= 5) earnedDays = 20 + Math.floor((yearsWorked - 4) / 5) * 2;
 
     await prisma.vacationBalance.upsert({
-      where: {
-        employeeId_year: {
-          employeeId: emp.id,
-          year: currentYear,
-        },
-      },
+      where: { employeeId_year: { employeeId: emp.id, year: currentYear }},
       update: {},
-      create: {
-        employeeId: emp.id,
-        year: currentYear,
-        earnedDays,
-        usedDays: 0,
-        pendingDays: 0,
-        expiredDays: 0,
-      },
+      create: { employeeId: emp.id, year: currentYear, earnedDays, usedDays: 0, pendingDays: 0, expiredDays: 0 },
     });
   }
 
   console.log('✅ Saldos de vacaciones creados');
 
-  // Asignar prestaciones a algunos empleados
-  const valesDespensa = prestaciones[0];
-  const fondoAhorro = prestaciones[1];
-
-  for (const emp of createdEmployees.slice(0, 5)) {
-    await prisma.employeeBenefit.upsert({
-      where: {
-        employeeId_benefitId: {
-          employeeId: emp.id,
-          benefitId: valesDespensa.id,
-        },
-      },
-      update: {},
-      create: {
-        employeeId: emp.id,
-        benefitId: valesDespensa.id,
-        startDate: new Date(),
-      },
-    });
-
-    await prisma.employeeBenefit.upsert({
-      where: {
-        employeeId_benefitId: {
-          employeeId: emp.id,
-          benefitId: fondoAhorro.id,
-        },
-      },
-      update: {},
-      create: {
-        employeeId: emp.id,
-        benefitId: fondoAhorro.id,
-        startDate: new Date(),
-      },
-    });
-  }
-
-  console.log('✅ Prestaciones asignadas a empleados');
+  // ============================================
+  // RESUMEN FINAL
+  // ============================================
 
   console.log('\n🎉 Seed completado exitosamente!');
-  console.log('\n📧 Usuarios de prueba:');
-  console.log('');
-  console.log('   👑 Super Admin:');
-  console.log('      Email: admin@empresa.com');
-  console.log('      Password: admin123');
-  console.log('');
-  console.log('   👔 Recursos Humanos (Admin no super):');
-  console.log('      Email: rh@empresa.com');
-  console.log('      Password: admin123');
-  console.log('');
-  console.log('   📊 Gerente:');
-  console.log('      Email: gerente@empresa.com');
-  console.log('      Password: admin123');
-  console.log('');
-  console.log('   👷 Empleados (pueden acceder al portal de empleado):');
-  console.log('      - juan.garcia@empresa.com / admin123');
-  console.log('      - maria.rodriguez@empresa.com / admin123');
-  console.log('      - carlos.martinez@empresa.com / admin123');
-  console.log('      - ana.lopez@empresa.com / admin123');
-  console.log('      - roberto.hernandez@empresa.com / admin123');
-  console.log('');
-  console.log('\n👥 Empleados en el sistema: 8 empleados en diferentes departamentos');
+  console.log('\n' + '='.repeat(60));
+  console.log('📧 CREDENCIALES DE ACCESO');
+  console.log('='.repeat(60));
+  console.log('\n👑 SUPER ADMINISTRADOR (acceso a todas las empresas):');
+  console.log('   Email: admin@sistema.com');
+  console.log('   Password: admin123');
+  console.log('\n🏢 BFS INGENIERÍA APLICADA:');
+  console.log('   RH: rh@bfs.com.mx / admin123');
+  console.log('   Gerente: gerente@bfs.com.mx / admin123');
+  console.log('   Empleados: david.sc@bfs.com.mx, patricia.g@bfs.com.mx, etc.');
+  console.log('\n🏢 TECH SOLUTIONS MÉXICO:');
+  console.log('   RH: rh@techsolutions.mx / admin123');
+  console.log('   Gerente: gerente@techsolutions.mx / admin123');
+  console.log('   Empleados: andrea.r@techsolutions.mx, fernando.c@techsolutions.mx, etc.');
+  console.log('\n🏢 COMERCIALIZADORA DEL NORTE:');
+  console.log('   RH: rh@comnorte.mx / admin123');
+  console.log('   Empleados: monica.v@comnorte.mx, jorge.t@comnorte.mx, etc.');
+  console.log('\n' + '='.repeat(60));
+  console.log('📊 RESUMEN:');
+  console.log('   - 3 Empresas con diferentes colores/configuraciones');
+  console.log('   - 15 Empleados (5 por empresa)');
+  console.log('   - 1 Super Admin + 5 usuarios RH/Gerente + 15 usuarios empleado');
+  console.log('   - Cada empresa tiene su propia configuración de colores');
+  console.log('='.repeat(60));
 }
 
 main()
