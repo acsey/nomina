@@ -174,6 +174,11 @@ export const reportsApi = {
     api.get(`/reports/employee/${employeeId}`, { params: { year } }),
   getDepartmentReport: (departmentId: string, periodId: string) =>
     api.get(`/reports/department/${departmentId}`, { params: { periodId } }),
+  // Dispersión bancaria
+  downloadBankDispersionExcel: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/dispersion/excel`, { responseType: 'blob' }),
+  downloadBankDispersionTxt: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/dispersion/txt`, { responseType: 'blob' }),
 };
 
 export const governmentApi = {

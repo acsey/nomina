@@ -81,4 +81,39 @@ export class ReportsController {
   ) {
     return this.reportsService.getDepartmentReport(departmentId, periodId);
   }
+
+  @Get('payroll/:periodId/dispersion/excel')
+  @Roles('admin', 'rh')
+  @ApiOperation({ summary: 'Exportar archivo de dispersión bancaria a Excel' })
+  async getBankDispersionExcel(
+    @Param('periodId') periodId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.reportsService.generateBankDispersionExcel(periodId);
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="dispersion_bancaria_${periodId}.xlsx"`,
+    });
+
+    res.send(buffer);
+  }
+
+  @Get('payroll/:periodId/dispersion/txt')
+  @Roles('admin', 'rh')
+  @ApiOperation({ summary: 'Exportar archivo de dispersión bancaria a TXT' })
+  async getBankDispersionTxt(
+    @Param('periodId') periodId: string,
+    @Res() res: Response,
+  ) {
+    const content = await this.reportsService.generateBankDispersionTxt(periodId);
+
+    res.set({
+      'Content-Type': 'text/plain',
+      'Content-Disposition': `attachment; filename="dispersion_bancaria_${periodId}.txt"`,
+    });
+
+    res.send(content);
+  }
 }

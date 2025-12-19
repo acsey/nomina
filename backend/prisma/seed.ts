@@ -230,145 +230,270 @@ async function main() {
 
   console.log('✅ Bancos creados');
 
-  // Crear conceptos de nómina
+  // Crear conceptos de nómina (completos según SAT)
   const conceptos = await Promise.all([
-    // Percepciones
+    // ===========================================
+    // PERCEPCIONES (códigos SAT del catálogo CFDI)
+    // ===========================================
     prisma.payrollConcept.upsert({
       where: { code: 'P001' },
       update: {},
-      create: {
-        code: 'P001',
-        name: 'Sueldo',
-        type: 'PERCEPTION',
-        satCode: '001',
-        isTaxable: true,
-        isFixed: true,
-      },
+      create: { code: 'P001', name: 'Sueldo', type: 'PERCEPTION', satCode: '001', isTaxable: true, isFixed: true },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'P002' },
       update: {},
-      create: {
-        code: 'P002',
-        name: 'Horas Extra',
-        type: 'PERCEPTION',
-        satCode: '019',
-        isTaxable: true,
-        isFixed: false,
-      },
+      create: { code: 'P002', name: 'Horas Extra', type: 'PERCEPTION', satCode: '019', isTaxable: true, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'P003' },
       update: {},
-      create: {
-        code: 'P003',
-        name: 'Prima Vacacional',
-        type: 'PERCEPTION',
-        satCode: '021',
-        isTaxable: true,
-        isFixed: false,
-      },
+      create: { code: 'P003', name: 'Prima Vacacional', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'P004' },
       update: {},
-      create: {
-        code: 'P004',
-        name: 'Aguinaldo',
-        type: 'PERCEPTION',
-        satCode: '002',
-        isTaxable: true,
-        isFixed: false,
-      },
+      create: { code: 'P004', name: 'Aguinaldo', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'P005' },
       update: {},
-      create: {
-        code: 'P005',
-        name: 'Bono de Puntualidad',
-        type: 'PERCEPTION',
-        satCode: '038',
-        isTaxable: true,
-        isFixed: false,
-      },
+      create: { code: 'P005', name: 'Bono de Puntualidad', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'P006' },
       update: {},
-      create: {
-        code: 'P006',
-        name: 'Bono de Asistencia',
-        type: 'PERCEPTION',
-        satCode: '038',
-        isTaxable: true,
-        isFixed: false,
-      },
+      create: { code: 'P006', name: 'Bono de Asistencia', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
     }),
-    // Deducciones
+    prisma.payrollConcept.upsert({
+      where: { code: 'P007' },
+      update: {},
+      create: { code: 'P007', name: 'Vales de Despensa', type: 'PERCEPTION', satCode: '029', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P008' },
+      update: {},
+      create: { code: 'P008', name: 'Fondo de Ahorro (Aportación Empresa)', type: 'PERCEPTION', satCode: '005', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P009' },
+      update: {},
+      create: { code: 'P009', name: 'PTU', type: 'PERCEPTION', satCode: '003', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P010' },
+      update: {},
+      create: { code: 'P010', name: 'Comisiones', type: 'PERCEPTION', satCode: '028', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P011' },
+      update: {},
+      create: { code: 'P011', name: 'Bono de Productividad', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P012' },
+      update: {},
+      create: { code: 'P012', name: 'Prima Dominical', type: 'PERCEPTION', satCode: '020', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P013' },
+      update: {},
+      create: { code: 'P013', name: 'Gratificación', type: 'PERCEPTION', satCode: '023', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P014' },
+      update: {},
+      create: { code: 'P014', name: 'Subsidio por Incapacidad', type: 'PERCEPTION', satCode: '014', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P015' },
+      update: {},
+      create: { code: 'P015', name: 'Ayuda de Transporte', type: 'PERCEPTION', satCode: '046', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P016' },
+      update: {},
+      create: { code: 'P016', name: 'Séptimo Día', type: 'PERCEPTION', satCode: '001', isTaxable: true, isFixed: true },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P017' },
+      update: {},
+      create: { code: 'P017', name: 'Finiquito', type: 'PERCEPTION', satCode: '022', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P018' },
+      update: {},
+      create: { code: 'P018', name: 'Liquidación', type: 'PERCEPTION', satCode: '025', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P019' },
+      update: {},
+      create: { code: 'P019', name: 'Indemnización', type: 'PERCEPTION', satCode: '025', isTaxable: true, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'P020' },
+      update: {},
+      create: { code: 'P020', name: 'Pago Retroactivo', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false },
+    }),
+    // ===========================================
+    // DEDUCCIONES (códigos SAT del catálogo CFDI)
+    // ===========================================
     prisma.payrollConcept.upsert({
       where: { code: 'D001' },
       update: {},
-      create: {
-        code: 'D001',
-        name: 'ISR',
-        type: 'DEDUCTION',
-        satCode: '002',
-        isTaxable: false,
-        isFixed: false,
-      },
+      create: { code: 'D001', name: 'ISR', type: 'DEDUCTION', satCode: '002', isTaxable: false, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'D002' },
       update: {},
-      create: {
-        code: 'D002',
-        name: 'IMSS',
-        type: 'DEDUCTION',
-        satCode: '001',
-        isTaxable: false,
-        isFixed: false,
-      },
+      create: { code: 'D002', name: 'IMSS (Cuota Obrero)', type: 'DEDUCTION', satCode: '001', isTaxable: false, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'D003' },
       update: {},
-      create: {
-        code: 'D003',
-        name: 'INFONAVIT',
-        type: 'DEDUCTION',
-        satCode: '010',
-        isTaxable: false,
-        isFixed: false,
-      },
+      create: { code: 'D003', name: 'INFONAVIT', type: 'DEDUCTION', satCode: '010', isTaxable: false, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'D004' },
       update: {},
-      create: {
-        code: 'D004',
-        name: 'Pensión Alimenticia',
-        type: 'DEDUCTION',
-        satCode: '007',
-        isTaxable: false,
-        isFixed: false,
-      },
+      create: { code: 'D004', name: 'Pensión Alimenticia', type: 'DEDUCTION', satCode: '007', isTaxable: false, isFixed: false },
     }),
     prisma.payrollConcept.upsert({
       where: { code: 'D005' },
       update: {},
-      create: {
-        code: 'D005',
-        name: 'Fondo de Ahorro',
-        type: 'DEDUCTION',
-        satCode: '004',
-        isTaxable: false,
-        isFixed: false,
-      },
+      create: { code: 'D005', name: 'Fondo de Ahorro (Aportación Trabajador)', type: 'DEDUCTION', satCode: '004', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D006' },
+      update: {},
+      create: { code: 'D006', name: 'Préstamo Empresa', type: 'DEDUCTION', satCode: '006', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D007' },
+      update: {},
+      create: { code: 'D007', name: 'Caja de Ahorro', type: 'DEDUCTION', satCode: '008', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D008' },
+      update: {},
+      create: { code: 'D008', name: 'Descuento por Falta', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D009' },
+      update: {},
+      create: { code: 'D009', name: 'Descuento por Retardo', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D010' },
+      update: {},
+      create: { code: 'D010', name: 'Seguro Gastos Médicos', type: 'DEDUCTION', satCode: '011', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D011' },
+      update: {},
+      create: { code: 'D011', name: 'Cuota Sindical', type: 'DEDUCTION', satCode: '003', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D012' },
+      update: {},
+      create: { code: 'D012', name: 'Anticipo de Salario', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
+    }),
+    prisma.payrollConcept.upsert({
+      where: { code: 'D013' },
+      update: {},
+      create: { code: 'D013', name: 'Otros Descuentos', type: 'DEDUCTION', satCode: '012', isTaxable: false, isFixed: false },
     }),
   ]);
 
   console.log('✅ Conceptos de nómina creados');
+
+  // Crear tipos de incidencias
+  const incidentTypes = await Promise.all([
+    // Faltas y ausencias
+    prisma.incidentType.upsert({
+      where: { code: 'FALTA' },
+      update: {},
+      create: { code: 'FALTA', name: 'Falta injustificada', category: 'ABSENCE', affectsPayroll: true, isDeduction: true, valueType: 'DAYS', defaultValue: 1 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'FALTA_JUST' },
+      update: {},
+      create: { code: 'FALTA_JUST', name: 'Falta justificada', category: 'JUSTIFIED_ABSENCE', affectsPayroll: false, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+    }),
+    // Retardos
+    prisma.incidentType.upsert({
+      where: { code: 'RETARDO' },
+      update: {},
+      create: { code: 'RETARDO', name: 'Retardo', category: 'TARDINESS', affectsPayroll: true, isDeduction: true, valueType: 'HOURS', defaultValue: 1 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'RETARDO_GRAVE' },
+      update: {},
+      create: { code: 'RETARDO_GRAVE', name: 'Retardo grave (mas de 30 min)', category: 'TARDINESS', affectsPayroll: true, isDeduction: true, valueType: 'HOURS', defaultValue: 2 },
+    }),
+    // Salidas anticipadas
+    prisma.incidentType.upsert({
+      where: { code: 'SALIDA_ANT' },
+      update: {},
+      create: { code: 'SALIDA_ANT', name: 'Salida anticipada', category: 'EARLY_LEAVE', affectsPayroll: true, isDeduction: true, valueType: 'HOURS', defaultValue: 1 },
+    }),
+    // Horas extra
+    prisma.incidentType.upsert({
+      where: { code: 'HORAS_EXTRA' },
+      update: {},
+      create: { code: 'HORAS_EXTRA', name: 'Horas extra', category: 'OVERTIME', affectsPayroll: true, isDeduction: false, valueType: 'HOURS', defaultValue: 1 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'HORAS_EXTRA_DOM' },
+      update: {},
+      create: { code: 'HORAS_EXTRA_DOM', name: 'Horas extra domingo/festivo', category: 'OVERTIME', affectsPayroll: true, isDeduction: false, valueType: 'HOURS', defaultValue: 1 },
+    }),
+    // Bonos
+    prisma.incidentType.upsert({
+      where: { code: 'BONO_PUNTUALIDAD' },
+      update: {},
+      create: { code: 'BONO_PUNTUALIDAD', name: 'Bono de puntualidad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 500 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'BONO_ASISTENCIA' },
+      update: {},
+      create: { code: 'BONO_ASISTENCIA', name: 'Bono de asistencia', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 500 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'BONO_PRODUCTIVIDAD' },
+      update: {},
+      create: { code: 'BONO_PRODUCTIVIDAD', name: 'Bono de productividad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 1000 },
+    }),
+    // Descuentos
+    prisma.incidentType.upsert({
+      where: { code: 'DESCUENTO' },
+      update: {},
+      create: { code: 'DESCUENTO', name: 'Descuento general', category: 'DISCOUNT', affectsPayroll: true, isDeduction: true, valueType: 'FIXED_AMOUNT', defaultValue: 0 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'DESCUENTO_UNIFORME' },
+      update: {},
+      create: { code: 'DESCUENTO_UNIFORME', name: 'Descuento por uniforme', category: 'DISCOUNT', affectsPayroll: true, isDeduction: true, valueType: 'FIXED_AMOUNT', defaultValue: 0 },
+    }),
+    // Incapacidades
+    prisma.incidentType.upsert({
+      where: { code: 'INCAP_ENF' },
+      update: {},
+      create: { code: 'INCAP_ENF', name: 'Incapacidad por enfermedad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'INCAP_ACC' },
+      update: {},
+      create: { code: 'INCAP_ACC', name: 'Incapacidad por accidente', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+    }),
+    prisma.incidentType.upsert({
+      where: { code: 'INCAP_MATERNIDAD' },
+      update: {},
+      create: { code: 'INCAP_MATERNIDAD', name: 'Incapacidad por maternidad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+    }),
+  ]);
+
+  console.log('✅ Tipos de incidencias creados');
 
   // Crear prestaciones
   const prestaciones = await Promise.all([
