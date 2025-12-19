@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PlusIcon, BuildingOfficeIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, BuildingOfficeIcon, XMarkIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { departmentsApi, catalogsApi } from '../services/api';
 
@@ -13,6 +13,7 @@ interface DepartmentFormData {
 export default function DepartmentsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<DepartmentFormData>({
     name: '',
     description: '',
@@ -37,11 +38,23 @@ export default function DepartmentsPage() {
     onSuccess: () => {
       toast.success('Departamento creado exitosamente');
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      setIsModalOpen(false);
-      setFormData({ name: '', description: '', companyId: '' });
+      closeModal();
     },
     onError: (error: any) => {
-      console.error('Error creating department:', error);
+      toast.error(error.response?.data?.message || 'Error al crear departamento');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<DepartmentFormData> }) =>
+      departmentsApi.update(id, data),
+    onSuccess: () => {
+      toast.success('Departamento actualizado exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      closeModal();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al actualizar departamento');
     },
   });
 
@@ -52,14 +65,42 @@ export default function DepartmentsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, data: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
   };
+
+  const openEditModal = (dept: any) => {
+    setEditingId(dept.id);
+    setFormData({
+      name: dept.name || '',
+      description: dept.description || '',
+      companyId: dept.companyId || '',
+    });
+    setIsModalOpen(true);
+  };
+
+  const openCreateModal = () => {
+    setEditingId(null);
+    setFormData({ name: '', description: '', companyId: '' });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData({ name: '', description: '', companyId: '' });
+  };
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div>
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Departamentos</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+        <button onClick={openCreateModal} className="btn btn-primary">
           <PlusIcon className="h-5 w-5 mr-2" />
           Nuevo Departamento
         </button>
@@ -73,7 +114,7 @@ export default function DepartmentsPage() {
         <div className="card text-center py-12">
           <BuildingOfficeIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500">No hay departamentos registrados</p>
-          <button onClick={() => setIsModalOpen(true)} className="btn btn-primary mt-4">
+          <button onClick={openCreateModal} className="btn btn-primary mt-4">
             Crear primer departamento
           </button>
         </div>
@@ -82,7 +123,7 @@ export default function DepartmentsPage() {
           {departments.map((dept: any) => (
             <div key={dept.id} className="card">
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">
                     {dept.name}
                   </h3>
@@ -90,10 +131,25 @@ export default function DepartmentsPage() {
                     {dept.description || 'Sin descripcion'}
                   </p>
                 </div>
-                <div className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium">
-                  {dept._count?.employees || 0} empleados
+                <div className="flex items-center gap-2">
+                  <div className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium">
+                    {dept._count?.employees || 0} empleados
+                  </div>
+                  <button
+                    onClick={() => openEditModal(dept)}
+                    className="p-2 text-gray-400 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Editar departamento"
+                  >
+                    <PencilSquareIcon className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
+
+              {dept.company && (
+                <div className="mt-3 text-sm text-gray-500">
+                  <span className="font-medium">Empresa:</span> {dept.company.name}
+                </div>
+              )}
 
               {dept.manager && (
                 <div className="mt-4 pt-4 border-t">
@@ -112,13 +168,15 @@ export default function DepartmentsPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setIsModalOpen(false)} />
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={closeModal} />
 
             <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
               <div className="bg-white px-4 pb-4 pt-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Nuevo Departamento</h3>
-                  <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-500">
+                  <h3 className="text-lg font-semibold">
+                    {editingId ? 'Editar Departamento' : 'Nuevo Departamento'}
+                  </h3>
+                  <button onClick={closeModal} className="text-gray-400 hover:text-gray-500">
                     <XMarkIcon className="h-6 w-6" />
                   </button>
                 </div>
@@ -132,6 +190,7 @@ export default function DepartmentsPage() {
                       onChange={handleChange}
                       className="input"
                       required
+                      disabled={!!editingId}
                     >
                       <option value="">Seleccionar...</option>
                       {companies.map((company: any) => (
@@ -164,11 +223,11 @@ export default function DepartmentsPage() {
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
-                    <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+                    <button type="button" onClick={closeModal} className="btn btn-secondary">
                       Cancelar
                     </button>
-                    <button type="submit" className="btn btn-primary" disabled={createMutation.isPending}>
-                      {createMutation.isPending ? 'Guardando...' : 'Guardar'}
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                      {isSubmitting ? 'Guardando...' : (editingId ? 'Actualizar' : 'Guardar')}
                     </button>
                   </div>
                 </form>

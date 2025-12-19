@@ -67,8 +67,17 @@ model Company {
   id                String   @id @default(uuid())
   name              String
   rfc               String   @unique
-  registroPatronal  String?  @map("registro_patronal") // IMSS
+
+  // Tipo de institucion
+  institutionType   InstitutionType @default(PRIVATE) @map("institution_type")
+  govInstitution    GovInstitution? @map("gov_institution") // Solo si es GOVERNMENT
+
+  // Registro patronal IMSS (principal)
+  registroPatronal  String?  @map("registro_patronal")
+
+  // Otros registros (opcionales)
   registroPatronalIssste String? @map("registro_patronal_issste")
+
   address           String?
   city              String?
   state             String?
@@ -647,6 +656,43 @@ model Bank {
 // ENUMS
 // ============================================
 
+// Tipo de institucion
+enum InstitutionType {
+  PRIVATE       // Empresa privada
+  GOVERNMENT    // Institucion de gobierno
+}
+
+// Instituciones de gobierno mexicanas
+enum GovInstitution {
+  // Sector Salud
+  IMSS          // Instituto Mexicano del Seguro Social
+  ISSSTE        // Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado
+  INSABI        // Instituto de Salud para el Bienestar (antes Seguro Popular)
+  IMSS_BIENESTAR // IMSS-Bienestar
+
+  // Fuerzas Armadas
+  SEDENA        // Secretaria de la Defensa Nacional
+  SEMAR         // Secretaria de Marina
+
+  // Cultura y Educacion
+  INAH          // Instituto Nacional de Antropologia e Historia
+  INBA          // Instituto Nacional de Bellas Artes
+  SEP           // Secretaria de Educacion Publica
+  UNAM          // Universidad Nacional Autonoma de Mexico
+  IPN           // Instituto Politecnico Nacional
+
+  // Energia
+  PEMEX         // Petroleos Mexicanos
+  CFE           // Comision Federal de Electricidad
+
+  // Otros
+  SAT           // Servicio de Administracion Tributaria
+  BANXICO       // Banco de Mexico
+  CONAGUA       // Comision Nacional del Agua
+  INEGI         // Instituto Nacional de Estadistica y Geografia
+  OTHER         // Otra institucion de gobierno
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -827,6 +873,7 @@ enum CfdiStatus {
 }
 
 enum BenefitType {
+  // Prestaciones comunes (privadas y gobierno)
   FOOD_VOUCHERS       // Vales de despensa
   SAVINGS_FUND        // Fondo de ahorro
   BONUS               // Bonos
@@ -836,6 +883,33 @@ enum BenefitType {
   ATTENDANCE_BONUS    // Bono de asistencia
   PUNCTUALITY_BONUS   // Bono de puntualidad
   TRANSPORTATION      // Ayuda de transporte
+
+  // Prestaciones de gobierno
+  QUINQUENIO          // Quinquenio (5 años de servicio)
+  ESTIMULO_ANTIGUEDAD // Estimulo por antiguedad
+  AYUDA_LENTES        // Ayuda para lentes
+  AYUDA_DEFUNCION     // Ayuda por defuncion
+  CANASTA_BASICA      // Canasta basica
+  AYUDA_GUARDERIA     // Ayuda para guarderia
+  AYUDA_ESCOLAR       // Ayuda escolar / Utiles escolares
+  BONO_DIA_MADRE      // Bono dia de las madres
+  BONO_DIA_PADRE      // Bono dia del padre
+  BONO_NAVIDAD        // Bono navideño
+  BONO_REYES          // Bono dia de reyes
+  BONO_ANIVERSARIO    // Bono de aniversario institucional
+  PRIMA_DOMINICAL     // Prima dominical
+  COMPENSACION_RIESGO // Compensacion por riesgo (SEDENA, SEMAR, etc.)
+  SERVICIO_MEDICO     // Servicio medico adicional
+  PENSION_COMPLEMENTARIA // Pension complementaria
+  SEGURO_RETIRO       // Seguro de retiro adicional
+  SEGURO_SEPARACION   // Seguro de separacion individualizado
+  PRESTAMO_PERSONAL   // Prestamo personal
+  PRESTAMO_HIPOTECARIO // Prestamo hipotecario (FOVISSSTE, ISSFAM)
+  VALES_ROPA          // Vales de ropa
+  CREDENCIAL_ISSSTE   // Credencial ISSSTE/IMSS
+  SUBSIDIO_COMEDOR    // Subsidio de comedor
+  TURNO_EXTRA         // Pago de turno extra
+
   OTHER
 }
 
