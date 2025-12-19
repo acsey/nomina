@@ -23,6 +23,8 @@ model User {
   isActive  Boolean  @default(true) @map("is_active")
   roleId    String   @map("role_id")
   role      Role     @relation(fields: [roleId], references: [id])
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id])
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -91,6 +93,7 @@ model Company {
   departments  Department[]
   employees    Employee[]
   payrollPeriods PayrollPeriod[]
+  users        User[]
 
   @@map("companies")
 }

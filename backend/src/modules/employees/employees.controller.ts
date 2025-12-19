@@ -15,7 +15,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '@/common/decorators';
+import { Roles, CurrentUser } from '@/common/decorators';
 
 @ApiTags('employees')
 @Controller('employees')
@@ -38,19 +38,33 @@ export class EmployeesController {
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'departmentId', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'companyId', required: false })
   findAll(
+    @CurrentUser() user: any,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
     @Query('search') search?: string,
     @Query('departmentId') departmentId?: string,
     @Query('status') status?: string,
+    @Query('companyId') companyIdQuery?: string,
   ) {
+    // For admin role, allow filtering by any company (or no filter)
+    // For RH/manager roles, filter by their assigned company
+    const userRole = user.role || user.roleName;
+    const isAdmin = userRole === 'admin';
+
+    // Use query parameter if admin, otherwise use user's companyId
+    const companyId = isAdmin
+      ? companyIdQuery
+      : user.companyId;
+
     return this.employeesService.findAll({
       skip,
       take,
       search,
       departmentId,
       status,
+      companyId,
     });
   }
 

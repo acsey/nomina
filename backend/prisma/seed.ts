@@ -94,34 +94,6 @@ async function main() {
 
   console.log('✅ Usuario administrador creado');
 
-  // Crear usuario RH (admin no super)
-  const rhUser = await prisma.user.upsert({
-    where: { email: 'rh@empresa.com' },
-    update: {},
-    create: {
-      email: 'rh@empresa.com',
-      password: hashedPassword,
-      firstName: 'Recursos',
-      lastName: 'Humanos',
-      roleId: rhRole.id,
-    },
-  });
-
-  // Crear usuario gerente
-  const managerUser = await prisma.user.upsert({
-    where: { email: 'gerente@empresa.com' },
-    update: {},
-    create: {
-      email: 'gerente@empresa.com',
-      password: hashedPassword,
-      firstName: 'Gerente',
-      lastName: 'Departamento',
-      roleId: managerRole.id,
-    },
-  });
-
-  console.log('✅ Usuarios RH y Gerente creados');
-
   // Crear empresa demo
   const company = await prisma.company.upsert({
     where: { rfc: 'XAXX010101000' },
@@ -140,6 +112,36 @@ async function main() {
   });
 
   console.log('✅ Empresa demo creada');
+
+  // Crear usuario RH asignado a la empresa
+  const rhUser = await prisma.user.upsert({
+    where: { email: 'rh@empresa.com' },
+    update: { companyId: company.id },
+    create: {
+      email: 'rh@empresa.com',
+      password: hashedPassword,
+      firstName: 'Recursos',
+      lastName: 'Humanos',
+      roleId: rhRole.id,
+      companyId: company.id,
+    },
+  });
+
+  // Crear usuario gerente asignado a la empresa
+  const managerUser = await prisma.user.upsert({
+    where: { email: 'gerente@empresa.com' },
+    update: { companyId: company.id },
+    create: {
+      email: 'gerente@empresa.com',
+      password: hashedPassword,
+      firstName: 'Gerente',
+      lastName: 'Departamento',
+      roleId: managerRole.id,
+      companyId: company.id,
+    },
+  });
+
+  console.log('✅ Usuarios RH y Gerente creados (asignados a empresa)');
 
   // Crear departamentos
   const rhDept = await prisma.department.create({
@@ -954,18 +956,19 @@ async function main() {
   for (const empUser of employeeUsers) {
     await prisma.user.upsert({
       where: { email: empUser.email },
-      update: {},
+      update: { companyId: company.id },
       create: {
         email: empUser.email,
-        password: hashedPassword, // Mismo password: empleado123
+        password: hashedPassword, // Mismo password: admin123
         firstName: empUser.firstName,
         lastName: empUser.lastName,
         roleId: employeeRole.id,
+        companyId: company.id,
       },
     });
   }
 
-  console.log('✅ Usuarios de empleados creados (5 empleados pueden acceder al portal)');
+  console.log('✅ Usuarios de empleados creados (5 empleados, asignados a empresa)');
 
   // Crear saldos de vacaciones para los empleados
   const currentYear = new Date().getFullYear();

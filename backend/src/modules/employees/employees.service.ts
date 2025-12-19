@@ -104,6 +104,7 @@ export class EmployeesService {
         include: {
           department: true,
           jobPosition: true,
+          company: true,
         },
         orderBy: { lastName: 'asc' },
       }),
