@@ -57,7 +57,24 @@ async function main() {
     },
   });
 
-  console.log('✅ Roles creados');
+  // Rol de Administrador por Empresa (puede aprobar nóminas de su empresa)
+  const companyAdminRole = await prisma.role.upsert({
+    where: { name: 'company_admin' },
+    update: {},
+    create: {
+      name: 'company_admin',
+      description: 'Administrador de Empresa',
+      permissions: JSON.stringify([
+        'users:read', 'users:write',
+        'employees:read', 'employees:write', 'employees:delete',
+        'payroll:read', 'payroll:write', 'payroll:approve',
+        'reports:read', 'reports:export',
+        'settings:read', 'settings:write:company',
+      ]),
+    },
+  });
+
+  console.log('✅ Roles creados (incluyendo company_admin)');
 
   const hashedPassword = await bcrypt.hash('admin123', 10);
 
@@ -271,7 +288,67 @@ async function main() {
     },
   });
 
-  console.log('✅ Usuarios RH y Gerentes creados para cada empresa');
+  // ============================================
+  // CREAR ADMINISTRADORES POR EMPRESA
+  // ============================================
+
+  // Admin BFS
+  await prisma.user.upsert({
+    where: { email: 'admin@bfs.com.mx' },
+    update: { companyId: bfsCompany.id },
+    create: {
+      email: 'admin@bfs.com.mx',
+      password: hashedPassword,
+      firstName: 'Roberto',
+      lastName: 'García',
+      roleId: companyAdminRole.id,
+      companyId: bfsCompany.id,
+    },
+  });
+
+  // Admin Tech Solutions
+  await prisma.user.upsert({
+    where: { email: 'admin@techsolutions.mx' },
+    update: { companyId: techCompany.id },
+    create: {
+      email: 'admin@techsolutions.mx',
+      password: hashedPassword,
+      firstName: 'María',
+      lastName: 'López',
+      roleId: companyAdminRole.id,
+      companyId: techCompany.id,
+    },
+  });
+
+  // Admin Comercializadora del Norte
+  await prisma.user.upsert({
+    where: { email: 'admin@comnorte.mx' },
+    update: { companyId: norteCompany.id },
+    create: {
+      email: 'admin@comnorte.mx',
+      password: hashedPassword,
+      firstName: 'Juan',
+      lastName: 'Treviño',
+      roleId: companyAdminRole.id,
+      companyId: norteCompany.id,
+    },
+  });
+
+  // Admin INSABI
+  await prisma.user.upsert({
+    where: { email: 'admin@insabi.gob.mx' },
+    update: { companyId: insabiCompany.id },
+    create: {
+      email: 'admin@insabi.gob.mx',
+      password: hashedPassword,
+      firstName: 'Pedro',
+      lastName: 'Ramírez',
+      roleId: companyAdminRole.id,
+      companyId: insabiCompany.id,
+    },
+  });
+
+  console.log('✅ Usuarios RH, Gerentes y Admins creados para cada empresa');
 
   // ============================================
   // CREAR DEPARTAMENTOS POR EMPRESA
@@ -696,17 +773,21 @@ async function main() {
   console.log('   Email: admin@sistema.com');
   console.log('   Password: admin123');
   console.log('\n🏢 BFS INGENIERÍA APLICADA (Color: Azul):');
+  console.log('   🔑 Admin Empresa: admin@bfs.com.mx / admin123');
   console.log('   RH: rh@bfs.com.mx / admin123');
   console.log('   Gerente: gerente@bfs.com.mx / admin123');
   console.log('   Empleados: david.sc@bfs.com.mx, patricia.g@bfs.com.mx, etc.');
   console.log('\n🏢 TECH SOLUTIONS MÉXICO (Color: Morado):');
+  console.log('   🔑 Admin Empresa: admin@techsolutions.mx / admin123');
   console.log('   RH: rh@techsolutions.mx / admin123');
   console.log('   Gerente: gerente@techsolutions.mx / admin123');
   console.log('   Empleados: andrea.r@techsolutions.mx, fernando.c@techsolutions.mx, etc.');
   console.log('\n🏢 COMERCIALIZADORA DEL NORTE (Color: Verde):');
+  console.log('   🔑 Admin Empresa: admin@comnorte.mx / admin123');
   console.log('   RH: rh@comnorte.mx / admin123');
   console.log('   Empleados: monica.v@comnorte.mx, jorge.t@comnorte.mx, etc.');
   console.log('\n🏛️ INSABI - GOBIERNO (Color: Guinda/Dorado, ISSSTE):');
+  console.log('   🔑 Admin Empresa: admin@insabi.gob.mx / admin123');
   console.log('   RH: rh@insabi.gob.mx / admin123');
   console.log('   Director: director@insabi.gob.mx / admin123');
   console.log('   Empleados: carlos.h@insabi.gob.mx, laura.m@insabi.gob.mx, etc.');
@@ -716,8 +797,8 @@ async function main() {
   console.log('📊 RESUMEN:');
   console.log('   - 4 Empresas con diferentes colores/configuraciones');
   console.log('   - 20 Empleados (5 por empresa)');
-  console.log('   - 1 Super Admin + 7 usuarios RH/Gerente + 20 usuarios empleado');
-  console.log('   - Cada empresa tiene su propia configuración de colores');
+  console.log('   - 1 Super Admin + 4 Admin Empresa + 7 usuarios RH/Gerente + 20 empleados');
+  console.log('   - Cada empresa tiene su Admin que aprueba nóminas de SU empresa');
   console.log('   - Prestaciones LFT: Aguinaldo, Prima Vacacional, Vales, etc.');
   console.log('   - Prestaciones Gobierno: ISSSTE, FOVISSSTE, SAR, Estímulos');
   console.log('   - Vacaciones según LFT Art. 76 (0 días primer año, 12 días al cumplir 1 año)');

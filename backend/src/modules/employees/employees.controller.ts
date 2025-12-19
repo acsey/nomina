@@ -25,7 +25,7 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Post()
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Crear nuevo empleado' })
   create(@Body() createEmployeeDto: CreateEmployeeDto) {
     return this.employeesService.create(createEmployeeDto);
@@ -48,13 +48,13 @@ export class EmployeesController {
     @Query('status') status?: string,
     @Query('companyId') companyIdQuery?: string,
   ) {
-    // For admin role, allow filtering by any company (or no filter)
-    // For RH/manager roles, filter by their assigned company
+    // Only super admin (without companyId) can see all companies
+    // company_admin, rh, manager, employee filter by their assigned company
     const userRole = user.role || user.roleName;
-    const isAdmin = userRole === 'admin';
+    const isSuperAdmin = userRole === 'admin' && !user.companyId;
 
-    // Use query parameter if admin, otherwise use user's companyId
-    const companyId = isAdmin
+    // Super admin can filter by any company, others see only their company
+    const companyId = isSuperAdmin
       ? companyIdQuery
       : user.companyId;
 
@@ -81,21 +81,21 @@ export class EmployeesController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Actualizar empleado' })
   update(@Param('id') id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
     return this.employeesService.update(id, updateEmployeeDto);
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('admin', 'company_admin')
   @ApiOperation({ summary: 'Desactivar empleado' })
   remove(@Param('id') id: string) {
     return this.employeesService.remove(id);
   }
 
   @Post(':id/terminate')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Dar de baja a empleado' })
   terminate(
     @Param('id') id: string,
@@ -105,7 +105,7 @@ export class EmployeesController {
   }
 
   @Post(':id/salary')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Actualizar salario del empleado' })
   updateSalary(
     @Param('id') id: string,
