@@ -76,4 +76,43 @@ export class AttendanceController {
   ) {
     return this.attendanceService.markAbsent(employeeId, new Date(date), notes);
   }
+
+  @Post('break-start/:employeeId')
+  @ApiOperation({ summary: 'Iniciar descanso/comida' })
+  breakStart(@Param('employeeId') employeeId: string) {
+    return this.attendanceService.breakStart(employeeId);
+  }
+
+  @Post('break-end/:employeeId')
+  @ApiOperation({ summary: 'Terminar descanso/comida' })
+  breakEnd(@Param('employeeId') employeeId: string) {
+    return this.attendanceService.breakEnd(employeeId);
+  }
+
+  @Get('today/:employeeId')
+  @ApiOperation({ summary: 'Obtener registro de hoy del empleado' })
+  getTodayRecord(@Param('employeeId') employeeId: string) {
+    return this.attendanceService.getTodayRecord(employeeId);
+  }
+
+  @Get('schedule/:employeeId')
+  @ApiOperation({ summary: 'Obtener horario del empleado' })
+  getEmployeeSchedule(@Param('employeeId') employeeId: string) {
+    return this.attendanceService.getEmployeeWithSchedule(employeeId);
+  }
+
+  @Get('today-all')
+  @ApiOperation({ summary: 'Obtener asistencia de todos los empleados hoy' })
+  getAllEmployeesToday(@Query('companyId') companyId: string) {
+    return this.attendanceService.getAllEmployeesToday(companyId);
+  }
+
+  @Post('update/:recordId')
+  @ApiOperation({ summary: 'Actualizar registro de asistencia' })
+  updateRecord(
+    @Param('recordId') recordId: string,
+    @Body() data: any,
+  ) {
+    return this.attendanceService.updateAttendanceRecord(recordId, data);
+  }
 }

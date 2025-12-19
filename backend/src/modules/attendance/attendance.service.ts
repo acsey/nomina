@@ -186,4 +186,147 @@ export class AttendanceService {
       },
     });
   }
+
+  async breakStart(employeeId: string) {
+    const today = dayjs().startOf('day').toDate();
+    const now = new Date();
+
+    const record = await this.prisma.attendanceRecord.findUnique({
+      where: {
+        employeeId_date: {
+          employeeId,
+          date: today,
+        },
+      },
+    });
+
+    if (!record) {
+      throw new NotFoundException('No hay registro de entrada para hoy');
+    }
+
+    if (!record.checkIn) {
+      throw new NotFoundException('Debe registrar entrada antes de iniciar descanso');
+    }
+
+    if (record.breakStart && !record.breakEnd) {
+      throw new NotFoundException('Ya hay un descanso en curso');
+    }
+
+    return this.prisma.attendanceRecord.update({
+      where: { id: record.id },
+      data: {
+        breakStart: now,
+        breakEnd: null, // Reset breakEnd if starting new break
+      },
+    });
+  }
+
+  async breakEnd(employeeId: string) {
+    const today = dayjs().startOf('day').toDate();
+    const now = new Date();
+
+    const record = await this.prisma.attendanceRecord.findUnique({
+      where: {
+        employeeId_date: {
+          employeeId,
+          date: today,
+        },
+      },
+    });
+
+    if (!record) {
+      throw new NotFoundException('No hay registro de entrada para hoy');
+    }
+
+    if (!record.breakStart) {
+      throw new NotFoundException('No hay descanso iniciado');
+    }
+
+    if (record.breakEnd) {
+      throw new NotFoundException('El descanso ya fue terminado');
+    }
+
+    return this.prisma.attendanceRecord.update({
+      where: { id: record.id },
+      data: {
+        breakEnd: now,
+      },
+    });
+  }
+
+  async getTodayRecord(employeeId: string) {
+    const today = dayjs().startOf('day').toDate();
+
+    return this.prisma.attendanceRecord.findUnique({
+      where: {
+        employeeId_date: {
+          employeeId,
+          date: today,
+        },
+      },
+    });
+  }
+
+  async getEmployeeWithSchedule(employeeId: string) {
+    return this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        workSchedule: {
+          include: {
+            scheduleDetails: true,
+          },
+        },
+        department: true,
+      },
+    });
+  }
+
+  async getAllEmployeesToday(companyId: string) {
+    const today = dayjs().startOf('day').toDate();
+
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        companyId,
+        isActive: true,
+      },
+      include: {
+        department: true,
+        workSchedule: {
+          include: {
+            scheduleDetails: true,
+          },
+        },
+        attendanceRecords: {
+          where: {
+            date: today,
+          },
+        },
+      },
+      orderBy: {
+        lastName: 'asc',
+      },
+    });
+
+    return employees.map(emp => ({
+      ...emp,
+      todayAttendance: emp.attendanceRecords[0] || null,
+    }));
+  }
+
+  async updateAttendanceRecord(
+    recordId: string,
+    data: {
+      checkIn?: Date;
+      checkOut?: Date;
+      breakStart?: Date;
+      breakEnd?: Date;
+      notes?: string;
+      status?: AttendanceStatus;
+    },
+  ) {
+    return this.prisma.attendanceRecord.update({
+      where: { id: recordId },
+      data,
+    });
+  }
 }
