@@ -133,6 +133,7 @@ export const attendanceApi = {
 };
 
 export const vacationsApi = {
+  request: (data: any) => api.post('/vacations/request', data),
   createRequest: (data: any) => api.post('/vacations/request', data),
   approveRequest: (id: string) => api.post(`/vacations/${id}/approve`),
   rejectRequest: (id: string, reason: string) =>
