@@ -13,6 +13,7 @@ import AttendancePage from './pages/AttendancePage';
 import VacationsPage from './pages/VacationsPage';
 import BenefitsPage from './pages/BenefitsPage';
 import ReportsPage from './pages/ReportsPage';
+import BulkUploadPage from './pages/BulkUploadPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -55,6 +56,7 @@ function App() {
             <Route path="vacations" element={<VacationsPage />} />
             <Route path="benefits" element={<BenefitsPage />} />
             <Route path="reports" element={<ReportsPage />} />
+            <Route path="bulk-upload" element={<BulkUploadPage />} />
           </Route>
         </Routes>
       </AuthProvider>

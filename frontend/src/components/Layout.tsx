@@ -10,6 +10,7 @@ import {
   CalendarDaysIcon,
   GiftIcon,
   DocumentChartBarIcon,
+  ArrowUpTrayIcon,
   Bars3Icon,
   XMarkIcon,
   ArrowRightOnRectangleIcon,
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Asistencia', href: '/attendance', icon: ClockIcon },
   { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon },
   { name: 'Prestaciones', href: '/benefits', icon: GiftIcon },
+  { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon },
   { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon },
 ];
 

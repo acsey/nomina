@@ -14,6 +14,7 @@ import { CfdiModule } from './modules/cfdi/cfdi.module';
 import { GovernmentModule } from './modules/government/government.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { CatalogsModule } from './modules/catalogs/catalogs.module';
+import { BulkUploadModule } from './modules/bulk-upload/bulk-upload.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CatalogsModule } from './modules/catalogs/catalogs.module';
     GovernmentModule,
     ReportsModule,
     CatalogsModule,
+    BulkUploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
