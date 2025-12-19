@@ -83,9 +83,10 @@ export class PayrollController {
   @ApiOperation({ summary: 'Obtener recibos de nomina del empleado' })
   getEmployeeReceipts(
     @Param('employeeId') employeeId: string,
-    @Query('year') year?: number,
+    @Query('year') year?: string,
   ) {
-    return this.receiptService.getEmployeeReceipts(employeeId, year);
+    const yearNumber = year ? parseInt(year, 10) : undefined;
+    return this.receiptService.getEmployeeReceipts(employeeId, yearNumber);
   }
 
   @Get('receipts/:detailId/pdf')

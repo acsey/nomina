@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckIcon,
@@ -6,11 +6,14 @@ import {
   PlusIcon,
   CalendarDaysIcon,
   DocumentTextIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import { vacationsApi, catalogsApi, employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
+
+const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
 const typeLabels: Record<string, string> = {
   VACATION: 'Vacaciones',
@@ -88,6 +91,26 @@ export default function VacationsPage() {
     queryFn: () => vacationsApi.getBalance(selectedEmployeeId),
     enabled: !!selectedEmployeeId,
   });
+
+  // Get employee's work schedule
+  const { data: scheduleData } = useQuery({
+    queryKey: ['employee-schedule', selectedEmployeeId],
+    queryFn: () => vacationsApi.getEmployeeSchedule(selectedEmployeeId),
+    enabled: !!selectedEmployeeId,
+  });
+  const schedule = scheduleData?.data;
+
+  // Preview vacation days calculation (for the modal)
+  const { data: previewData } = useQuery({
+    queryKey: ['vacation-preview', formData.employeeId, formData.startDate, formData.endDate],
+    queryFn: () => vacationsApi.previewVacationDays(
+      formData.employeeId,
+      formData.startDate,
+      formData.endDate
+    ),
+    enabled: !!formData.employeeId && !!formData.startDate && !!formData.endDate,
+  });
+  const preview = previewData?.data;
 
   const { data: employeeRequestsData, isLoading: requestsLoading } = useQuery({
     queryKey: ['employee-vacations', selectedEmployeeId],
@@ -208,7 +231,7 @@ export default function VacationsPage() {
             </select>
           </div>
           {selectedEmployeeId && balanceData?.data && (
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <div className="bg-blue-50 px-4 py-2 rounded-lg">
                 <p className="text-xs text-blue-600">Dias Ganados</p>
                 <p className="text-xl font-bold text-blue-700">
@@ -235,6 +258,42 @@ export default function VacationsPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Work Schedule Display */}
+        {selectedEmployeeId && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2 mb-2">
+              <ClockIcon className="h-5 w-5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">Horario Laboral:</span>
+              {schedule ? (
+                <span className="text-sm text-gray-600">{schedule.name}</span>
+              ) : (
+                <span className="text-sm text-gray-500 italic">Sin horario asignado (Lun-Vie por defecto)</span>
+              )}
+            </div>
+            <div className="flex gap-1">
+              {dayNames.map((day, index) => {
+                const isWorkDay = schedule?.scheduleDetails
+                  ? schedule.scheduleDetails.some((d: any) => d.dayOfWeek === index && d.isWorkDay)
+                  : index >= 1 && index <= 5; // Default Mon-Fri
+                return (
+                  <div
+                    key={day}
+                    className={`px-2 py-1 text-xs font-medium rounded ${
+                      isWorkDay
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                    title={isWorkDay ? 'Dia laboral' : 'Dia de descanso'}
+                  >
+                    {day}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         </div>
       </div>
 
@@ -513,11 +572,38 @@ export default function VacationsPage() {
                     </div>
                   </div>
 
-                  {formData.startDate && formData.endDate && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        Total de dias solicitados: <strong>{calculateDays()}</strong>
-                      </p>
+                  {formData.startDate && formData.endDate && formData.employeeId && (
+                    <div className="bg-blue-50 p-4 rounded-lg space-y-2">
+                      {preview ? (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-blue-700">Dias calendario:</span>
+                            <span className="font-medium text-blue-800">{preview.calendarDays}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-blue-700">Dias laborales a descontar:</span>
+                            <span className="font-bold text-blue-900 text-lg">{preview.workDays}</span>
+                          </div>
+                          {preview.schedule && (
+                            <div className="pt-2 border-t border-blue-200">
+                              <div className="flex items-center gap-2 text-xs text-blue-600">
+                                <ClockIcon className="h-4 w-4" />
+                                <span>Horario: {preview.schedule.name}</span>
+                                <span className="text-blue-500">({preview.schedule.workDaysPerWeek} dias/semana)</span>
+                              </div>
+                            </div>
+                          )}
+                          {!preview.schedule && (
+                            <p className="text-xs text-blue-500 italic pt-1">
+                              Usando horario predeterminado (Lun-Vie)
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-blue-700">
+                          Total de dias solicitados: <strong>{calculateDays()}</strong>
+                        </p>
+                      )}
                     </div>
                   )}
 
