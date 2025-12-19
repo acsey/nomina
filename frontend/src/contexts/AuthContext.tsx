@@ -4,6 +4,9 @@ import { api } from '../services/api';
 interface Company {
   id: string;
   name: string;
+  logo?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
 }
 
 interface User {

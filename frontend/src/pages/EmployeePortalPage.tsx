@@ -11,8 +11,9 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   PlusIcon,
+  CodeBracketIcon,
 } from '@heroicons/react/24/outline';
-import { attendanceApi, payrollApi, vacationsApi, incidentsApi, employeesApi } from '../services/api';
+import { attendanceApi, payrollApi, vacationsApi, incidentsApi, employeesApi, cfdiApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
@@ -191,6 +192,28 @@ export default function EmployeePortalPage() {
       toast.success('Recibo descargado');
     } catch (error) {
       toast.error('Error al descargar el recibo');
+    }
+  };
+
+  const handleDownloadXml = async (detailId: string, periodInfo: string) => {
+    try {
+      const response = await cfdiApi.downloadXmlByDetail(detailId);
+      const blob = new Blob([response.data], { type: 'application/xml' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cfdi_nomina_${periodInfo}.xml`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('XML descargado');
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        toast.error('XML no disponible para este recibo');
+      } else {
+        toast.error('Error al descargar el XML');
+      }
     }
   };
 
@@ -508,7 +531,16 @@ export default function EmployeePortalPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-4 border-t flex justify-end">
+                    <div className="mt-4 pt-4 border-t flex justify-end gap-2">
+                      <button
+                        onClick={() =>
+                          handleDownloadXml(receipt.id, `${period.periodNumber}_${period.year}`)
+                        }
+                        className="btn btn-secondary flex items-center"
+                      >
+                        <CodeBracketIcon className="h-5 w-5 mr-2" />
+                        XML
+                      </button>
                       <button
                         onClick={() =>
                           handleDownloadReceipt(receipt.id, `${period.periodNumber}_${period.year}`)
@@ -516,7 +548,7 @@ export default function EmployeePortalPage() {
                         className="btn btn-primary"
                       >
                         <DocumentTextIcon className="h-5 w-5 mr-2" />
-                        Descargar Recibo PDF
+                        Descargar PDF
                       </button>
                     </div>
                   </div>

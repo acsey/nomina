@@ -77,4 +77,38 @@ export class CfdiController {
 
     res.send(xml);
   }
+
+  @Get('by-detail/:payrollDetailId')
+  @ApiOperation({ summary: 'Obtener CFDI por ID de detalle de nómina' })
+  findByPayrollDetail(@Param('payrollDetailId') payrollDetailId: string) {
+    return this.cfdiService.getCfdiByPayrollDetail(payrollDetailId);
+  }
+
+  @Get('by-detail/:payrollDetailId/xml')
+  @ApiOperation({ summary: 'Descargar XML del CFDI por detalle de nómina' })
+  async downloadXmlByDetail(
+    @Param('payrollDetailId') payrollDetailId: string,
+    @Res() res: Response,
+  ) {
+    const cfdi = await this.cfdiService.getCfdiByPayrollDetail(payrollDetailId);
+
+    if (!cfdi) {
+      res.status(404).json({ message: 'CFDI no encontrado' });
+      return;
+    }
+
+    const xml = cfdi.xmlTimbrado || cfdi.xmlOriginal;
+
+    if (!xml) {
+      res.status(404).json({ message: 'XML no disponible' });
+      return;
+    }
+
+    res.set({
+      'Content-Type': 'application/xml',
+      'Content-Disposition': `attachment; filename="CFDI_${cfdi.uuid || payrollDetailId}.xml"`,
+    });
+
+    res.send(xml);
+  }
 }

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -15,6 +16,7 @@ import BenefitsPage from './pages/BenefitsPage';
 import ReportsPage from './pages/ReportsPage';
 import BulkUploadPage from './pages/BulkUploadPage';
 import CompaniesPage from './pages/CompaniesPage';
+import CompanyConfigPage from './pages/CompanyConfigPage';
 import IncidentsPage from './pages/IncidentsPage';
 import EmployeePortalPage from './pages/EmployeePortalPage';
 import UsersPage from './pages/UsersPage';
@@ -37,17 +39,18 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
+        <ThemeProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
 
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Layout />
-              </PrivateRoute>
-            }
-          >
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Layout />
+                </PrivateRoute>
+              }
+            >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="employees" element={<EmployeesPage />} />
@@ -64,10 +67,12 @@ function App() {
             <Route path="reports" element={<ReportsPage />} />
             <Route path="bulk-upload" element={<BulkUploadPage />} />
             <Route path="companies" element={<CompaniesPage />} />
+            <Route path="company-config" element={<CompanyConfigPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="my-portal" element={<EmployeePortalPage />} />
-          </Route>
-        </Routes>
+            </Route>
+          </Routes>
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

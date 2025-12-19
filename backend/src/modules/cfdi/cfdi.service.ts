@@ -163,6 +163,30 @@ export class CfdiService {
     return cfdi;
   }
 
+  async getCfdiByPayrollDetail(payrollDetailId: string) {
+    const cfdi = await this.prisma.cfdiNomina.findUnique({
+      where: { payrollDetailId },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            employeeNumber: true,
+            firstName: true,
+            lastName: true,
+            rfc: true,
+          },
+        },
+        payrollDetail: {
+          include: {
+            payrollPeriod: true,
+          },
+        },
+      },
+    });
+
+    return cfdi; // Puede ser null si no existe
+  }
+
   async getCfdisByPeriod(periodId: string) {
     return this.prisma.cfdiNomina.findMany({
       where: {

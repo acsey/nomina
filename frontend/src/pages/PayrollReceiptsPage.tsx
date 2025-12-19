@@ -4,8 +4,9 @@ import {
   DocumentArrowDownIcon,
   EyeIcon,
   DocumentTextIcon,
+  CodeBracketIcon,
 } from '@heroicons/react/24/outline';
-import { payrollApi, employeesApi, catalogsApi } from '../services/api';
+import { payrollApi, employeesApi, catalogsApi, cfdiApi } from '../services/api';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 
@@ -70,6 +71,28 @@ export default function PayrollReceiptsPage() {
       window.open(url, '_blank');
     } catch (error) {
       toast.error('Error al abrir el recibo');
+    }
+  };
+
+  const handleDownloadXml = async (detailId: string, periodInfo: string) => {
+    try {
+      const response = await cfdiApi.downloadXmlByDetail(detailId);
+      const blob = new Blob([response.data], { type: 'application/xml' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cfdi_nomina_${periodInfo}.xml`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('XML descargado');
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        toast.error('XML no disponible para este recibo');
+      } else {
+        toast.error('Error al descargar el XML');
+      }
     }
   };
 
@@ -222,6 +245,16 @@ export default function PayrollReceiptsPage() {
                           title="Descargar PDF"
                         >
                           <DocumentArrowDownIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadXml(
+                            receipt.id,
+                            `${period.periodNumber}_${period.year}`
+                          )}
+                          className="text-amber-600 hover:text-amber-800 p-1"
+                          title="Descargar XML"
+                        >
+                          <CodeBracketIcon className="h-5 w-5" />
                         </button>
                       </div>
                     </td>
