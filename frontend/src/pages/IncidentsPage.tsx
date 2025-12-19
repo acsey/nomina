@@ -19,6 +19,8 @@ const categoryLabels: Record<string, string> = {
   OVERTIME: 'Horas extra',
   BONUS: 'Bono',
   DEDUCTION: 'Descuento',
+  DISABILITY: 'Incapacidad',
+  JUSTIFIED_ABSENCE: 'Falta justificada',
   OTHER: 'Otro',
 };
 

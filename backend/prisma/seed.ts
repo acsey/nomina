@@ -418,7 +418,7 @@ async function main() {
     prisma.incidentType.upsert({
       where: { code: 'FALTA_JUST' },
       update: {},
-      create: { code: 'FALTA_JUST', name: 'Falta justificada', category: 'OTHER', affectsPayroll: false, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'FALTA_JUST', name: 'Falta justificada', category: 'JUSTIFIED_ABSENCE', affectsPayroll: false, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
     // Retardos
     prisma.incidentType.upsert({
@@ -479,17 +479,17 @@ async function main() {
     prisma.incidentType.upsert({
       where: { code: 'INCAP_ENF' },
       update: {},
-      create: { code: 'INCAP_ENF', name: 'Incapacidad por enfermedad', category: 'OTHER', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'INCAP_ENF', name: 'Incapacidad por enfermedad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'INCAP_ACC' },
       update: {},
-      create: { code: 'INCAP_ACC', name: 'Incapacidad por accidente', category: 'OTHER', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'INCAP_ACC', name: 'Incapacidad por accidente', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'INCAP_MATERNIDAD' },
       update: {},
-      create: { code: 'INCAP_MATERNIDAD', name: 'Incapacidad por maternidad', category: 'OTHER', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'INCAP_MATERNIDAD', name: 'Incapacidad por maternidad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
   ]);
 
