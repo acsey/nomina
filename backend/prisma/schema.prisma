@@ -80,13 +80,34 @@ model Company {
   // Otros registros (opcionales)
   registroPatronalIssste String? @map("registro_patronal_issste")
 
+  // Direccion
   address           String?
   city              String?
   state             String?
   zipCode           String?  @map("zip_code")
   phone             String?
   email             String?
-  logo              String?
+
+  // Branding y personalización
+  logo              String?  // URL o base64 del logo
+  primaryColor      String?  @default("#1E40AF") @map("primary_color")
+  secondaryColor    String?  @default("#3B82F6") @map("secondary_color")
+
+  // Configuración CFDI
+  regimenFiscal     String?  @map("regimen_fiscal") // Código SAT (601, 605, etc.)
+  certificadoCer    String?  @map("certificado_cer") @db.Text // Certificado .cer en base64
+  certificadoKey    String?  @map("certificado_key") @db.Text // Llave privada .key en base64
+  certificadoPassword String? @map("certificado_password") // Contraseña del certificado
+  noCertificado     String?  @map("no_certificado") // Número de certificado SAT
+  certificadoVigenciaInicio DateTime? @map("certificado_vigencia_inicio")
+  certificadoVigenciaFin DateTime? @map("certificado_vigencia_fin")
+
+  // Configuración PAC (Proveedor Autorizado de Certificación)
+  pacProvider       String?  @map("pac_provider") // Nombre del PAC (FINKOK, SW, etc.)
+  pacUser           String?  @map("pac_user")
+  pacPassword       String?  @map("pac_password")
+  pacMode           String?  @default("sandbox") @map("pac_mode") // sandbox | production
+
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
