@@ -31,3 +31,10 @@ coverage/
 # Prisma
 *.db
 *.db-journal
+
+# Certificados (NUNCA commitear)
+*.cer
+*.key
+*.pfx
+*.p12
+.env.certificados
