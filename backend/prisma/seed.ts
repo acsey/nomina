@@ -418,7 +418,7 @@ async function main() {
     prisma.incidentType.upsert({
       where: { code: 'FALTA_JUST' },
       update: {},
-      create: { code: 'FALTA_JUST', name: 'Falta justificada', category: 'JUSTIFIED_ABSENCE', affectsPayroll: false, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'FALTA_JUST', name: 'Falta justificada', category: 'OTHER', affectsPayroll: false, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
     // Retardos
     prisma.incidentType.upsert({
@@ -452,44 +452,44 @@ async function main() {
     prisma.incidentType.upsert({
       where: { code: 'BONO_PUNTUALIDAD' },
       update: {},
-      create: { code: 'BONO_PUNTUALIDAD', name: 'Bono de puntualidad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 500 },
+      create: { code: 'BONO_PUNTUALIDAD', name: 'Bono de puntualidad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 500 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'BONO_ASISTENCIA' },
       update: {},
-      create: { code: 'BONO_ASISTENCIA', name: 'Bono de asistencia', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 500 },
+      create: { code: 'BONO_ASISTENCIA', name: 'Bono de asistencia', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 500 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'BONO_PRODUCTIVIDAD' },
       update: {},
-      create: { code: 'BONO_PRODUCTIVIDAD', name: 'Bono de productividad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 1000 },
+      create: { code: 'BONO_PRODUCTIVIDAD', name: 'Bono de productividad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 1000 },
     }),
     // Descuentos
     prisma.incidentType.upsert({
       where: { code: 'DESCUENTO' },
       update: {},
-      create: { code: 'DESCUENTO', name: 'Descuento general', category: 'DISCOUNT', affectsPayroll: true, isDeduction: true, valueType: 'FIXED_AMOUNT', defaultValue: 0 },
+      create: { code: 'DESCUENTO', name: 'Descuento general', category: 'DEDUCTION', affectsPayroll: true, isDeduction: true, valueType: 'AMOUNT', defaultValue: 0 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'DESCUENTO_UNIFORME' },
       update: {},
-      create: { code: 'DESCUENTO_UNIFORME', name: 'Descuento por uniforme', category: 'DISCOUNT', affectsPayroll: true, isDeduction: true, valueType: 'FIXED_AMOUNT', defaultValue: 0 },
+      create: { code: 'DESCUENTO_UNIFORME', name: 'Descuento por uniforme', category: 'DEDUCTION', affectsPayroll: true, isDeduction: true, valueType: 'AMOUNT', defaultValue: 0 },
     }),
     // Incapacidades
     prisma.incidentType.upsert({
       where: { code: 'INCAP_ENF' },
       update: {},
-      create: { code: 'INCAP_ENF', name: 'Incapacidad por enfermedad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'INCAP_ENF', name: 'Incapacidad por enfermedad', category: 'OTHER', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'INCAP_ACC' },
       update: {},
-      create: { code: 'INCAP_ACC', name: 'Incapacidad por accidente', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'INCAP_ACC', name: 'Incapacidad por accidente', category: 'OTHER', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'INCAP_MATERNIDAD' },
       update: {},
-      create: { code: 'INCAP_MATERNIDAD', name: 'Incapacidad por maternidad', category: 'DISABILITY', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
+      create: { code: 'INCAP_MATERNIDAD', name: 'Incapacidad por maternidad', category: 'OTHER', affectsPayroll: true, isDeduction: false, valueType: 'DAYS', defaultValue: 1 },
     }),
   ]);
 

@@ -971,7 +971,7 @@ enum IncidentCategory {
   EARLY_LEAVE       // Salidas anticipadas
   OVERTIME          // Horas extra
   BONUS             // Bonos
-  DISCOUNT          // Descuentos
+  DEDUCTION         // Descuentos (valor original de la migracion)
   DISABILITY        // Incapacidad
   JUSTIFIED_ABSENCE // Falta justificada
   OTHER             // Otros
@@ -980,7 +980,7 @@ enum IncidentCategory {
 enum IncidentValueType {
   DAYS              // Dias
   HOURS             // Horas
-  FIXED_AMOUNT      // Monto fijo
+  AMOUNT            // Monto fijo (valor original de la migracion)
   PERCENTAGE        // Porcentaje
 }
 
