@@ -60,7 +60,7 @@ async function cleanupDuplicates() {
   for (const schedule of workSchedules) {
     if (seenScheduleNames.has(schedule.name)) {
       // Delete schedule details first
-      await prisma.scheduleDetail.deleteMany({ where: { workScheduleId: schedule.id } });
+      await prisma.workScheduleDetail.deleteMany({ where: { workScheduleId: schedule.id } });
       await prisma.workSchedule.delete({ where: { id: schedule.id } });
       console.log(`  Eliminado horario duplicado: ${schedule.name}`);
     } else {

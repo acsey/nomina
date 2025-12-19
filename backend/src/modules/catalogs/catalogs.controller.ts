@@ -14,7 +14,6 @@ export class CatalogsController {
   @ApiOperation({ summary: 'Listar empresas' })
   async getCompanies() {
     return this.prisma.company.findMany({
-      where: { isActive: true },
       orderBy: { name: 'asc' },
     });
   }
