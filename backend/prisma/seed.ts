@@ -57,7 +57,24 @@ async function main() {
     },
   });
 
-  console.log('✅ Roles creados');
+  // Rol de Administrador por Empresa (puede aprobar nóminas de su empresa)
+  const companyAdminRole = await prisma.role.upsert({
+    where: { name: 'company_admin' },
+    update: {},
+    create: {
+      name: 'company_admin',
+      description: 'Administrador de Empresa',
+      permissions: JSON.stringify([
+        'users:read', 'users:write',
+        'employees:read', 'employees:write', 'employees:delete',
+        'payroll:read', 'payroll:write', 'payroll:approve',
+        'reports:read', 'reports:export',
+        'settings:read', 'settings:write:company',
+      ]),
+    },
+  });
+
+  console.log('✅ Roles creados (incluyendo company_admin)');
 
   const hashedPassword = await bcrypt.hash('admin123', 10);
 
@@ -271,7 +288,67 @@ async function main() {
     },
   });
 
-  console.log('✅ Usuarios RH y Gerentes creados para cada empresa');
+  // ============================================
+  // CREAR ADMINISTRADORES POR EMPRESA
+  // ============================================
+
+  // Admin BFS
+  await prisma.user.upsert({
+    where: { email: 'admin@bfs.com.mx' },
+    update: { companyId: bfsCompany.id },
+    create: {
+      email: 'admin@bfs.com.mx',
+      password: hashedPassword,
+      firstName: 'Roberto',
+      lastName: 'García',
+      roleId: companyAdminRole.id,
+      companyId: bfsCompany.id,
+    },
+  });
+
+  // Admin Tech Solutions
+  await prisma.user.upsert({
+    where: { email: 'admin@techsolutions.mx' },
+    update: { companyId: techCompany.id },
+    create: {
+      email: 'admin@techsolutions.mx',
+      password: hashedPassword,
+      firstName: 'María',
+      lastName: 'López',
+      roleId: companyAdminRole.id,
+      companyId: techCompany.id,
+    },
+  });
+
+  // Admin Comercializadora del Norte
+  await prisma.user.upsert({
+    where: { email: 'admin@comnorte.mx' },
+    update: { companyId: norteCompany.id },
+    create: {
+      email: 'admin@comnorte.mx',
+      password: hashedPassword,
+      firstName: 'Juan',
+      lastName: 'Treviño',
+      roleId: companyAdminRole.id,
+      companyId: norteCompany.id,
+    },
+  });
+
+  // Admin INSABI
+  await prisma.user.upsert({
+    where: { email: 'admin@insabi.gob.mx' },
+    update: { companyId: insabiCompany.id },
+    create: {
+      email: 'admin@insabi.gob.mx',
+      password: hashedPassword,
+      firstName: 'Pedro',
+      lastName: 'Ramírez',
+      roleId: companyAdminRole.id,
+      companyId: insabiCompany.id,
+    },
+  });
+
+  console.log('✅ Usuarios RH, Gerentes y Admins creados para cada empresa');
 
   // ============================================
   // CREAR DEPARTAMENTOS POR EMPRESA
@@ -596,7 +673,130 @@ async function main() {
   console.log('✅ Tipos de incidencias creados');
 
   // ============================================
-  // CREAR PRESTACIONES (BENEFITS)
+  // CREAR BENEFITS (PRESTACIONES EN TABLA BENEFIT)
+  // ============================================
+
+  // Prestaciones privadas comunes
+  const benefitVales = await prisma.benefit.upsert({
+    where: { id: 'benefit-vales' },
+    update: {},
+    create: { id: 'benefit-vales', name: 'Vales de Despensa', type: 'FOOD_VOUCHERS', valueType: 'FIXED_AMOUNT', value: 1500, description: 'Vales mensuales de despensa' },
+  });
+
+  const benefitFondoAhorro = await prisma.benefit.upsert({
+    where: { id: 'benefit-fondo' },
+    update: {},
+    create: { id: 'benefit-fondo', name: 'Fondo de Ahorro', type: 'SAVINGS_FUND', valueType: 'PERCENTAGE_SALARY', value: 5, description: '5% aportación patronal' },
+  });
+
+  const benefitSeguroVida = await prisma.benefit.upsert({
+    where: { id: 'benefit-seguro-vida' },
+    update: {},
+    create: { id: 'benefit-seguro-vida', name: 'Seguro de Vida', type: 'LIFE_INSURANCE', valueType: 'FIXED_AMOUNT', value: 500, description: 'Prima de seguro de vida' },
+  });
+
+  const benefitGMM = await prisma.benefit.upsert({
+    where: { id: 'benefit-gmm' },
+    update: {},
+    create: { id: 'benefit-gmm', name: 'Gastos Médicos Mayores', type: 'MAJOR_MEDICAL', valueType: 'FIXED_AMOUNT', value: 2000, description: 'Seguro de gastos médicos' },
+  });
+
+  const benefitBonoAsistencia = await prisma.benefit.upsert({
+    where: { id: 'benefit-asistencia' },
+    update: {},
+    create: { id: 'benefit-asistencia', name: 'Bono de Asistencia', type: 'ATTENDANCE_BONUS', valueType: 'FIXED_AMOUNT', value: 500, description: 'Bono mensual por asistencia perfecta' },
+  });
+
+  const benefitBonoPuntualidad = await prisma.benefit.upsert({
+    where: { id: 'benefit-puntualidad' },
+    update: {},
+    create: { id: 'benefit-puntualidad', name: 'Bono de Puntualidad', type: 'PUNCTUALITY_BONUS', valueType: 'FIXED_AMOUNT', value: 500, description: 'Bono mensual por puntualidad' },
+  });
+
+  // Prestaciones de gobierno
+  const benefitTransporte = await prisma.benefit.upsert({
+    where: { id: 'benefit-transporte' },
+    update: {},
+    create: { id: 'benefit-transporte', name: 'Ayuda de Transporte', type: 'TRANSPORTATION', valueType: 'FIXED_AMOUNT', value: 800, description: 'Apoyo mensual de transporte' },
+  });
+
+  const benefitEstimulos = await prisma.benefit.upsert({
+    where: { id: 'benefit-estimulos' },
+    update: {},
+    create: { id: 'benefit-estimulos', name: 'Estímulos al Desempeño', type: 'PRODUCTIVITY_BONUS', valueType: 'PERCENTAGE_SALARY', value: 10, description: '10% del salario' },
+  });
+
+  console.log('✅ Benefits (prestaciones) creados');
+
+  // ============================================
+  // ASIGNAR BENEFITS A EMPLEADOS POR EMPRESA
+  // ============================================
+
+  const assignedBenefits = [];
+
+  // Obtener todos los empleados por empresa
+  const bfsEmps = await prisma.employee.findMany({ where: { companyId: bfsCompany.id } });
+  const techEmps = await prisma.employee.findMany({ where: { companyId: techCompany.id } });
+  const norteEmps = await prisma.employee.findMany({ where: { companyId: norteCompany.id } });
+  const insabiEmps = await prisma.employee.findMany({ where: { companyId: insabiCompany.id } });
+
+  // BFS: Vales, Fondo Ahorro, Seguro Vida, Bono Asistencia
+  for (const emp of bfsEmps) {
+    for (const benefit of [benefitVales, benefitFondoAhorro, benefitSeguroVida, benefitBonoAsistencia]) {
+      assignedBenefits.push({
+        employeeId: emp.id,
+        benefitId: benefit.id,
+        startDate: emp.hireDate,
+      });
+    }
+  }
+
+  // Tech Solutions: Vales, Fondo Ahorro, GMM, Bono Puntualidad (empresa tech con mejores prestaciones)
+  for (const emp of techEmps) {
+    for (const benefit of [benefitVales, benefitFondoAhorro, benefitGMM, benefitBonoPuntualidad]) {
+      assignedBenefits.push({
+        employeeId: emp.id,
+        benefitId: benefit.id,
+        startDate: emp.hireDate,
+      });
+    }
+  }
+
+  // Comercializadora del Norte: Vales, Bono Asistencia (empresa con prestaciones básicas)
+  for (const emp of norteEmps) {
+    for (const benefit of [benefitVales, benefitBonoAsistencia]) {
+      assignedBenefits.push({
+        employeeId: emp.id,
+        benefitId: benefit.id,
+        startDate: emp.hireDate,
+      });
+    }
+  }
+
+  // INSABI (Gobierno): Transporte, Estímulos, Fondo Ahorro, Seguro Vida
+  for (const emp of insabiEmps) {
+    for (const benefit of [benefitTransporte, benefitEstimulos, benefitFondoAhorro, benefitSeguroVida]) {
+      assignedBenefits.push({
+        employeeId: emp.id,
+        benefitId: benefit.id,
+        startDate: emp.hireDate,
+      });
+    }
+  }
+
+  // Insertar todos los employee benefits
+  for (const eb of assignedBenefits) {
+    await prisma.employeeBenefit.upsert({
+      where: { employeeId_benefitId: { employeeId: eb.employeeId, benefitId: eb.benefitId } },
+      update: {},
+      create: eb,
+    });
+  }
+
+  console.log(`✅ ${assignedBenefits.length} Benefits asignados a empleados`);
+
+  // ============================================
+  // CREAR PRESTACIONES (PAYROLL CONCEPTS)
   // ============================================
 
   // Prestaciones generales (Ley Federal del Trabajo - LFT)
@@ -696,28 +896,36 @@ async function main() {
   console.log('   Email: admin@sistema.com');
   console.log('   Password: admin123');
   console.log('\n🏢 BFS INGENIERÍA APLICADA (Color: Azul):');
+  console.log('   🔑 Admin Empresa: admin@bfs.com.mx / admin123');
   console.log('   RH: rh@bfs.com.mx / admin123');
   console.log('   Gerente: gerente@bfs.com.mx / admin123');
   console.log('   Empleados: david.sc@bfs.com.mx, patricia.g@bfs.com.mx, etc.');
+  console.log('   📦 Prestaciones: Vales, Fondo Ahorro, Seguro Vida, Bono Asistencia');
   console.log('\n🏢 TECH SOLUTIONS MÉXICO (Color: Morado):');
+  console.log('   🔑 Admin Empresa: admin@techsolutions.mx / admin123');
   console.log('   RH: rh@techsolutions.mx / admin123');
   console.log('   Gerente: gerente@techsolutions.mx / admin123');
   console.log('   Empleados: andrea.r@techsolutions.mx, fernando.c@techsolutions.mx, etc.');
+  console.log('   📦 Prestaciones: Vales, Fondo Ahorro, GMM, Bono Puntualidad');
   console.log('\n🏢 COMERCIALIZADORA DEL NORTE (Color: Verde):');
+  console.log('   🔑 Admin Empresa: admin@comnorte.mx / admin123');
   console.log('   RH: rh@comnorte.mx / admin123');
   console.log('   Empleados: monica.v@comnorte.mx, jorge.t@comnorte.mx, etc.');
+  console.log('   📦 Prestaciones: Vales, Bono Asistencia (básicas)');
   console.log('\n🏛️ INSABI - GOBIERNO (Color: Guinda/Dorado, ISSSTE):');
+  console.log('   🔑 Admin Empresa: admin@insabi.gob.mx / admin123');
   console.log('   RH: rh@insabi.gob.mx / admin123');
   console.log('   Director: director@insabi.gob.mx / admin123');
   console.log('   Empleados: carlos.h@insabi.gob.mx, laura.m@insabi.gob.mx, etc.');
-  console.log('   🔸 Prestaciones gobierno: Aguinaldo 40 días, Prima Vac 50%');
+  console.log('   📦 Prestaciones: Transporte, Estímulos, Fondo Ahorro, Seguro Vida');
+  console.log('   🔸 Aguinaldo 40 días, Prima Vacacional 50%');
   console.log('   🔸 Deducciones: ISSSTE, FOVISSSTE, SAR');
   console.log('\n' + '='.repeat(60));
   console.log('📊 RESUMEN:');
   console.log('   - 4 Empresas con diferentes colores/configuraciones');
   console.log('   - 20 Empleados (5 por empresa)');
-  console.log('   - 1 Super Admin + 7 usuarios RH/Gerente + 20 usuarios empleado');
-  console.log('   - Cada empresa tiene su propia configuración de colores');
+  console.log('   - 1 Super Admin + 4 Admin Empresa + 7 usuarios RH/Gerente + 20 empleados');
+  console.log('   - Cada empresa tiene su Admin que aprueba nóminas de SU empresa');
   console.log('   - Prestaciones LFT: Aguinaldo, Prima Vacacional, Vales, etc.');
   console.log('   - Prestaciones Gobierno: ISSSTE, FOVISSSTE, SAR, Estímulos');
   console.log('   - Vacaciones según LFT Art. 76 (0 días primer año, 12 días al cumplir 1 año)');
