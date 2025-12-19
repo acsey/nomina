@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { employeesApi, catalogsApi, departmentsApi } from '../services/api';
+import dayjs from 'dayjs';
 
 interface EmployeeFormData {
   employeeNumber: string;
@@ -75,7 +76,57 @@ const initialFormData: EmployeeFormData = {
 
 export default function EmployeeFormPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const isEditMode = !!id;
   const [formData, setFormData] = useState<EmployeeFormData>(initialFormData);
+
+  // Fetch employee data when editing
+  const { data: employeeData, isLoading: employeeLoading } = useQuery({
+    queryKey: ['employee', id],
+    queryFn: () => employeesApi.getById(id!),
+    enabled: isEditMode,
+  });
+
+  // Populate form when employee data is loaded
+  useEffect(() => {
+    if (employeeData?.data) {
+      const emp = employeeData.data;
+      setFormData({
+        employeeNumber: emp.employeeNumber || '',
+        firstName: emp.firstName || '',
+        middleName: emp.middleName || '',
+        lastName: emp.lastName || '',
+        secondLastName: emp.secondLastName || '',
+        email: emp.email || '',
+        phone: emp.phone || '',
+        birthDate: emp.birthDate ? dayjs(emp.birthDate).format('YYYY-MM-DD') : '',
+        gender: emp.gender || 'MALE',
+        maritalStatus: emp.maritalStatus || 'SINGLE',
+        rfc: emp.rfc || '',
+        curp: emp.curp || '',
+        nss: emp.nss || '',
+        address: emp.address || '',
+        colony: emp.colony || '',
+        city: emp.city || '',
+        state: emp.state || '',
+        zipCode: emp.zipCode || '',
+        hireDate: emp.hireDate ? dayjs(emp.hireDate).format('YYYY-MM-DD') : '',
+        contractType: emp.contractType || 'INDEFINITE',
+        employmentType: emp.employmentType || 'FULL_TIME',
+        jobPositionId: emp.jobPositionId || '',
+        departmentId: emp.departmentId || '',
+        companyId: emp.companyId || '',
+        workScheduleId: emp.workScheduleId || '',
+        baseSalary: Number(emp.baseSalary) || 0,
+        salaryType: emp.salaryType || 'MONTHLY',
+        paymentMethod: emp.paymentMethod || 'TRANSFER',
+        bankId: emp.bankId || '',
+        bankAccount: emp.bankAccount || '',
+        clabe: emp.clabe || '',
+      });
+    }
+  }, [employeeData]);
 
   // Fetch catalogs
   const { data: companiesData } = useQuery({
@@ -109,35 +160,49 @@ export default function EmployeeFormPage() {
   const banks = banksData?.data || [];
   const workSchedules = workSchedulesData?.data || [];
 
+  // Prepare payload
+  const preparePayload = (data: EmployeeFormData) => ({
+    ...data,
+    baseSalary: Number(data.baseSalary),
+    bankId: data.bankId || undefined,
+    workScheduleId: data.workScheduleId || undefined,
+    middleName: data.middleName || undefined,
+    secondLastName: data.secondLastName || undefined,
+    email: data.email || undefined,
+    phone: data.phone || undefined,
+    nss: data.nss || undefined,
+    address: data.address || undefined,
+    colony: data.colony || undefined,
+    city: data.city || undefined,
+    state: data.state || undefined,
+    zipCode: data.zipCode || undefined,
+    bankAccount: data.bankAccount || undefined,
+    clabe: data.clabe || undefined,
+  });
+
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: EmployeeFormData) => {
-      const payload = {
-        ...data,
-        baseSalary: Number(data.baseSalary),
-        bankId: data.bankId || undefined,
-        workScheduleId: data.workScheduleId || undefined,
-        middleName: data.middleName || undefined,
-        secondLastName: data.secondLastName || undefined,
-        email: data.email || undefined,
-        phone: data.phone || undefined,
-        nss: data.nss || undefined,
-        address: data.address || undefined,
-        colony: data.colony || undefined,
-        city: data.city || undefined,
-        state: data.state || undefined,
-        zipCode: data.zipCode || undefined,
-        bankAccount: data.bankAccount || undefined,
-        clabe: data.clabe || undefined,
-      };
-      return employeesApi.create(payload);
-    },
+    mutationFn: (data: EmployeeFormData) => employeesApi.create(preparePayload(data)),
     onSuccess: () => {
       toast.success('Empleado creado exitosamente');
       navigate('/employees');
     },
     onError: (error: any) => {
       console.error('Error creating employee:', error);
+    },
+  });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: (data: EmployeeFormData) => employeesApi.update(id!, preparePayload(data)),
+    onSuccess: () => {
+      toast.success('Empleado actualizado exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      navigate(`/employees/${id}`);
+    },
+    onError: (error: any) => {
+      console.error('Error updating employee:', error);
     },
   });
 
@@ -148,8 +213,20 @@ export default function EmployeeFormPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    if (isEditMode) {
+      updateMutation.mutate(formData);
+    } else {
+      createMutation.mutate(formData);
+    }
   };
+
+  if (isEditMode && employeeLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -160,7 +237,9 @@ export default function EmployeeFormPage() {
         >
           <ArrowLeftIcon className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Nuevo Empleado</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isEditMode ? 'Editar Empleado' : 'Nuevo Empleado'}
+        </h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -606,9 +685,11 @@ export default function EmployeeFormPage() {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || updateMutation.isPending}
           >
-            {createMutation.isPending ? 'Guardando...' : 'Guardar Empleado'}
+            {(createMutation.isPending || updateMutation.isPending)
+              ? 'Guardando...'
+              : isEditMode ? 'Actualizar Empleado' : 'Guardar Empleado'}
           </button>
         </div>
       </form>

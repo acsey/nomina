@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { employeesApi } from '../services/api';
 import dayjs from 'dayjs';
 
@@ -55,15 +55,24 @@ export default function EmployeeDetailPage() {
             {employee.employeeNumber} • {employee.jobPosition?.name}
           </p>
         </div>
-        <span
-          className={`px-3 py-1 text-sm font-medium rounded-full ${
-            employee.status === 'ACTIVE'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {employee.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
-        </span>
+        <div className="flex items-center gap-3">
+          <Link
+            to={`/employees/${id}/edit`}
+            className="btn btn-secondary"
+          >
+            <PencilSquareIcon className="h-5 w-5 mr-1" />
+            Editar
+          </Link>
+          <span
+            className={`px-3 py-1 text-sm font-medium rounded-full ${
+              employee.status === 'ACTIVE'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {employee.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -15,9 +15,9 @@ export class PayrollService {
     periodType: PeriodType;
     periodNumber: number;
     year: number;
-    startDate: Date;
-    endDate: Date;
-    paymentDate: Date;
+    startDate: string | Date;
+    endDate: string | Date;
+    paymentDate: string | Date;
   }) {
     const existing = await this.prisma.payrollPeriod.findUnique({
       where: {
@@ -34,9 +34,20 @@ export class PayrollService {
       throw new BadRequestException('Ya existe un período de nómina con estos datos');
     }
 
+    // Convert date strings to Date objects
+    const startDate = typeof data.startDate === 'string' ? new Date(data.startDate) : data.startDate;
+    const endDate = typeof data.endDate === 'string' ? new Date(data.endDate) : data.endDate;
+    const paymentDate = typeof data.paymentDate === 'string' ? new Date(data.paymentDate) : data.paymentDate;
+
     return this.prisma.payrollPeriod.create({
       data: {
-        ...data,
+        companyId: data.companyId,
+        periodType: data.periodType,
+        periodNumber: data.periodNumber,
+        year: data.year,
+        startDate,
+        endDate,
+        paymentDate,
         status: PayrollStatus.DRAFT,
       },
     });

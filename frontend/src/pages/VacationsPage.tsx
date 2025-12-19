@@ -69,10 +69,10 @@ export default function VacationsPage() {
   // Get employees for selection
   const { data: employeesData } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => employeesApi.getAll({ limit: 1000 }),
+    queryFn: () => employeesApi.getAll({ take: 1000 }),
     enabled: !!companyId,
   });
-  const employees = employeesData?.data || [];
+  const employees = employeesData?.data?.data || [];
 
   // Get pending requests for approval
   const { data: pendingData, isLoading: pendingLoading } = useQuery({
