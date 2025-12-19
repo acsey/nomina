@@ -25,11 +25,14 @@ export class VacationsService {
   async createRequest(data: {
     employeeId: string;
     type: LeaveType;
-    startDate: Date;
-    endDate: Date;
+    startDate: Date | string;
+    endDate: Date | string;
     reason?: string;
   }) {
-    const { employeeId, type, startDate, endDate, reason } = data;
+    const { employeeId, type, reason } = data;
+    // Convert string dates to Date objects
+    const startDate = typeof data.startDate === 'string' ? new Date(data.startDate) : data.startDate;
+    const endDate = typeof data.endDate === 'string' ? new Date(data.endDate) : data.endDate;
 
     // Calculate work days based on employee's schedule
     const totalDays = await this.calculateWorkDays(employeeId, startDate, endDate);

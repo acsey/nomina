@@ -28,10 +28,14 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 const leaveTypeLabels: Record<string, string> = {
   VACATION: 'Vacaciones',
   SICK_LEAVE: 'Incapacidad por enfermedad',
+  SICK_LEAVE_IMSS: 'Incapacidad IMSS',
+  WORK_ACCIDENT: 'Accidente de trabajo',
+  MATERNITY: 'Maternidad',
+  PATERNITY: 'Paternidad',
+  BEREAVEMENT_DIRECT: 'Duelo familiar directo',
+  BEREAVEMENT_INDIRECT: 'Duelo familiar indirecto',
   PERSONAL: 'Permiso personal',
   UNPAID: 'Sin goce de sueldo',
-  MEDICAL_APPOINTMENT: 'Cita medica',
-  OTHER: 'Otro',
 };
 
 export default function EmployeePortalPage() {
@@ -710,10 +714,14 @@ export default function EmployeePortalPage() {
                   >
                     <option value="VACATION">Vacaciones</option>
                     <option value="SICK_LEAVE">Incapacidad por enfermedad</option>
+                    <option value="SICK_LEAVE_IMSS">Incapacidad IMSS</option>
+                    <option value="WORK_ACCIDENT">Accidente de trabajo</option>
+                    <option value="MATERNITY">Maternidad</option>
+                    <option value="PATERNITY">Paternidad</option>
+                    <option value="BEREAVEMENT_DIRECT">Duelo familiar directo</option>
+                    <option value="BEREAVEMENT_INDIRECT">Duelo familiar indirecto</option>
                     <option value="PERSONAL">Permiso personal</option>
-                    <option value="MEDICAL_APPOINTMENT">Cita medica</option>
                     <option value="UNPAID">Sin goce de sueldo</option>
-                    <option value="OTHER">Otro</option>
                   </select>
                 </div>
 
