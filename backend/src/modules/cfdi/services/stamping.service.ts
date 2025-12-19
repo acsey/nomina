@@ -11,49 +11,83 @@ interface StampingResult {
   pacResponse: any;
 }
 
+interface CompanyPacConfig {
+  pacProvider?: string;
+  pacUser?: string;
+  pacPassword?: string;
+  pacMode?: string;
+  certificadoCer?: string;
+  certificadoKey?: string;
+  certificadoPassword?: string;
+  noCertificado?: string;
+}
+
 @Injectable()
 export class StampingService {
   constructor(private readonly configService: ConfigService) {}
 
-  async stamp(xmlOriginal: string): Promise<StampingResult> {
-    const pacUrl = this.configService.get<string>('PAC_URL');
-    const pacUser = this.configService.get<string>('PAC_USER');
-    const pacPassword = this.configService.get<string>('PAC_PASSWORD');
+  async stamp(xmlOriginal: string, companyConfig?: CompanyPacConfig): Promise<StampingResult> {
+    // Usar configuración de la empresa si está disponible, sino usar env vars
+    const pacProvider = companyConfig?.pacProvider || this.configService.get<string>('PAC_PROVIDER');
+    const pacUser = companyConfig?.pacUser || this.configService.get<string>('PAC_USER');
+    const pacPassword = companyConfig?.pacPassword || this.configService.get<string>('PAC_PASSWORD');
+    const pacMode = companyConfig?.pacMode || this.configService.get<string>('PAC_MODE') || 'sandbox';
 
-    // En producción, aquí se conectaría con el PAC real
-    // Por ahora, simulamos la respuesta para desarrollo
-
-    if (!pacUrl || pacUrl === 'https://api.pac-ejemplo.com') {
-      // Modo desarrollo - simular timbrado
-      return this.simulateStamping(xmlOriginal);
+    // Si no hay configuración PAC válida, usar modo simulación
+    if (!pacProvider || !pacUser || pacMode === 'sandbox') {
+      return this.simulateStamping(xmlOriginal, companyConfig?.noCertificado);
     }
 
-    // Aquí iría la integración real con el PAC
-    // Ejemplo con diferentes PACs:
-    // - Finkok
-    // - SW Sapien
-    // - Facturama
-    // - etc.
-
-    throw new Error('Configuración de PAC no válida');
+    // Aquí iría la integración real con el PAC según el proveedor
+    switch (pacProvider) {
+      case 'FINKOK':
+        return this.stampWithFinkok(xmlOriginal, pacUser, pacPassword!, pacMode);
+      case 'SW_SAPIEN':
+        return this.stampWithSwSapien(xmlOriginal, pacUser, pacPassword!, pacMode);
+      default:
+        // Modo desarrollo - simular timbrado
+        return this.simulateStamping(xmlOriginal, companyConfig?.noCertificado);
+    }
   }
 
-  async cancel(uuid: string, reason: string): Promise<void> {
-    const pacUrl = this.configService.get<string>('PAC_URL');
+  async cancel(uuid: string, reason: string, companyConfig?: CompanyPacConfig): Promise<void> {
+    const pacProvider = companyConfig?.pacProvider || this.configService.get<string>('PAC_PROVIDER');
+    const pacMode = companyConfig?.pacMode || 'sandbox';
 
-    if (!pacUrl || pacUrl === 'https://api.pac-ejemplo.com') {
+    if (!pacProvider || pacMode === 'sandbox') {
       // Modo desarrollo - simular cancelación
-      console.log(`Simulando cancelación de CFDI: ${uuid}, Motivo: ${reason}`);
+      console.log(`[SANDBOX] Simulando cancelación de CFDI: ${uuid}, Motivo: ${reason}`);
       return;
     }
 
     // Aquí iría la integración real con el PAC para cancelación
-    throw new Error('Configuración de PAC no válida');
+    throw new Error('Cancelación en producción no implementada aún');
   }
 
-  private simulateStamping(xmlOriginal: string): StampingResult {
+  private async stampWithFinkok(xml: string, user: string, password: string, mode: string): Promise<StampingResult> {
+    // TODO: Implementar integración real con FINKOK
+    // const url = mode === 'production'
+    //   ? 'https://facturacion.finkok.com/servicios/soap/stamp'
+    //   : 'https://demo-facturacion.finkok.com/servicios/soap/stamp';
+
+    console.log(`[FINKOK ${mode}] Timbrado solicitado para usuario: ${user}`);
+    return this.simulateStamping(xml);
+  }
+
+  private async stampWithSwSapien(xml: string, user: string, password: string, mode: string): Promise<StampingResult> {
+    // TODO: Implementar integración real con SW Sapien
+    // const url = mode === 'production'
+    //   ? 'https://services.sw.com.mx'
+    //   : 'https://services.test.sw.com.mx';
+
+    console.log(`[SW_SAPIEN ${mode}] Timbrado solicitado para usuario: ${user}`);
+    return this.simulateStamping(xml);
+  }
+
+  private simulateStamping(xmlOriginal: string, noCertificadoEmisor?: string): StampingResult {
     const uuid = this.generateUUID();
     const fechaTimbrado = new Date();
+    const noCertificado = noCertificadoEmisor || '30001000000400002434';
 
     // Simular XML timbrado (en producción vendría del PAC)
     const xmlTimbrado = xmlOriginal.replace(
@@ -65,9 +99,9 @@ export class StampingService {
             Version="1.1"
             UUID="${uuid}"
             FechaTimbrado="${fechaTimbrado.toISOString()}"
-            SelloCFD="SELLO_SIMULADO"
-            NoCertificadoSAT="00001000000000000000"
-            SelloSAT="SELLO_SAT_SIMULADO" />
+            SelloCFD="SELLO_SIMULADO_${Math.random().toString(36).substring(7)}"
+            NoCertificadoSAT="00001000000500003416"
+            SelloSAT="SELLO_SAT_SIMULADO_${Math.random().toString(36).substring(7)}" />
     </cfdi:Complemento>
 </cfdi:Comprobante>`,
     );
@@ -75,13 +109,14 @@ export class StampingService {
     return {
       uuid,
       fechaTimbrado,
-      noCertificadoSat: '00001000000000000000',
+      noCertificadoSat: '00001000000500003416',
       selloDigitalSat: 'SELLO_SAT_SIMULADO_' + Math.random().toString(36),
       xmlTimbrado,
-      cadenaOriginal: `||1.1|${uuid}|${fechaTimbrado.toISOString()}|SELLO_SIMULADO|00001000000000000000||`,
+      cadenaOriginal: `||1.1|${uuid}|${fechaTimbrado.toISOString()}|SELLO_SIMULADO|${noCertificado}||`,
       pacResponse: {
         success: true,
-        message: 'Timbrado simulado para desarrollo',
+        mode: 'sandbox',
+        message: 'Timbrado simulado - Modo desarrollo/sandbox',
         timestamp: fechaTimbrado,
       },
     };
