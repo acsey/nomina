@@ -114,12 +114,21 @@ export const payrollApi = {
 export const attendanceApi = {
   checkIn: (employeeId: string) => api.post(`/attendance/check-in/${employeeId}`),
   checkOut: (employeeId: string) => api.post(`/attendance/check-out/${employeeId}`),
+  breakStart: (employeeId: string) => api.post(`/attendance/break-start/${employeeId}`),
+  breakEnd: (employeeId: string) => api.post(`/attendance/break-end/${employeeId}`),
+  getTodayRecord: (employeeId: string) => api.get(`/attendance/today/${employeeId}`),
+  getEmployeeSchedule: (employeeId: string) => api.get(`/attendance/schedule/${employeeId}`),
+  getAllEmployeesToday: (companyId: string) => api.get('/attendance/today-all', { params: { companyId } }),
   getEmployeeAttendance: (employeeId: string, startDate: string, endDate: string) =>
     api.get(`/attendance/employee/${employeeId}`, { params: { startDate, endDate } }),
   getDailyAttendance: (companyId: string, date: string) =>
     api.get('/attendance/daily', { params: { companyId, date } }),
   getSummary: (companyId: string, startDate: string, endDate: string) =>
     api.get('/attendance/summary', { params: { companyId, startDate, endDate } }),
+  markAbsent: (employeeId: string, date: string, notes?: string) =>
+    api.post('/attendance/mark-absent', { employeeId, date, notes }),
+  updateRecord: (recordId: string, data: any) =>
+    api.post(`/attendance/update/${recordId}`, data),
 };
 
 export const vacationsApi = {
