@@ -124,7 +124,7 @@ export class PayrollCalculatorService {
     });
 
     return incidents.map(i => ({
-      type: i.incidentType?.name || i.type,
+      type: i.incidentType?.name || 'Incidencia',
       date: i.date,
       value: i.value,
       description: i.description,
