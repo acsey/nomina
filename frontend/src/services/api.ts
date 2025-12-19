@@ -198,6 +198,19 @@ export const reportsApi = {
     api.get(`/reports/payroll/${periodId}/dispersion/excel`, { responseType: 'blob' }),
   downloadBankDispersionTxt: (periodId: string) =>
     api.get(`/reports/payroll/${periodId}/dispersion/txt`, { responseType: 'blob' }),
+  // Reportes gubernamentales
+  getImssReport: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/imss`),
+  downloadImssExcel: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/imss/excel`, { responseType: 'blob' }),
+  getIssteReport: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/issste`),
+  downloadIssteExcel: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/issste/excel`, { responseType: 'blob' }),
+  getInfonavitReport: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/infonavit`),
+  downloadSuaFile: (periodId: string) =>
+    api.get(`/reports/payroll/${periodId}/sua`, { responseType: 'blob' }),
 };
 
 export const governmentApi = {

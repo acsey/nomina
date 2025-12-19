@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { PayrollCalculatorService } from './services/payroll-calculator.service';
+import { CfdiService } from '../cfdi/cfdi.service';
 import { Prisma, PayrollStatus, PeriodType } from '@prisma/client';
 
 @Injectable()
 export class PayrollService {
+  private readonly logger = new Logger(PayrollService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly calculator: PayrollCalculatorService,
+    private readonly cfdiService: CfdiService,
   ) {}
 
   async createPeriod(data: {
@@ -228,10 +232,60 @@ export class PayrollService {
       throw new BadRequestException('Solo se pueden aprobar períodos calculados');
     }
 
-    return this.prisma.payrollPeriod.update({
-      where: { id: periodId },
-      data: { status: PayrollStatus.APPROVED },
+    // Obtener todos los detalles de nómina del período
+    const payrollDetails = await this.prisma.payrollDetail.findMany({
+      where: { payrollPeriodId: periodId },
+      select: { id: true },
     });
+
+    // Generar y timbrar CFDI para cada detalle de nómina
+    const stampingResults = {
+      total: payrollDetails.length,
+      success: 0,
+      failed: 0,
+      errors: [] as { detailId: string; error: string }[],
+    };
+
+    this.logger.log(`Iniciando timbrado automático para ${payrollDetails.length} recibos del período ${periodId}`);
+
+    for (const detail of payrollDetails) {
+      try {
+        // Generar CFDI XML
+        await this.cfdiService.generateCfdi(detail.id);
+
+        // Obtener el CFDI generado
+        const cfdi = await this.cfdiService.getCfdiByPayrollDetail(detail.id);
+
+        if (cfdi) {
+          // Timbrar el CFDI
+          await this.cfdiService.stampCfdi(cfdi.id);
+          stampingResults.success++;
+          this.logger.log(`CFDI timbrado exitosamente para detalle ${detail.id}`);
+        }
+      } catch (error: any) {
+        stampingResults.failed++;
+        stampingResults.errors.push({
+          detailId: detail.id,
+          error: error.message || 'Error desconocido',
+        });
+        this.logger.error(`Error al timbrar CFDI para detalle ${detail.id}: ${error.message}`);
+      }
+    }
+
+    this.logger.log(`Timbrado completado: ${stampingResults.success} exitosos, ${stampingResults.failed} fallidos`);
+
+    // Actualizar el período a APPROVED
+    const updatedPeriod = await this.prisma.payrollPeriod.update({
+      where: { id: periodId },
+      data: {
+        status: PayrollStatus.APPROVED,
+      },
+    });
+
+    return {
+      period: updatedPeriod,
+      stamping: stampingResults,
+    };
   }
 
   async closePayroll(periodId: string) {

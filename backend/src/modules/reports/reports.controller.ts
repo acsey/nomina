@@ -27,7 +27,7 @@ export class ReportsController {
   }
 
   @Get('payroll/:periodId/excel')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Exportar nómina a Excel' })
   async getPayrollExcel(
     @Param('periodId') periodId: string,
@@ -45,7 +45,7 @@ export class ReportsController {
   }
 
   @Get('payroll/:periodId/pdf')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Exportar nómina a PDF' })
   async getPayrollPdf(
     @Param('periodId') periodId: string,
@@ -83,7 +83,7 @@ export class ReportsController {
   }
 
   @Get('payroll/:periodId/dispersion/excel')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Exportar archivo de dispersión bancaria a Excel' })
   async getBankDispersionExcel(
     @Param('periodId') periodId: string,
@@ -101,7 +101,7 @@ export class ReportsController {
   }
 
   @Get('payroll/:periodId/dispersion/txt')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Exportar archivo de dispersión bancaria a TXT' })
   async getBankDispersionTxt(
     @Param('periodId') periodId: string,
@@ -112,6 +112,84 @@ export class ReportsController {
     res.set({
       'Content-Type': 'text/plain',
       'Content-Disposition': `attachment; filename="dispersion_bancaria_${periodId}.txt"`,
+    });
+
+    res.send(content);
+  }
+
+  // ========================================
+  // REPORTES GUBERNAMENTALES
+  // ========================================
+
+  @Get('payroll/:periodId/imss')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Reporte de cuotas IMSS' })
+  async getImssReport(@Param('periodId') periodId: string) {
+    return this.reportsService.generateImssReport(periodId);
+  }
+
+  @Get('payroll/:periodId/imss/excel')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Exportar reporte IMSS a Excel' })
+  async getImssExcel(
+    @Param('periodId') periodId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.reportsService.generateImssExcel(periodId);
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="reporte_imss_${periodId}.xlsx"`,
+    });
+
+    res.send(buffer);
+  }
+
+  @Get('payroll/:periodId/issste')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Reporte de cuotas ISSSTE' })
+  async getIssteReport(@Param('periodId') periodId: string) {
+    return this.reportsService.generateIssteReport(periodId);
+  }
+
+  @Get('payroll/:periodId/issste/excel')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Exportar reporte ISSSTE a Excel' })
+  async getIssteExcel(
+    @Param('periodId') periodId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.reportsService.generateIssteExcel(periodId);
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="reporte_issste_${periodId}.xlsx"`,
+    });
+
+    res.send(buffer);
+  }
+
+  @Get('payroll/:periodId/infonavit')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Reporte de descuentos INFONAVIT' })
+  async getInfonavitReport(@Param('periodId') periodId: string) {
+    return this.reportsService.generateInfonavitReport(periodId);
+  }
+
+  @Get('payroll/:periodId/sua')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Generar archivo SUA' })
+  async getSuaFile(
+    @Param('periodId') periodId: string,
+    @Res() res: Response,
+  ) {
+    const content = await this.reportsService.generateSuaFile(periodId);
+
+    res.set({
+      'Content-Type': 'text/plain',
+      'Content-Disposition': `attachment; filename="sua_${periodId}.txt"`,
     });
 
     res.send(content);

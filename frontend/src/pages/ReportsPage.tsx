@@ -226,11 +226,40 @@ export default function ReportsPage() {
           break;
         }
 
-        case 'imss-report':
-        case 'imss-sua':
-        case 'infonavit-report':
+        case 'imss-report': {
+          const imssResponse = await reportsApi.getImssReport(selectedPeriodId);
+          console.log('IMSS Report:', imssResponse.data);
+          // Descargar Excel
+          const imssExcel = await reportsApi.downloadImssExcel(selectedPeriodId);
+          const selectedPeriodImss = periods.find((p: any) => p.id === selectedPeriodId);
+          downloadBlob(new Blob([imssExcel.data]), `cuotas_imss_${selectedPeriodImss?.periodNumber || ''}_${selectedPeriodImss?.year || ''}.xlsx`);
+          toast.success('Reporte IMSS descargado');
+          break;
+        }
+
+        case 'imss-sua': {
+          const suaResponse = await reportsApi.downloadSuaFile(selectedPeriodId);
+          const selectedPeriodSua = periods.find((p: any) => p.id === selectedPeriodId);
+          downloadBlob(new Blob([suaResponse.data], { type: 'text/plain' }), `sua_${selectedPeriodSua?.periodNumber || ''}_${selectedPeriodSua?.year || ''}.txt`);
+          toast.success('Archivo SUA descargado');
+          break;
+        }
+
+        case 'infonavit-report': {
+          const infonavitResponse = await reportsApi.getInfonavitReport(selectedPeriodId);
+          console.log('INFONAVIT Report:', infonavitResponse.data);
+          toast.success(`Reporte INFONAVIT generado: ${infonavitResponse.data.totals?.creditosActivos || 0} creditos activos`);
+          break;
+        }
+
         case 'issste-report': {
-          toast.error('Este reporte aun no esta implementado');
+          const isssteResponse = await reportsApi.getIssteReport(selectedPeriodId);
+          console.log('ISSSTE Report:', isssteResponse.data);
+          // Descargar Excel
+          const isssteExcel = await reportsApi.downloadIssteExcel(selectedPeriodId);
+          const selectedPeriodIssste = periods.find((p: any) => p.id === selectedPeriodId);
+          downloadBlob(new Blob([isssteExcel.data]), `cuotas_issste_${selectedPeriodIssste?.periodNumber || ''}_${selectedPeriodIssste?.year || ''}.xlsx`);
+          toast.success('Reporte ISSSTE descargado');
           break;
         }
 
