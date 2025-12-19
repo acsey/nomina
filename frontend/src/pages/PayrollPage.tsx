@@ -9,6 +9,8 @@ import {
   XMarkIcon,
   DocumentTextIcon,
   EyeIcon,
+  BanknotesIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 import { payrollApi, reportsApi, catalogsApi } from '../services/api';
 import toast from 'react-hot-toast';
@@ -164,6 +166,39 @@ export default function PayrollPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success('Archivo Excel de nomina descargado');
+    } catch (error) {
+      toast.error('Error al descargar el archivo');
+    }
+  };
+
+  const downloadDispersionExcel = async (periodId: string) => {
+    try {
+      const response = await reportsApi.downloadBankDispersionExcel(periodId);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `dispersion_bancaria_${periodId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Archivo de dispersion bancaria descargado');
+    } catch (error) {
+      toast.error('Error al descargar el archivo');
+    }
+  };
+
+  const downloadDispersionTxt = async (periodId: string) => {
+    try {
+      const response = await reportsApi.downloadBankDispersionTxt(periodId);
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/plain' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `dispersion_bancaria_${periodId}.txt`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Archivo TXT de dispersion descargado');
     } catch (error) {
       toast.error('Error al descargar el archivo');
     }
@@ -335,13 +370,29 @@ export default function PayrollPage() {
                         {['CALCULATED', 'APPROVED', 'PAID', 'CLOSED'].includes(
                           period.status
                         ) && (
-                          <button
-                            onClick={() => downloadExcel(period.id)}
-                            className="text-gray-600 hover:text-gray-800"
-                            title="Descargar Excel"
-                          >
-                            <DocumentArrowDownIcon className="h-5 w-5" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => downloadExcel(period.id)}
+                              className="text-green-600 hover:text-green-800"
+                              title="Descargar Excel Nomina"
+                            >
+                              <DocumentArrowDownIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => downloadDispersionExcel(period.id)}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Dispersion Bancaria (Excel)"
+                            >
+                              <BanknotesIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => downloadDispersionTxt(period.id)}
+                              className="text-gray-600 hover:text-gray-800"
+                              title="Dispersion Bancaria (TXT)"
+                            >
+                              <ArrowDownTrayIcon className="h-5 w-5" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>

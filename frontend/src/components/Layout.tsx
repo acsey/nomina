@@ -17,20 +17,29 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   ExclamationTriangleIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: typeof HomeIcon;
+  roles?: string[];
+}
+
+const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon },
-  { name: 'Empleados', href: '/employees', icon: UsersIcon },
-  { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon },
-  { name: 'Nómina', href: '/payroll', icon: BanknotesIcon },
-  { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon },
-  { name: 'Asistencia', href: '/attendance', icon: ClockIcon },
-  { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon },
-  { name: 'Prestaciones', href: '/benefits', icon: GiftIcon },
-  { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon },
-  { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon },
+  { name: 'Mi Portal', href: '/my-portal', icon: UserIcon },
+  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['admin', 'rh'] },
+  { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['admin', 'rh', 'manager'] },
+  { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['admin', 'rh'] },
+  { name: 'Nomina', href: '/payroll', icon: BanknotesIcon, roles: ['admin', 'rh'] },
+  { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['admin', 'rh', 'manager'] },
+  { name: 'Asistencia', href: '/attendance', icon: ClockIcon, roles: ['admin', 'rh', 'manager'] },
+  { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon, roles: ['admin', 'rh', 'manager'] },
+  { name: 'Prestaciones', href: '/benefits', icon: GiftIcon, roles: ['admin', 'rh'] },
+  { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon, roles: ['admin', 'rh'] },
+  { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon, roles: ['admin', 'rh'] },
 ];
 
 export default function Layout() {
@@ -66,7 +75,9 @@ export default function Layout() {
           </div>
 
           <nav className="flex-1 px-2 py-4 space-y-1">
-            {navigation.map((item) => (
+            {navigation
+              .filter((item) => !item.roles || item.roles.includes(user?.role || ''))
+              .map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}
@@ -97,7 +108,9 @@ export default function Layout() {
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-1">
-            {navigation.map((item) => (
+            {navigation
+              .filter((item) => !item.roles || item.roles.includes(user?.role || ''))
+              .map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}

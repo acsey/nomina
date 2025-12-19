@@ -16,6 +16,7 @@ import ReportsPage from './pages/ReportsPage';
 import BulkUploadPage from './pages/BulkUploadPage';
 import CompaniesPage from './pages/CompaniesPage';
 import IncidentsPage from './pages/IncidentsPage';
+import EmployeePortalPage from './pages/EmployeePortalPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -62,6 +63,7 @@ function App() {
             <Route path="reports" element={<ReportsPage />} />
             <Route path="bulk-upload" element={<BulkUploadPage />} />
             <Route path="companies" element={<CompaniesPage />} />
+            <Route path="my-portal" element={<EmployeePortalPage />} />
           </Route>
         </Routes>
       </AuthProvider>
