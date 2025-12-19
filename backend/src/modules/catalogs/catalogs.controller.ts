@@ -13,6 +13,14 @@ class CreateCompanyDto {
 
   @IsString()
   @IsOptional()
+  institutionType?: string; // PRIVATE or GOVERNMENT
+
+  @IsString()
+  @IsOptional()
+  govInstitution?: string; // IMSS, ISSSTE, INSABI, etc.
+
+  @IsString()
+  @IsOptional()
   registroPatronal?: string;
 
   @IsString()
@@ -52,6 +60,14 @@ class UpdateCompanyDto {
   @IsString()
   @IsOptional()
   rfc?: string;
+
+  @IsString()
+  @IsOptional()
+  institutionType?: string;
+
+  @IsString()
+  @IsOptional()
+  govInstitution?: string | null;
 
   @IsString()
   @IsOptional()
@@ -108,6 +124,8 @@ export class CatalogsController {
       data: {
         name: data.name,
         rfc: data.rfc.toUpperCase(),
+        institutionType: (data.institutionType as any) || 'PRIVATE',
+        govInstitution: data.govInstitution as any,
         registroPatronal: data.registroPatronal,
         registroPatronalIssste: data.registroPatronalIssste,
         address: data.address,
@@ -128,6 +146,8 @@ export class CatalogsController {
       data: {
         ...(data.name && { name: data.name }),
         ...(data.rfc && { rfc: data.rfc.toUpperCase() }),
+        ...(data.institutionType && { institutionType: data.institutionType as any }),
+        ...(data.govInstitution !== undefined && { govInstitution: data.govInstitution as any }),
         ...(data.registroPatronal !== undefined && { registroPatronal: data.registroPatronal }),
         ...(data.registroPatronalIssste !== undefined && { registroPatronalIssste: data.registroPatronalIssste }),
         ...(data.address !== undefined && { address: data.address }),
