@@ -18,6 +18,7 @@ import {
   UserCircleIcon,
   ExclamationTriangleIcon,
   UserIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -30,6 +31,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Mi Portal', href: '/my-portal', icon: UserIcon },
+  { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['admin', 'rh'] },
   { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['admin', 'rh'] },
