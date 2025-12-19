@@ -73,6 +73,7 @@ export const employeesApi = {
   getAll: (params?: Record<string, any>) =>
     api.get('/employees', { params }),
   getById: (id: string) => api.get(`/employees/${id}`),
+  getByEmail: (email: string) => api.get(`/employees/by-email/${encodeURIComponent(email)}`),
   create: (data: any) => api.post('/employees', data),
   update: (id: string, data: any) => api.patch(`/employees/${id}`, data),
   delete: (id: string) => api.delete(`/employees/${id}`),

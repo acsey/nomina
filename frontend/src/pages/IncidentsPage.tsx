@@ -79,9 +79,9 @@ export default function IncidentsPage() {
   // Get employees for filter
   const { data: employeesData } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => employeesApi.getAll({ limit: 1000 }),
+    queryFn: () => employeesApi.getAll({ take: 1000 }),
   });
-  const employees = employeesData?.data || [];
+  const employees = employeesData?.data?.data || [];
 
   // Get incidents
   const { data: incidentsData, isLoading } = useQuery({

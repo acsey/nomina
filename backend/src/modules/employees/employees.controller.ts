@@ -54,6 +54,12 @@ export class EmployeesController {
     });
   }
 
+  @Get('by-email/:email')
+  @ApiOperation({ summary: 'Obtener empleado por email' })
+  findByEmail(@Param('email') email: string) {
+    return this.employeesService.findByEmail(email);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener empleado por ID' })
   findOne(@Param('id') id: string) {
