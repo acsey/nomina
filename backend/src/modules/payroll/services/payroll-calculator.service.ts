@@ -14,6 +14,123 @@ export class PayrollCalculatorService {
     private readonly imssCalculator: ImssCalculatorService,
   ) {}
 
+  // Preview calculation without saving to database
+  async previewForEmployee(period: any, employee: any) {
+    const concepts = await this.prisma.payrollConcept.findMany({
+      where: { isActive: true },
+    });
+
+    const perceptionConcepts = concepts.filter((c) => c.type === 'PERCEPTION');
+    const deductionConcepts = concepts.filter((c) => c.type === 'DEDUCTION');
+
+    // Calcular dias trabajados
+    const workedDays = await this.calculateWorkedDays(period, employee);
+
+    // Verificar incidencias del empleado
+    const incidents = await this.getEmployeeIncidents(period, employee.id);
+
+    // Verificar si es periodo extraordinario
+    const isExtraordinary = period.periodType === 'EXTRAORDINARY';
+
+    let perceptions: any[] = [];
+
+    if (isExtraordinary) {
+      perceptions = await this.calculateExtraordinaryPerceptions(
+        employee,
+        perceptionConcepts,
+        period,
+      );
+    } else {
+      perceptions = await this.calculatePerceptions(
+        employee,
+        perceptionConcepts,
+        workedDays,
+        period,
+      );
+    }
+
+    // Calcular base gravable
+    const taxableIncome = perceptions.reduce(
+      (sum, p) => sum + Number(p.taxableAmount),
+      0,
+    );
+
+    // Calcular deducciones
+    const deductions = await this.calculateDeductions(
+      employee,
+      deductionConcepts,
+      taxableIncome,
+      period,
+      isExtraordinary,
+    );
+
+    const totalPerceptions = perceptions.reduce(
+      (sum, p) => sum + Number(p.amount),
+      0,
+    );
+    const totalDeductions = deductions.reduce(
+      (sum, d) => sum + Number(d.amount),
+      0,
+    );
+    const netPay = totalPerceptions - totalDeductions;
+
+    // Return preview data with concept names
+    return {
+      employee: {
+        id: employee.id,
+        employeeNumber: employee.employeeNumber,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        department: employee.department?.name || 'Sin departamento',
+        baseSalary: Number(employee.baseSalary),
+      },
+      workedDays,
+      incidents,
+      perceptions: perceptions.map(p => {
+        const concept = concepts.find(c => c.id === p.conceptId);
+        return {
+          ...p,
+          conceptName: concept?.name || 'N/A',
+          conceptCode: concept?.code || 'N/A',
+        };
+      }),
+      deductions: deductions.map(d => {
+        const concept = concepts.find(c => c.id === d.conceptId);
+        return {
+          ...d,
+          conceptName: concept?.name || 'N/A',
+          conceptCode: concept?.code || 'N/A',
+        };
+      }),
+      totalPerceptions,
+      totalDeductions,
+      netPay,
+    };
+  }
+
+  // Get employee incidents for the period
+  private async getEmployeeIncidents(period: any, employeeId: string) {
+    const incidents = await this.prisma.employeeIncident.findMany({
+      where: {
+        employeeId,
+        date: {
+          gte: period.startDate,
+          lte: period.endDate,
+        },
+      },
+      include: {
+        incidentType: true,
+      },
+    });
+
+    return incidents.map(i => ({
+      type: i.incidentType?.name || i.type,
+      date: i.date,
+      value: i.value,
+      description: i.description,
+    }));
+  }
+
   async calculateForEmployee(period: any, employee: any) {
     const concepts = await this.prisma.payrollConcept.findMany({
       where: { isActive: true },

@@ -96,6 +96,7 @@ export const payrollApi = {
     api.get('/payroll/periods', { params: { companyId, year } }),
   getPeriod: (id: string) => api.get(`/payroll/periods/${id}`),
   createPeriod: (data: any) => api.post('/payroll/periods', data),
+  previewPayroll: (id: string) => api.get(`/payroll/periods/${id}/preview`),
   calculatePayroll: (id: string) => api.post(`/payroll/periods/${id}/calculate`),
   approvePayroll: (id: string) => api.post(`/payroll/periods/${id}/approve`),
   closePayroll: (id: string) => api.post(`/payroll/periods/${id}/close`),
@@ -180,6 +181,30 @@ export const catalogsApi = {
   getJobPositions: () => api.get('/catalogs/job-positions'),
   getBanks: () => api.get('/catalogs/banks'),
   getWorkSchedules: () => api.get('/catalogs/work-schedules'),
+};
+
+export const incidentsApi = {
+  // Tipos de incidencia
+  getTypes: () => api.get('/incidents/types'),
+  createType: (data: any) => api.post('/incidents/types', data),
+  updateType: (id: string, data: any) => api.patch(`/incidents/types/${id}`, data),
+  deleteType: (id: string) => api.delete(`/incidents/types/${id}`),
+  // Incidencias
+  getAll: (params?: {
+    employeeId?: string;
+    incidentTypeId?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+  }) => api.get('/incidents', { params }),
+  getById: (id: string) => api.get(`/incidents/${id}`),
+  create: (data: any) => api.post('/incidents', data),
+  update: (id: string, data: any) => api.patch(`/incidents/${id}`, data),
+  approve: (id: string) => api.post(`/incidents/${id}/approve`),
+  reject: (id: string) => api.post(`/incidents/${id}/reject`),
+  delete: (id: string) => api.delete(`/incidents/${id}`),
+  getEmployeeIncidents: (employeeId: string, year?: number) =>
+    api.get(`/incidents/employee/${employeeId}`, { params: { year } }),
 };
 
 export const bulkUploadApi = {

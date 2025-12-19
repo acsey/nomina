@@ -102,6 +102,70 @@ export class PayrollService {
     return period;
   }
 
+  // Preview payroll without saving - shows what will be calculated
+  async previewPayroll(periodId: string) {
+    const period = await this.findPeriod(periodId);
+
+    if (period.status !== PayrollStatus.DRAFT) {
+      throw new BadRequestException('Solo se pueden previsualizar períodos en estado borrador');
+    }
+
+    // Obtener todos los empleados activos de la empresa
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        companyId: period.companyId,
+        status: 'ACTIVE',
+        isActive: true,
+      },
+      include: {
+        department: true,
+        benefits: {
+          where: { isActive: true },
+          include: { benefit: true },
+        },
+        infonavitCredits: {
+          where: { isActive: true },
+        },
+        pensionAlimenticia: {
+          where: { isActive: true },
+        },
+      },
+    });
+
+    // Calculate preview for each employee
+    const employeeDetails = [];
+    let totalPerceptions = 0;
+    let totalDeductions = 0;
+    let totalNetPay = 0;
+
+    for (const employee of employees) {
+      const preview = await this.calculator.previewForEmployee(period, employee);
+      employeeDetails.push(preview);
+      totalPerceptions += preview.totalPerceptions;
+      totalDeductions += preview.totalDeductions;
+      totalNetPay += preview.netPay;
+    }
+
+    return {
+      period: {
+        id: period.id,
+        periodType: period.periodType,
+        periodNumber: period.periodNumber,
+        year: period.year,
+        startDate: period.startDate,
+        endDate: period.endDate,
+        paymentDate: period.paymentDate,
+      },
+      employeeCount: employees.length,
+      totals: {
+        perceptions: totalPerceptions,
+        deductions: totalDeductions,
+        netPay: totalNetPay,
+      },
+      employees: employeeDetails,
+    };
+  }
+
   async calculatePayroll(periodId: string) {
     const period = await this.findPeriod(periodId);
 
