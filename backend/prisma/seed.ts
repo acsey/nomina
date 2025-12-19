@@ -94,6 +94,34 @@ async function main() {
 
   console.log('✅ Usuario administrador creado');
 
+  // Crear usuario RH (admin no super)
+  const rhUser = await prisma.user.upsert({
+    where: { email: 'rh@empresa.com' },
+    update: {},
+    create: {
+      email: 'rh@empresa.com',
+      password: hashedPassword,
+      firstName: 'Recursos',
+      lastName: 'Humanos',
+      roleId: rhRole.id,
+    },
+  });
+
+  // Crear usuario gerente
+  const managerUser = await prisma.user.upsert({
+    where: { email: 'gerente@empresa.com' },
+    update: {},
+    create: {
+      email: 'gerente@empresa.com',
+      password: hashedPassword,
+      firstName: 'Gerente',
+      lastName: 'Departamento',
+      roleId: managerRole.id,
+    },
+  });
+
+  console.log('✅ Usuarios RH y Gerente creados');
+
   // Crear empresa demo
   const company = await prisma.company.upsert({
     where: { rfc: 'XAXX010101000' },
@@ -452,28 +480,28 @@ async function main() {
     prisma.incidentType.upsert({
       where: { code: 'BONO_PUNTUALIDAD' },
       update: {},
-      create: { code: 'BONO_PUNTUALIDAD', name: 'Bono de puntualidad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 500 },
+      create: { code: 'BONO_PUNTUALIDAD', name: 'Bono de puntualidad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 500 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'BONO_ASISTENCIA' },
       update: {},
-      create: { code: 'BONO_ASISTENCIA', name: 'Bono de asistencia', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 500 },
+      create: { code: 'BONO_ASISTENCIA', name: 'Bono de asistencia', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 500 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'BONO_PRODUCTIVIDAD' },
       update: {},
-      create: { code: 'BONO_PRODUCTIVIDAD', name: 'Bono de productividad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'FIXED_AMOUNT', defaultValue: 1000 },
+      create: { code: 'BONO_PRODUCTIVIDAD', name: 'Bono de productividad', category: 'BONUS', affectsPayroll: true, isDeduction: false, valueType: 'AMOUNT', defaultValue: 1000 },
     }),
     // Descuentos
     prisma.incidentType.upsert({
       where: { code: 'DESCUENTO' },
       update: {},
-      create: { code: 'DESCUENTO', name: 'Descuento general', category: 'DISCOUNT', affectsPayroll: true, isDeduction: true, valueType: 'FIXED_AMOUNT', defaultValue: 0 },
+      create: { code: 'DESCUENTO', name: 'Descuento general', category: 'DEDUCTION', affectsPayroll: true, isDeduction: true, valueType: 'AMOUNT', defaultValue: 0 },
     }),
     prisma.incidentType.upsert({
       where: { code: 'DESCUENTO_UNIFORME' },
       update: {},
-      create: { code: 'DESCUENTO_UNIFORME', name: 'Descuento por uniforme', category: 'DISCOUNT', affectsPayroll: true, isDeduction: true, valueType: 'FIXED_AMOUNT', defaultValue: 0 },
+      create: { code: 'DESCUENTO_UNIFORME', name: 'Descuento por uniforme', category: 'DEDUCTION', affectsPayroll: true, isDeduction: true, valueType: 'AMOUNT', defaultValue: 0 },
     }),
     // Incapacidades
     prisma.incidentType.upsert({
@@ -914,6 +942,31 @@ async function main() {
 
   console.log('✅ Empleados de prueba creados (8 empleados)');
 
+  // Crear usuarios para empleados (para que puedan acceder al portal)
+  const employeeUsers = [
+    { email: 'juan.garcia@empresa.com', firstName: 'Juan', lastName: 'García' },
+    { email: 'maria.rodriguez@empresa.com', firstName: 'María', lastName: 'Rodríguez' },
+    { email: 'carlos.martinez@empresa.com', firstName: 'Carlos', lastName: 'Martínez' },
+    { email: 'ana.lopez@empresa.com', firstName: 'Ana', lastName: 'López' },
+    { email: 'roberto.hernandez@empresa.com', firstName: 'Roberto', lastName: 'Hernández' },
+  ];
+
+  for (const empUser of employeeUsers) {
+    await prisma.user.upsert({
+      where: { email: empUser.email },
+      update: {},
+      create: {
+        email: empUser.email,
+        password: hashedPassword, // Mismo password: empleado123
+        firstName: empUser.firstName,
+        lastName: empUser.lastName,
+        roleId: employeeRole.id,
+      },
+    });
+  }
+
+  console.log('✅ Usuarios de empleados creados (5 empleados pueden acceder al portal)');
+
   // Crear saldos de vacaciones para los empleados
   const currentYear = new Date().getFullYear();
   const createdEmployees = await prisma.employee.findMany();
@@ -986,10 +1039,28 @@ async function main() {
   console.log('✅ Prestaciones asignadas a empleados');
 
   console.log('\n🎉 Seed completado exitosamente!');
-  console.log('\n📧 Usuario de prueba:');
-  console.log('   Email: admin@empresa.com');
-  console.log('   Password: admin123');
-  console.log('\n👥 Empleados de prueba: 8 empleados en diferentes departamentos');
+  console.log('\n📧 Usuarios de prueba:');
+  console.log('');
+  console.log('   👑 Super Admin:');
+  console.log('      Email: admin@empresa.com');
+  console.log('      Password: admin123');
+  console.log('');
+  console.log('   👔 Recursos Humanos (Admin no super):');
+  console.log('      Email: rh@empresa.com');
+  console.log('      Password: admin123');
+  console.log('');
+  console.log('   📊 Gerente:');
+  console.log('      Email: gerente@empresa.com');
+  console.log('      Password: admin123');
+  console.log('');
+  console.log('   👷 Empleados (pueden acceder al portal de empleado):');
+  console.log('      - juan.garcia@empresa.com / admin123');
+  console.log('      - maria.rodriguez@empresa.com / admin123');
+  console.log('      - carlos.martinez@empresa.com / admin123');
+  console.log('      - ana.lopez@empresa.com / admin123');
+  console.log('      - roberto.hernandez@empresa.com / admin123');
+  console.log('');
+  console.log('\n👥 Empleados en el sistema: 8 empleados en diferentes departamentos');
 }
 
 main()

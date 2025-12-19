@@ -18,7 +18,7 @@ const categoryLabels: Record<string, string> = {
   EARLY_LEAVE: 'Salida anticipada',
   OVERTIME: 'Horas extra',
   BONUS: 'Bono',
-  DISCOUNT: 'Descuento',
+  DEDUCTION: 'Descuento',
   DISABILITY: 'Incapacidad',
   JUSTIFIED_ABSENCE: 'Falta justificada',
   OTHER: 'Otro',
@@ -27,7 +27,7 @@ const categoryLabels: Record<string, string> = {
 const valueTypeLabels: Record<string, string> = {
   DAYS: 'Dias',
   HOURS: 'Horas',
-  FIXED_AMOUNT: 'Monto fijo',
+  AMOUNT: 'Monto fijo',
   PERCENTAGE: 'Porcentaje',
 };
 
