@@ -79,4 +79,24 @@ export class VacationsController {
   getLeaveTypeConfigs() {
     return this.vacationsService.getLeaveTypeConfigs();
   }
+
+  @Get('schedule/:employeeId')
+  @ApiOperation({ summary: 'Obtener horario laboral del empleado' })
+  getEmployeeSchedule(@Param('employeeId') employeeId: string) {
+    return this.vacationsService.getEmployeeSchedule(employeeId);
+  }
+
+  @Get('preview')
+  @ApiOperation({ summary: 'Previsualizar dias de vacaciones segun horario' })
+  previewVacationDays(
+    @Query('employeeId') employeeId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.vacationsService.previewVacationDays(
+      employeeId,
+      new Date(startDate),
+      new Date(endDate),
+    );
+  }
 }

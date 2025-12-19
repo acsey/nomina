@@ -45,8 +45,8 @@ export class PayrollReceiptService {
       where: {
         employeeId,
         payrollPeriod: {
-          ...(year && { year }),
-          status: { in: ['CALCULATED', 'APPROVED', 'PAID', 'CLOSED'] },
+          ...(year !== undefined && { year }),
+          status: { in: ['PROCESSING', 'CALCULATED', 'APPROVED', 'PAID', 'CLOSED'] },
         },
       },
       include: {

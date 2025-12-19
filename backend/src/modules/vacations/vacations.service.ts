@@ -31,7 +31,8 @@ export class VacationsService {
   }) {
     const { employeeId, type, startDate, endDate, reason } = data;
 
-    const totalDays = dayjs(endDate).diff(dayjs(startDate), 'day') + 1;
+    // Calculate work days based on employee's schedule
+    const totalDays = await this.calculateWorkDays(employeeId, startDate, endDate);
 
     // Validar disponibilidad si es vacaciones
     if (type === 'VACATION') {
@@ -249,5 +250,84 @@ export class VacationsService {
       where: { isActive: true },
       orderBy: { name: 'asc' },
     });
+  }
+
+  async getEmployeeSchedule(employeeId: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        workSchedule: {
+          include: {
+            scheduleDetails: {
+              orderBy: { dayOfWeek: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
+    return employee.workSchedule;
+  }
+
+  async calculateWorkDays(employeeId: string, startDate: Date, endDate: Date): Promise<number> {
+    const schedule = await this.getEmployeeSchedule(employeeId);
+
+    // Get work days from schedule, or default to Monday-Friday (1-5)
+    let workDays: number[];
+    if (schedule && schedule.scheduleDetails.length > 0) {
+      workDays = schedule.scheduleDetails
+        .filter(d => d.isWorkDay)
+        .map(d => d.dayOfWeek);
+    } else {
+      // Default: Monday (1) to Friday (5)
+      workDays = [1, 2, 3, 4, 5];
+    }
+
+    let count = 0;
+    let current = dayjs(startDate);
+    const end = dayjs(endDate);
+
+    while (current.isBefore(end) || current.isSame(end, 'day')) {
+      const dayOfWeek = current.day(); // 0 = Sunday, 6 = Saturday
+      if (workDays.includes(dayOfWeek)) {
+        count++;
+      }
+      current = current.add(1, 'day');
+    }
+
+    return count;
+  }
+
+  async previewVacationDays(employeeId: string, startDate: Date, endDate: Date) {
+    const workDays = await this.calculateWorkDays(employeeId, startDate, endDate);
+    const calendarDays = dayjs(endDate).diff(dayjs(startDate), 'day') + 1;
+    const schedule = await this.getEmployeeSchedule(employeeId);
+
+    return {
+      calendarDays,
+      workDays,
+      schedule: schedule ? {
+        id: schedule.id,
+        name: schedule.name,
+        description: schedule.description,
+        workDaysPerWeek: schedule.scheduleDetails.filter(d => d.isWorkDay).length,
+        details: schedule.scheduleDetails.map(d => ({
+          dayOfWeek: d.dayOfWeek,
+          dayName: this.getDayName(d.dayOfWeek),
+          isWorkDay: d.isWorkDay,
+          startTime: d.startTime,
+          endTime: d.endTime,
+        })),
+      } : null,
+    };
+  }
+
+  private getDayName(dayOfWeek: number): string {
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+    return days[dayOfWeek] || '';
   }
 }

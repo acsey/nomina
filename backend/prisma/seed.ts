@@ -454,26 +454,62 @@ async function main() {
 
   console.log('✅ Días festivos 2024 creados');
 
-  // Crear horario de trabajo estándar
+  // Crear horarios de trabajo
   const workSchedule = await prisma.workSchedule.create({
     data: {
-      name: 'Horario Estándar',
+      name: 'Horario Oficina',
       description: 'Lunes a Viernes 9:00 - 18:00',
       scheduleDetails: {
         create: [
+          { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorkDay: false },
           { dayOfWeek: 1, startTime: '09:00', endTime: '18:00', breakStart: '14:00', breakEnd: '15:00', isWorkDay: true },
           { dayOfWeek: 2, startTime: '09:00', endTime: '18:00', breakStart: '14:00', breakEnd: '15:00', isWorkDay: true },
           { dayOfWeek: 3, startTime: '09:00', endTime: '18:00', breakStart: '14:00', breakEnd: '15:00', isWorkDay: true },
           { dayOfWeek: 4, startTime: '09:00', endTime: '18:00', breakStart: '14:00', breakEnd: '15:00', isWorkDay: true },
           { dayOfWeek: 5, startTime: '09:00', endTime: '18:00', breakStart: '14:00', breakEnd: '15:00', isWorkDay: true },
           { dayOfWeek: 6, startTime: '00:00', endTime: '00:00', isWorkDay: false },
-          { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorkDay: false },
         ],
       },
     },
   });
 
-  console.log('✅ Horario de trabajo creado');
+  const workSchedule6Days = await prisma.workSchedule.create({
+    data: {
+      name: 'Horario Operaciones',
+      description: 'Lunes a Sabado 8:00 - 16:00',
+      scheduleDetails: {
+        create: [
+          { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorkDay: false },
+          { dayOfWeek: 1, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
+          { dayOfWeek: 2, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
+          { dayOfWeek: 3, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
+          { dayOfWeek: 4, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
+          { dayOfWeek: 5, startTime: '08:00', endTime: '16:00', breakStart: '12:00', breakEnd: '13:00', isWorkDay: true },
+          { dayOfWeek: 6, startTime: '08:00', endTime: '14:00', isWorkDay: true },
+        ],
+      },
+    },
+  });
+
+  const workScheduleMixto = await prisma.workSchedule.create({
+    data: {
+      name: 'Horario Mixto',
+      description: 'Lunes a Viernes + medio Sabado',
+      scheduleDetails: {
+        create: [
+          { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorkDay: false },
+          { dayOfWeek: 1, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 2, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 3, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 4, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 5, startTime: '08:30', endTime: '17:30', breakStart: '13:00', breakEnd: '14:00', isWorkDay: true },
+          { dayOfWeek: 6, startTime: '09:00', endTime: '13:00', isWorkDay: true },
+        ],
+      },
+    },
+  });
+
+  console.log('✅ Horarios de trabajo creados');
 
   // Crear empleados de prueba
   const empleados = [
@@ -699,7 +735,7 @@ async function main() {
       jobPositionId: puestos[4].id, // Operador
       departmentId: operacionesDept.id,
       companyId: company.id,
-      workScheduleId: workSchedule.id,
+      workScheduleId: workSchedule6Days.id, // Horario de 6 dias
       baseSalary: 12000,
       salaryType: 'MONTHLY' as const,
       paymentMethod: 'TRANSFER' as const,
@@ -732,7 +768,7 @@ async function main() {
       jobPositionId: puestos[4].id, // Operador
       departmentId: operacionesDept.id,
       companyId: company.id,
-      workScheduleId: workSchedule.id,
+      workScheduleId: workScheduleMixto.id, // Horario mixto
       baseSalary: 11000,
       salaryType: 'MONTHLY' as const,
       paymentMethod: 'TRANSFER' as const,

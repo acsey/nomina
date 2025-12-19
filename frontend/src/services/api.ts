@@ -134,6 +134,11 @@ export const vacationsApi = {
     api.get('/vacations/pending', { params: { companyId } }),
   // Configuracion de tipos de ausencia
   getLeaveTypeConfigs: () => api.get('/vacations/leave-types'),
+  // Horario laboral
+  getEmployeeSchedule: (employeeId: string) =>
+    api.get(`/vacations/schedule/${employeeId}`),
+  previewVacationDays: (employeeId: string, startDate: string, endDate: string) =>
+    api.get('/vacations/preview', { params: { employeeId, startDate, endDate } }),
 };
 
 export const benefitsApi = {
