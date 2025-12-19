@@ -75,7 +75,9 @@ export class EmployeesService {
     status?: string;
     companyId?: string;
   }) {
-    const { skip = 0, take = 10, search, departmentId, status, companyId } = params;
+    const { search, departmentId, status, companyId } = params;
+    const skip = Number(params.skip) || 0;
+    const take = Number(params.take) || 10;
 
     const where: Prisma.EmployeeWhereInput = {
       isActive: true,
