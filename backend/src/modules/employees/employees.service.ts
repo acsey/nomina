@@ -153,12 +153,26 @@ export class EmployeesService {
   async update(id: string, updateEmployeeDto: UpdateEmployeeDto) {
     await this.findOne(id);
 
+    // Extract relation IDs that need special handling
+    const { companyId, departmentId, jobPositionId, bankId, workScheduleId, ...directFields } = updateEmployeeDto;
+
+    // Build the update data with proper relation connections
+    const updateData: Prisma.EmployeeUpdateInput = {
+      ...directFields,
+      ...(companyId && { company: { connect: { id: companyId } } }),
+      ...(departmentId && { department: { connect: { id: departmentId } } }),
+      ...(jobPositionId && { jobPosition: { connect: { id: jobPositionId } } }),
+      ...(bankId && { bank: { connect: { id: bankId } } }),
+      ...(workScheduleId && { workSchedule: { connect: { id: workScheduleId } } }),
+    };
+
     return this.prisma.employee.update({
       where: { id },
-      data: updateEmployeeDto as Prisma.EmployeeUpdateInput,
+      data: updateData,
       include: {
         department: true,
         jobPosition: true,
+        company: true,
       },
     });
   }

@@ -16,6 +16,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { CatalogsModule } from './modules/catalogs/catalogs.module';
 import { BulkUploadModule } from './modules/bulk-upload/bulk-upload.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { IncidentsModule } from './modules/incidents/incidents.module';
     }),
     PrismaModule,
     AuthModule,
+    UsersModule,
     EmployeesModule,
     DepartmentsModule,
     PayrollModule,
