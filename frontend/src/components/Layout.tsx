@@ -5,6 +5,7 @@ import {
   HomeIcon,
   UsersIcon,
   BuildingOfficeIcon,
+  BuildingOffice2Icon,
   BanknotesIcon,
   ClockIcon,
   CalendarDaysIcon,
@@ -19,6 +20,7 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon },
   { name: 'Empleados', href: '/employees', icon: UsersIcon },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon },
   { name: 'Nómina', href: '/payroll', icon: BanknotesIcon },
