@@ -27,7 +27,7 @@ export class PayrollController {
   ) {}
 
   @Post('periods')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Crear periodo de nomina' })
   createPeriod(@Body() createPeriodDto: any) {
     return this.payrollService.createPeriod(createPeriodDto);
@@ -49,28 +49,28 @@ export class PayrollController {
   }
 
   @Get('periods/:id/preview')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Previsualizar calculo de nomina sin guardar' })
   previewPayroll(@Param('id') id: string) {
     return this.payrollService.previewPayroll(id);
   }
 
   @Post('periods/:id/calculate')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Calcular nomina del periodo' })
   calculatePayroll(@Param('id') id: string) {
     return this.payrollService.calculatePayroll(id);
   }
 
   @Post('periods/:id/approve')
-  @Roles('admin')
-  @ApiOperation({ summary: 'Aprobar nomina del periodo' })
+  @Roles('admin', 'company_admin')
+  @ApiOperation({ summary: 'Aprobar nomina del periodo (genera y timbra CFDI automaticamente)' })
   approvePayroll(@Param('id') id: string) {
     return this.payrollService.approvePayroll(id);
   }
 
   @Post('periods/:id/close')
-  @Roles('admin')
+  @Roles('admin', 'company_admin')
   @ApiOperation({ summary: 'Cerrar periodo de nomina' })
   closePayroll(@Param('id') id: string) {
     return this.payrollService.closePayroll(id);

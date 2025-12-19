@@ -5,8 +5,10 @@ import { PayrollCalculatorService } from './services/payroll-calculator.service'
 import { IsrCalculatorService } from './services/isr-calculator.service';
 import { ImssCalculatorService } from './services/imss-calculator.service';
 import { PayrollReceiptService } from './services/payroll-receipt.service';
+import { CfdiModule } from '../cfdi/cfdi.module';
 
 @Module({
+  imports: [CfdiModule],
   controllers: [PayrollController],
   providers: [
     PayrollService,
