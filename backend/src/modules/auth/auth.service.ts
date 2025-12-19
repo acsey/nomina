@@ -17,7 +17,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { role: true },
+      include: { role: true, company: true },
     });
 
     if (!user) {
@@ -39,6 +39,7 @@ export class AuthService {
       email: user.email,
       role: user.role.name,
       permissions: user.role.permissions,
+      companyId: user.companyId,
     };
 
     return {
@@ -49,6 +50,11 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role.name,
+        companyId: user.companyId,
+        company: user.company ? {
+          id: user.company.id,
+          name: user.company.name,
+        } : null,
       },
     };
   }

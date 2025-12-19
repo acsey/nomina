@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { employeesApi, catalogsApi, departmentsApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 
 interface EmployeeFormData {
@@ -78,8 +79,14 @@ export default function EmployeeFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const isEditMode = !!id;
-  const [formData, setFormData] = useState<EmployeeFormData>(initialFormData);
+  const isAdmin = user?.role === 'admin';
+  const [formData, setFormData] = useState<EmployeeFormData>({
+    ...initialFormData,
+    // Pre-select user's company for non-admin users
+    companyId: user?.companyId || '',
+  });
 
   // Fetch employee data when editing
   const { data: employeeData, isLoading: employeeLoading } = useQuery({
@@ -483,6 +490,7 @@ export default function EmployeeFormPage() {
                 onChange={handleChange}
                 className="input"
                 required
+                disabled={!isAdmin && !!user?.companyId}
               >
                 <option value="">Seleccionar...</option>
                 {companies.map((company: any) => (
@@ -491,6 +499,11 @@ export default function EmployeeFormPage() {
                   </option>
                 ))}
               </select>
+              {!isAdmin && user?.companyId && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Los empleados se asignan a tu empresa
+                </p>
+              )}
             </div>
             <div>
               <label className="label">Departamento *</label>

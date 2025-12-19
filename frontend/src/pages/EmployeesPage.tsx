@@ -66,6 +66,7 @@ export default function EmployeesPage() {
                 <tr>
                   <th>No. Empleado</th>
                   <th>Nombre</th>
+                  <th>Empresa</th>
                   <th>Departamento</th>
                   <th>Puesto</th>
                   <th>Estado</th>
@@ -79,6 +80,7 @@ export default function EmployeesPage() {
                     <td>
                       {employee.firstName} {employee.lastName}
                     </td>
+                    <td>{employee.company?.name || '-'}</td>
                     <td>{employee.department?.name || '-'}</td>
                     <td>{employee.jobPosition?.name || '-'}</td>
                     <td>
