@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Default primary colors - can be overridden by ThemeContext */
+  --color-primary-50: hsl(217, 91%, 97%);
+  --color-primary-100: hsl(217, 91%, 94%);
+  --color-primary-200: hsl(217, 91%, 86%);
+  --color-primary-300: hsl(217, 91%, 77%);
+  --color-primary-400: hsl(217, 91%, 66%);
+  --color-primary-500: hsl(217, 91%, 54%);
+  --color-primary-600: hsl(217, 91%, 43%);
+  --color-primary-700: hsl(217, 91%, 32%);
+  --color-primary-800: hsl(217, 91%, 24%);
+  --color-primary-900: hsl(217, 91%, 18%);
+  --color-primary-950: hsl(217, 91%, 10%);
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 antialiased;

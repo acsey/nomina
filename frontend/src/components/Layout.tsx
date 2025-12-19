@@ -19,6 +19,8 @@ import {
   ExclamationTriangleIcon,
   UserIcon,
   UserGroupIcon,
+  CogIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -32,10 +34,12 @@ const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Mi Portal', href: '/my-portal', icon: UserIcon },
   { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['admin', 'rh', 'manager'] },
-  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['admin', 'rh'] },
+  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['admin'] },
+  { name: 'Config. Empresa', href: '/company-config', icon: CogIcon, roles: ['admin', 'rh'] },
   { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['admin', 'rh'] },
   { name: 'Nomina', href: '/payroll', icon: BanknotesIcon, roles: ['admin', 'rh'] },
+  { name: 'Recibos Nomina', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['admin', 'rh'] },
   { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Asistencia', href: '/attendance', icon: ClockIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon, roles: ['admin', 'rh', 'manager'] },

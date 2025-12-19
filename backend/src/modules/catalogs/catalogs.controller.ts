@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
 import { IsString, IsOptional, IsEmail } from 'class-validator';
 
 class CreateCompanyDto {
@@ -100,25 +103,92 @@ class UpdateCompanyDto {
   @IsEmail()
   @IsOptional()
   email?: string;
+
+  // Branding
+  @IsString()
+  @IsOptional()
+  logo?: string;
+
+  @IsString()
+  @IsOptional()
+  primaryColor?: string;
+
+  @IsString()
+  @IsOptional()
+  secondaryColor?: string;
+
+  // Configuración CFDI
+  @IsString()
+  @IsOptional()
+  regimenFiscal?: string;
+
+  @IsString()
+  @IsOptional()
+  certificadoCer?: string;
+
+  @IsString()
+  @IsOptional()
+  certificadoKey?: string;
+
+  @IsString()
+  @IsOptional()
+  certificadoPassword?: string;
+
+  @IsString()
+  @IsOptional()
+  noCertificado?: string;
+
+  // Configuración PAC
+  @IsString()
+  @IsOptional()
+  pacProvider?: string;
+
+  @IsString()
+  @IsOptional()
+  pacUser?: string;
+
+  @IsString()
+  @IsOptional()
+  pacPassword?: string;
+
+  @IsString()
+  @IsOptional()
+  pacMode?: string;
 }
 
 @ApiTags('catalogs')
 @Controller('catalogs')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class CatalogsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get('companies')
   @ApiOperation({ summary: 'Listar empresas' })
-  async getCompanies() {
-    return this.prisma.company.findMany({
-      orderBy: { name: 'asc' },
-    });
+  async getCompanies(@CurrentUser() user: any) {
+    // Admin puede ver todas las empresas
+    // Otros roles solo ven su propia empresa
+    if (user.role === 'admin') {
+      return this.prisma.company.findMany({
+        orderBy: { name: 'asc' },
+      });
+    }
+
+    // Si el usuario tiene companyId, solo puede ver su empresa
+    if (user.companyId) {
+      return this.prisma.company.findMany({
+        where: { id: user.companyId },
+        orderBy: { name: 'asc' },
+      });
+    }
+
+    // Si no tiene companyId y no es admin, devolver vacío
+    return [];
   }
 
   @Post('companies')
-  @ApiOperation({ summary: 'Crear empresa' })
+  @Roles('admin')
+  @ApiOperation({ summary: 'Crear empresa (solo admin)' })
   async createCompany(@Body() data: CreateCompanyDto) {
     return this.prisma.company.create({
       data: {
@@ -139,8 +209,18 @@ export class CatalogsController {
   }
 
   @Patch('companies/:id')
-  @ApiOperation({ summary: 'Actualizar empresa' })
-  async updateCompany(@Param('id') id: string, @Body() data: UpdateCompanyDto) {
+  @Roles('admin', 'rh')
+  @ApiOperation({ summary: 'Actualizar empresa (admin puede todas, rh solo la suya)' })
+  async updateCompany(
+    @Param('id') id: string,
+    @Body() data: UpdateCompanyDto,
+    @CurrentUser() user: any,
+  ) {
+    // RH solo puede editar su propia empresa
+    if (user.role !== 'admin' && user.companyId !== id) {
+      throw new ForbiddenException('Solo puedes editar tu propia empresa');
+    }
+
     return this.prisma.company.update({
       where: { id },
       data: {
@@ -156,6 +236,21 @@ export class CatalogsController {
         ...(data.zipCode !== undefined && { zipCode: data.zipCode }),
         ...(data.phone !== undefined && { phone: data.phone }),
         ...(data.email !== undefined && { email: data.email }),
+        // Branding
+        ...(data.logo !== undefined && { logo: data.logo }),
+        ...(data.primaryColor !== undefined && { primaryColor: data.primaryColor }),
+        ...(data.secondaryColor !== undefined && { secondaryColor: data.secondaryColor }),
+        // Configuración CFDI
+        ...(data.regimenFiscal !== undefined && { regimenFiscal: data.regimenFiscal }),
+        ...(data.certificadoCer !== undefined && { certificadoCer: data.certificadoCer }),
+        ...(data.certificadoKey !== undefined && { certificadoKey: data.certificadoKey }),
+        ...(data.certificadoPassword !== undefined && { certificadoPassword: data.certificadoPassword }),
+        ...(data.noCertificado !== undefined && { noCertificado: data.noCertificado }),
+        // Configuración PAC
+        ...(data.pacProvider !== undefined && { pacProvider: data.pacProvider }),
+        ...(data.pacUser !== undefined && { pacUser: data.pacUser }),
+        ...(data.pacPassword !== undefined && { pacPassword: data.pacPassword }),
+        ...(data.pacMode !== undefined && { pacMode: data.pacMode }),
       },
     });
   }

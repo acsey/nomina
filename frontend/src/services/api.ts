@@ -112,6 +112,23 @@ export const payrollApi = {
     api.get(`/payroll/receipts/${detailId}/view`, { responseType: 'blob' }),
 };
 
+export const cfdiApi = {
+  generate: (payrollDetailId: string) =>
+    api.post(`/cfdi/generate/${payrollDetailId}`),
+  stamp: (cfdiId: string) => api.post(`/cfdi/${cfdiId}/stamp`),
+  cancel: (cfdiId: string, reason: string) =>
+    api.post(`/cfdi/${cfdiId}/cancel`, { reason }),
+  get: (cfdiId: string) => api.get(`/cfdi/${cfdiId}`),
+  getByPayrollDetail: (payrollDetailId: string) =>
+    api.get(`/cfdi/by-detail/${payrollDetailId}`),
+  getByPeriod: (periodId: string) => api.get(`/cfdi/period/${periodId}`),
+  stampAll: (periodId: string) => api.post(`/cfdi/period/${periodId}/stamp-all`),
+  downloadXml: (cfdiId: string) =>
+    api.get(`/cfdi/${cfdiId}/xml`, { responseType: 'blob' }),
+  downloadXmlByDetail: (payrollDetailId: string) =>
+    api.get(`/cfdi/by-detail/${payrollDetailId}/xml`, { responseType: 'blob' }),
+};
+
 export const attendanceApi = {
   checkIn: (employeeId: string) => api.post(`/attendance/check-in/${employeeId}`),
   checkOut: (employeeId: string) => api.post(`/attendance/check-out/${employeeId}`),
