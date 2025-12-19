@@ -20,6 +20,11 @@ Sistema completo de nómina para empresas mexicanas, con soporte para cálculos 
 - **React Router** (Navegación)
 - **React Hook Form** (Formularios)
 
+### Infraestructura
+- **Docker** y **Docker Compose**
+- **Nginx** (Servidor web para frontend)
+- **PostgreSQL 16** (Base de datos)
+
 ## Módulos
 
 1. **Autenticación y Usuarios** - Login, roles y permisos
@@ -33,40 +38,79 @@ Sistema completo de nómina para empresas mexicanas, con soporte para cálculos 
 9. **Gestiones Gubernamentales** - IMSS, ISSSTE, INFONAVIT
 10. **Reportes** - Excel, PDF, reportes fiscales
 
-## Estructura del Proyecto
+## Inicio Rápido con Docker
 
-```
-nomina/
-├── backend/                 # API NestJS
-│   ├── src/
-│   │   ├── common/         # Utilidades compartidas
-│   │   ├── config/         # Configuración
-│   │   └── modules/        # Módulos de negocio
-│   │       ├── auth/
-│   │       ├── employees/
-│   │       ├── departments/
-│   │       ├── payroll/
-│   │       ├── attendance/
-│   │       ├── vacations/
-│   │       ├── benefits/
-│   │       ├── cfdi/
-│   │       ├── government/
-│   │       └── reports/
-│   └── prisma/             # Esquema y migraciones
-│
-├── frontend/               # Aplicación React
-│   └── src/
-│       ├── components/     # Componentes reutilizables
-│       ├── contexts/       # Contextos de React
-│       ├── hooks/          # Custom hooks
-│       ├── pages/          # Páginas de la aplicación
-│       ├── services/       # Servicios API
-│       └── types/          # Tipos TypeScript
-│
-└── package.json            # Monorepo config
+### Requisitos
+- Docker 20+
+- Docker Compose 2+
+- Make (opcional, pero recomendado)
+
+### Producción
+
+```bash
+# Opción 1: Usando Make
+make prod
+
+# Opción 2: Usando Docker Compose directamente
+docker compose up --build -d
 ```
 
-## Instalación
+### Desarrollo (con hot-reload)
+
+```bash
+# Opción 1: Usando Make
+make dev
+
+# Opción 2: Usando Docker Compose directamente
+docker compose -f docker-compose.dev.yml up --build
+```
+
+### URLs
+
+| Servicio | URL | Descripción |
+|----------|-----|-------------|
+| Frontend | http://localhost | Aplicación web |
+| Backend API | http://localhost:3000 | API REST |
+| Swagger Docs | http://localhost:3000/api/docs | Documentación API |
+| Adminer | http://localhost:8080 | UI de base de datos (solo dev) |
+
+### Credenciales de Prueba
+
+- **Email:** admin@empresa.com
+- **Password:** admin123
+
+## Comandos Make
+
+```bash
+make help          # Ver todos los comandos disponibles
+
+# Desarrollo
+make dev           # Iniciar en modo desarrollo
+make dev-d         # Iniciar en modo desarrollo (background)
+make dev-down      # Detener modo desarrollo
+make dev-logs      # Ver logs de desarrollo
+
+# Producción
+make prod          # Iniciar en modo producción
+make prod-down     # Detener modo producción
+
+# Logs
+make logs          # Ver todos los logs
+make logs-backend  # Ver logs del backend
+make logs-frontend # Ver logs del frontend
+
+# Base de datos
+make migrate       # Ejecutar migraciones
+make seed          # Ejecutar seed de datos
+make studio        # Abrir Prisma Studio
+make shell-db      # Abrir shell de PostgreSQL
+
+# Limpieza
+make clean         # Limpiar contenedores y volúmenes
+make clean-all     # Limpiar todo incluyendo imágenes
+```
+
+## Instalación Manual (sin Docker)
 
 ### Requisitos
 - Node.js 18+
@@ -107,47 +151,40 @@ npm run db:seed --workspace=backend
 
 5. **Iniciar en desarrollo**
 ```bash
-# Desde la raíz del proyecto
 npm run dev
 ```
 
-Esto iniciará:
-- Backend en `http://localhost:3000`
-- Frontend en `http://localhost:5173`
-- API Docs en `http://localhost:3000/api/docs`
+## Estructura del Proyecto
 
-## Credenciales de Prueba
-
-- **Email:** admin@empresa.com
-- **Password:** admin123
-
-## Scripts Disponibles
-
-```bash
-# Desarrollo
-npm run dev              # Inicia backend y frontend
-npm run dev:backend      # Solo backend
-npm run dev:frontend     # Solo frontend
-
-# Base de datos
-npm run db:migrate       # Ejecutar migraciones
-npm run db:generate      # Generar cliente Prisma
-npm run db:seed          # Ejecutar seed
-npm run db:studio        # Abrir Prisma Studio
-
-# Build
-npm run build            # Build de producción
-npm run build:backend    # Build solo backend
-npm run build:frontend   # Build solo frontend
-
-# Lint y tests
-npm run lint             # Ejecutar linter
-npm run test             # Ejecutar tests
+```
+nomina/
+├── backend/                 # API NestJS
+│   ├── src/
+│   │   ├── common/         # Utilidades compartidas
+│   │   └── modules/        # Módulos de negocio
+│   ├── prisma/             # Esquema y migraciones
+│   ├── Dockerfile          # Imagen de producción
+│   └── Dockerfile.dev      # Imagen de desarrollo
+│
+├── frontend/               # Aplicación React
+│   ├── src/
+│   │   ├── components/     # Componentes reutilizables
+│   │   ├── contexts/       # Contextos de React
+│   │   ├── pages/          # Páginas de la aplicación
+│   │   └── services/       # Servicios API
+│   ├── Dockerfile          # Imagen de producción
+│   ├── Dockerfile.dev      # Imagen de desarrollo
+│   └── nginx.conf          # Configuración Nginx
+│
+├── docker-compose.yml      # Producción
+├── docker-compose.dev.yml  # Desarrollo
+├── Makefile                # Comandos útiles
+└── package.json            # Monorepo config
 ```
 
 ## Configuración de Timbrado CFDI
 
-Para habilitar el timbrado de CFDIs de nómina, configura las siguientes variables en `.env`:
+Para habilitar el timbrado de CFDIs de nómina, configura las siguientes variables:
 
 ```env
 PAC_URL=https://api.tu-pac.com
