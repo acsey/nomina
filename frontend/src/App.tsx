@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
+import EmployeeFormPage from './pages/EmployeeFormPage';
 import DepartmentsPage from './pages/DepartmentsPage';
 import PayrollPage from './pages/PayrollPage';
 import AttendancePage from './pages/AttendancePage';
@@ -44,6 +45,7 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="employees" element={<EmployeesPage />} />
+            <Route path="employees/new" element={<EmployeeFormPage />} />
             <Route path="employees/:id" element={<EmployeeDetailPage />} />
             <Route path="departments" element={<DepartmentsPage />} />
             <Route path="payroll" element={<PayrollPage />} />

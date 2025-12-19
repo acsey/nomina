@@ -160,3 +160,10 @@ export const governmentApi = {
   getInfonavitReport: (companyId: string, periodId: string) =>
     api.get('/government/infonavit/report', { params: { companyId, periodId } }),
 };
+
+export const catalogsApi = {
+  getCompanies: () => api.get('/catalogs/companies'),
+  getJobPositions: () => api.get('/catalogs/job-positions'),
+  getBanks: () => api.get('/catalogs/banks'),
+  getWorkSchedules: () => api.get('/catalogs/work-schedules'),
+};

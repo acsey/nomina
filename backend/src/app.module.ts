@@ -13,6 +13,7 @@ import { BenefitsModule } from './modules/benefits/benefits.module';
 import { CfdiModule } from './modules/cfdi/cfdi.module';
 import { GovernmentModule } from './modules/government/government.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { CatalogsModule } from './modules/catalogs/catalogs.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     CfdiModule,
     GovernmentModule,
     ReportsModule,
+    CatalogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
