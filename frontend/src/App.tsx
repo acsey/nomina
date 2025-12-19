@@ -8,6 +8,7 @@ import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import EmployeeFormPage from './pages/EmployeeFormPage';
 import DepartmentsPage from './pages/DepartmentsPage';
 import PayrollPage from './pages/PayrollPage';
+import PayrollReceiptsPage from './pages/PayrollReceiptsPage';
 import AttendancePage from './pages/AttendancePage';
 import VacationsPage from './pages/VacationsPage';
 import BenefitsPage from './pages/BenefitsPage';
@@ -49,6 +50,7 @@ function App() {
             <Route path="employees/:id" element={<EmployeeDetailPage />} />
             <Route path="departments" element={<DepartmentsPage />} />
             <Route path="payroll" element={<PayrollPage />} />
+            <Route path="payroll/receipts" element={<PayrollReceiptsPage />} />
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="vacations" element={<VacationsPage />} />
             <Route path="benefits" element={<BenefitsPage />} />

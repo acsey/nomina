@@ -73,4 +73,10 @@ export class VacationsController {
   getPendingRequests(@Query('companyId') companyId: string) {
     return this.vacationsService.getPendingRequests(companyId);
   }
+
+  @Get('leave-types')
+  @ApiOperation({ summary: 'Obtener configuracion de tipos de ausencia' })
+  getLeaveTypeConfigs() {
+    return this.vacationsService.getLeaveTypeConfigs();
+  }
 }
