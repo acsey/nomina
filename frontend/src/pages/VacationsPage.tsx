@@ -294,7 +294,6 @@ export default function VacationsPage() {
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* Tabs */}
