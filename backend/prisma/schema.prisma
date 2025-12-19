@@ -1,0 +1,807 @@
+// Sistema de Nómina - Esquema de Base de Datos
+// Compatible con normativas mexicanas (IMSS, ISSSTE, SAT, INFONAVIT)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MÓDULO: AUTENTICACIÓN Y USUARIOS
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  isActive  Boolean  @default(true) @map("is_active")
+  roleId    String   @map("role_id")
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  oldValues Json?    @map("old_values")
+  newValues Json?    @map("new_values")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
+
+// ============================================
+// MÓDULO: EMPRESA Y DEPARTAMENTOS
+// ============================================
+
+model Company {
+  id                String   @id @default(uuid())
+  name              String
+  rfc               String   @unique
+  registroPatronal  String?  @map("registro_patronal") // IMSS
+  registroPatronalIssste String? @map("registro_patronal_issste")
+  address           String?
+  city              String?
+  state             String?
+  zipCode           String?  @map("zip_code")
+  phone             String?
+  email             String?
+  logo              String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  departments  Department[]
+  employees    Employee[]
+  payrollPeriods PayrollPeriod[]
+
+  @@map("companies")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id])
+  managerId   String?  @map("manager_id")
+  manager     Employee? @relation("DepartmentManager", fields: [managerId], references: [id])
+  parentId    String?  @map("parent_id")
+  parent      Department? @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children    Department[] @relation("DepartmentHierarchy")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  employees Employee[] @relation("EmployeeDepartment")
+
+  @@map("departments")
+}
+
+// ============================================
+// MÓDULO: EMPLEADOS
+// ============================================
+
+model Employee {
+  id                  String   @id @default(uuid())
+  employeeNumber      String   @unique @map("employee_number")
+  firstName           String   @map("first_name")
+  middleName          String?  @map("middle_name")
+  lastName            String   @map("last_name")
+  secondLastName      String?  @map("second_last_name")
+  email               String?
+  phone               String?
+  birthDate           DateTime @map("birth_date")
+  gender              Gender
+  maritalStatus       MaritalStatus @map("marital_status")
+
+  // Identificación fiscal y gobierno
+  rfc                 String   @unique
+  curp                String   @unique
+  nss                 String?  // Número de Seguro Social (IMSS)
+  isssteNumber        String?  @map("issste_number")
+  infonavitNumber     String?  @map("infonavit_number")
+
+  // Dirección
+  address             String?
+  colony              String?  // Colonia
+  city                String?
+  state               String?
+  zipCode             String?  @map("zip_code")
+
+  // Información laboral
+  hireDate            DateTime @map("hire_date")
+  terminationDate     DateTime? @map("termination_date")
+  contractType        ContractType @map("contract_type")
+  employmentType      EmploymentType @map("employment_type")
+  jobPositionId       String   @map("job_position_id")
+  jobPosition         JobPosition @relation(fields: [jobPositionId], references: [id])
+  departmentId        String   @map("department_id")
+  department          Department @relation("EmployeeDepartment", fields: [departmentId], references: [id])
+  companyId           String   @map("company_id")
+  company             Company  @relation(fields: [companyId], references: [id])
+  workScheduleId      String?  @map("work_schedule_id")
+  workSchedule        WorkSchedule? @relation(fields: [workScheduleId], references: [id])
+
+  // Información de pago
+  baseSalary          Decimal  @map("base_salary") @db.Decimal(12, 2)
+  salaryType          SalaryType @map("salary_type")
+  paymentMethod       PaymentMethod @map("payment_method")
+  bankId              String?  @map("bank_id")
+  bank                Bank?    @relation(fields: [bankId], references: [id])
+  bankAccount         String?  @map("bank_account")
+  clabe               String?  // CLABE interbancaria
+
+  // IMSS
+  salarioDiarioIntegrado Decimal? @map("salario_diario_integrado") @db.Decimal(12, 2)
+  tipoSalarioImss     TipoSalarioIMSS? @map("tipo_salario_imss")
+
+  // Estado
+  status              EmployeeStatus @default(ACTIVE)
+  isActive            Boolean  @default(true) @map("is_active")
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  managedDepartments  Department[] @relation("DepartmentManager")
+  attendanceRecords   AttendanceRecord[]
+  vacationRequests    VacationRequest[]
+  payrollDetails      PayrollDetail[]
+  benefits            EmployeeBenefit[]
+  infonavitCredits    InfonavitCredit[]
+  pensionAlimenticia  PensionAlimenticia[]
+  salaryHistory       SalaryHistory[]
+  cfdiNominas         CfdiNomina[]
+  emergencyContacts   EmergencyContact[]
+  documents           EmployeeDocument[]
+
+  @@map("employees")
+}
+
+model JobPosition {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  minSalary   Decimal? @map("min_salary") @db.Decimal(12, 2)
+  maxSalary   Decimal? @map("max_salary") @db.Decimal(12, 2)
+  riskLevel   RiskLevel @default(CLASE_I) @map("risk_level") // Para prima de riesgo IMSS
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  employees Employee[]
+
+  @@map("job_positions")
+}
+
+model EmergencyContact {
+  id           String   @id @default(uuid())
+  employeeId   String   @map("employee_id")
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  name         String
+  relationship String
+  phone        String
+  email        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("emergency_contacts")
+}
+
+model EmployeeDocument {
+  id          String   @id @default(uuid())
+  employeeId  String   @map("employee_id")
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  type        DocumentType
+  name        String
+  path        String
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("employee_documents")
+}
+
+model SalaryHistory {
+  id          String   @id @default(uuid())
+  employeeId  String   @map("employee_id")
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  oldSalary   Decimal  @map("old_salary") @db.Decimal(12, 2)
+  newSalary   Decimal  @map("new_salary") @db.Decimal(12, 2)
+  reason      String?
+  effectiveDate DateTime @map("effective_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("salary_history")
+}
+
+// ============================================
+// MÓDULO: ASISTENCIA
+// ============================================
+
+model WorkSchedule {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  scheduleDetails WorkScheduleDetail[]
+  employees       Employee[]
+
+  @@map("work_schedules")
+}
+
+model WorkScheduleDetail {
+  id             String   @id @default(uuid())
+  workScheduleId String   @map("work_schedule_id")
+  workSchedule   WorkSchedule @relation(fields: [workScheduleId], references: [id])
+  dayOfWeek      Int      @map("day_of_week") // 0-6 (Domingo-Sábado)
+  startTime      String   @map("start_time") // HH:mm
+  endTime        String   @map("end_time")   // HH:mm
+  breakStart     String?  @map("break_start")
+  breakEnd       String?  @map("break_end")
+  isWorkDay      Boolean  @default(true) @map("is_work_day")
+
+  @@map("work_schedule_details")
+}
+
+model AttendanceRecord {
+  id          String   @id @default(uuid())
+  employeeId  String   @map("employee_id")
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  date        DateTime @db.Date
+  checkIn     DateTime? @map("check_in")
+  checkOut    DateTime? @map("check_out")
+  breakStart  DateTime? @map("break_start")
+  breakEnd    DateTime? @map("break_end")
+  status      AttendanceStatus @default(PRESENT)
+  hoursWorked Decimal? @map("hours_worked") @db.Decimal(5, 2)
+  overtime    Decimal? @db.Decimal(5, 2)
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeId, date])
+  @@map("attendance_records")
+}
+
+model Holiday {
+  id          String   @id @default(uuid())
+  name        String
+  date        DateTime @db.Date
+  isNational  Boolean  @default(true) @map("is_national")
+  isPaid      Boolean  @default(true) @map("is_paid")
+  year        Int
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([date, year])
+  @@map("holidays")
+}
+
+// ============================================
+// MÓDULO: VACACIONES Y PERMISOS
+// ============================================
+
+model VacationRequest {
+  id            String   @id @default(uuid())
+  employeeId    String   @map("employee_id")
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  type          LeaveType
+  startDate     DateTime @map("start_date") @db.Date
+  endDate       DateTime @map("end_date") @db.Date
+  totalDays     Int      @map("total_days")
+  reason        String?
+  status        RequestStatus @default(PENDING)
+  approvedById  String?  @map("approved_by_id")
+  approvedAt    DateTime? @map("approved_at")
+  rejectedReason String? @map("rejected_reason")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("vacation_requests")
+}
+
+model VacationBalance {
+  id              String   @id @default(uuid())
+  employeeId      String   @map("employee_id")
+  year            Int
+  earnedDays      Int      @map("earned_days") // Días correspondientes por antigüedad
+  usedDays        Int      @default(0) @map("used_days")
+  pendingDays     Int      @default(0) @map("pending_days")
+  expiredDays     Int      @default(0) @map("expired_days")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeId, year])
+  @@map("vacation_balances")
+}
+
+// ============================================
+// MÓDULO: NÓMINA
+// ============================================
+
+model PayrollPeriod {
+  id              String   @id @default(uuid())
+  companyId       String   @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id])
+  periodType      PeriodType @map("period_type")
+  periodNumber    Int      @map("period_number")
+  year            Int
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime @map("end_date") @db.Date
+  paymentDate     DateTime @map("payment_date") @db.Date
+  status          PayrollStatus @default(DRAFT)
+  totalPerceptions Decimal @default(0) @map("total_perceptions") @db.Decimal(14, 2)
+  totalDeductions  Decimal @default(0) @map("total_deductions") @db.Decimal(14, 2)
+  totalNet         Decimal @default(0) @map("total_net") @db.Decimal(14, 2)
+  processedAt     DateTime? @map("processed_at")
+  closedAt        DateTime? @map("closed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  payrollDetails PayrollDetail[]
+
+  @@unique([companyId, periodType, periodNumber, year])
+  @@map("payroll_periods")
+}
+
+model PayrollDetail {
+  id              String   @id @default(uuid())
+  payrollPeriodId String   @map("payroll_period_id")
+  payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id])
+  employeeId      String   @map("employee_id")
+  employee        Employee @relation(fields: [employeeId], references: [id])
+
+  // Días trabajados
+  workedDays      Decimal  @map("worked_days") @db.Decimal(5, 2)
+
+  // Totales
+  totalPerceptions Decimal @map("total_perceptions") @db.Decimal(12, 2)
+  totalDeductions  Decimal @map("total_deductions") @db.Decimal(12, 2)
+  netPay           Decimal @map("net_pay") @db.Decimal(12, 2)
+
+  // Estado
+  status          PayrollDetailStatus @default(PENDING)
+  paidAt          DateTime? @map("paid_at")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  perceptions     PayrollPerception[]
+  deductions      PayrollDeduction[]
+  cfdiNomina      CfdiNomina?
+
+  @@unique([payrollPeriodId, employeeId])
+  @@map("payroll_details")
+}
+
+model PayrollPerception {
+  id               String   @id @default(uuid())
+  payrollDetailId  String   @map("payroll_detail_id")
+  payrollDetail    PayrollDetail @relation(fields: [payrollDetailId], references: [id])
+  conceptId        String   @map("concept_id")
+  concept          PayrollConcept @relation(fields: [conceptId], references: [id])
+  amount           Decimal  @db.Decimal(12, 2)
+  taxableAmount    Decimal  @map("taxable_amount") @db.Decimal(12, 2)
+  exemptAmount     Decimal  @map("exempt_amount") @db.Decimal(12, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("payroll_perceptions")
+}
+
+model PayrollDeduction {
+  id               String   @id @default(uuid())
+  payrollDetailId  String   @map("payroll_detail_id")
+  payrollDetail    PayrollDetail @relation(fields: [payrollDetailId], references: [id])
+  conceptId        String   @map("concept_id")
+  concept          PayrollConcept @relation(fields: [conceptId], references: [id])
+  amount           Decimal  @db.Decimal(12, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("payroll_deductions")
+}
+
+model PayrollConcept {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  name            String
+  type            ConceptType
+  satCode         String?  @map("sat_code") // Código SAT para CFDI
+  isTaxable       Boolean  @default(false) @map("is_taxable")
+  isFixed         Boolean  @default(false) @map("is_fixed")
+  defaultAmount   Decimal? @map("default_amount") @db.Decimal(12, 2)
+  formula         String?  // Fórmula de cálculo
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  perceptions     PayrollPerception[]
+  deductions      PayrollDeduction[]
+
+  @@map("payroll_concepts")
+}
+
+// ============================================
+// MÓDULO: IMPUESTOS Y CÁLCULOS SAT
+// ============================================
+
+model IsrTable {
+  id              String   @id @default(uuid())
+  year            Int
+  periodType      PeriodType @map("period_type")
+  lowerLimit      Decimal  @map("lower_limit") @db.Decimal(12, 2)
+  upperLimit      Decimal  @map("upper_limit") @db.Decimal(12, 2)
+  fixedFee        Decimal  @map("fixed_fee") @db.Decimal(12, 2)
+  percentage      Decimal  @db.Decimal(5, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("isr_tables")
+}
+
+model SubsidioTable {
+  id              String   @id @default(uuid())
+  year            Int
+  periodType      PeriodType @map("period_type")
+  lowerLimit      Decimal  @map("lower_limit") @db.Decimal(12, 2)
+  upperLimit      Decimal  @map("upper_limit") @db.Decimal(12, 2)
+  subsidyAmount   Decimal  @map("subsidy_amount") @db.Decimal(12, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("subsidio_tables")
+}
+
+// ============================================
+// MÓDULO: IMSS / ISSSTE / INFONAVIT
+// ============================================
+
+model ImssRate {
+  id                  String   @id @default(uuid())
+  year                Int
+  concept             String   // EYM, IV, RT, Guardería, etc.
+  employerRate        Decimal  @map("employer_rate") @db.Decimal(6, 4)
+  employeeRate        Decimal  @map("employee_rate") @db.Decimal(6, 4)
+  salaryBase          SalaryBaseType @map("salary_base") // SBC, SMG, etc.
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@unique([year, concept])
+  @@map("imss_rates")
+}
+
+model InfonavitCredit {
+  id              String   @id @default(uuid())
+  employeeId      String   @map("employee_id")
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  creditNumber    String   @map("credit_number")
+  discountType    InfonavitDiscountType @map("discount_type")
+  discountValue   Decimal  @map("discount_value") @db.Decimal(12, 2)
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("infonavit_credits")
+}
+
+model PensionAlimenticia {
+  id              String   @id @default(uuid())
+  employeeId      String   @map("employee_id")
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  beneficiaryName String   @map("beneficiary_name")
+  discountType    PensionDiscountType @map("discount_type")
+  discountValue   Decimal  @map("discount_value") @db.Decimal(12, 2)
+  courtOrder      String?  @map("court_order")
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("pension_alimenticia")
+}
+
+// ============================================
+// MÓDULO: TIMBRADO CFDI
+// ============================================
+
+model CfdiNomina {
+  id              String   @id @default(uuid())
+  payrollDetailId String   @unique @map("payroll_detail_id")
+  payrollDetail   PayrollDetail @relation(fields: [payrollDetailId], references: [id])
+  employeeId      String   @map("employee_id")
+  employee        Employee @relation(fields: [employeeId], references: [id])
+
+  // Datos del CFDI
+  uuid            String?  @unique // Folio fiscal
+  serie           String?
+  folio           String?
+  fechaTimbrado   DateTime? @map("fecha_timbrado")
+  noCertificadoSat String?  @map("no_certificado_sat")
+  noCertificadoEmisor String? @map("no_certificado_emisor")
+
+  // XML y PDF
+  xmlOriginal     String?  @map("xml_original") @db.Text
+  xmlTimbrado     String?  @map("xml_timbrado") @db.Text
+  cadenaOriginal  String?  @map("cadena_original") @db.Text
+  selloDigitalSat String?  @map("sello_digital_sat") @db.Text
+  selloDigitalEmisor String? @map("sello_digital_emisor") @db.Text
+  pdfPath         String?  @map("pdf_path")
+
+  // Estado
+  status          CfdiStatus @default(PENDING)
+  cancelledAt     DateTime?  @map("cancelled_at")
+  cancellationReason String? @map("cancellation_reason")
+
+  // PAC
+  pacResponse     Json?    @map("pac_response")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("cfdi_nominas")
+}
+
+// ============================================
+// MÓDULO: PRESTACIONES Y BENEFICIOS
+// ============================================
+
+model Benefit {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  type            BenefitType
+  value           Decimal? @db.Decimal(12, 2)
+  valueType       BenefitValueType @map("value_type")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  employeeBenefits EmployeeBenefit[]
+
+  @@map("benefits")
+}
+
+model EmployeeBenefit {
+  id              String   @id @default(uuid())
+  employeeId      String   @map("employee_id")
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  benefitId       String   @map("benefit_id")
+  benefit         Benefit  @relation(fields: [benefitId], references: [id])
+  customValue     Decimal? @map("custom_value") @db.Decimal(12, 2)
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeId, benefitId])
+  @@map("employee_benefits")
+}
+
+// ============================================
+// MÓDULO: CATÁLOGOS
+// ============================================
+
+model Bank {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  employees Employee[]
+
+  @@map("banks")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  COHABITING
+}
+
+enum ContractType {
+  INDEFINITE        // Indefinido
+  FIXED_TERM        // Por tiempo determinado
+  SEASONAL          // Por temporada
+  TRIAL_PERIOD      // Periodo de prueba
+  TRAINING          // Capacitación inicial
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  HOURLY
+}
+
+enum SalaryType {
+  MONTHLY
+  BIWEEKLY
+  WEEKLY
+  DAILY
+  HOURLY
+}
+
+enum PaymentMethod {
+  TRANSFER
+  CHECK
+  CASH
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum TipoSalarioIMSS {
+  FIJO
+  VARIABLE
+  MIXTO
+}
+
+enum RiskLevel {
+  CLASE_I     // 0.54355%
+  CLASE_II    // 1.13065%
+  CLASE_III   // 2.59840%
+  CLASE_IV    // 4.65325%
+  CLASE_V     // 7.58875%
+}
+
+enum DocumentType {
+  INE
+  PASSPORT
+  CURP
+  RFC
+  NSS
+  PROOF_OF_ADDRESS
+  BIRTH_CERTIFICATE
+  DEGREE
+  CONTRACT
+  OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EARLY_LEAVE
+  VACATION
+  SICK_LEAVE
+  PERMIT
+  HOLIDAY
+  REST_DAY
+}
+
+enum LeaveType {
+  VACATION
+  SICK_LEAVE
+  MATERNITY
+  PATERNITY
+  BEREAVEMENT
+  PERSONAL
+  UNPAID
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PeriodType {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum PayrollStatus {
+  DRAFT
+  PROCESSING
+  CALCULATED
+  APPROVED
+  PAID
+  CLOSED
+  CANCELLED
+}
+
+enum PayrollDetailStatus {
+  PENDING
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum ConceptType {
+  PERCEPTION
+  DEDUCTION
+}
+
+enum SalaryBaseType {
+  SBC       // Salario Base de Cotización
+  SMG       // Salario Mínimo General
+  UMA       // Unidad de Medida y Actualización
+  FIXED     // Monto fijo
+}
+
+enum InfonavitDiscountType {
+  PERCENTAGE          // Porcentaje del salario
+  FIXED_AMOUNT        // Cuota fija mensual
+  VSM                 // Veces Salario Mínimo
+}
+
+enum PensionDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CfdiStatus {
+  PENDING
+  STAMPED
+  CANCELLED
+  ERROR
+}
+
+enum BenefitType {
+  FOOD_VOUCHERS       // Vales de despensa
+  SAVINGS_FUND        // Fondo de ahorro
+  BONUS               // Bonos
+  LIFE_INSURANCE      // Seguro de vida
+  MAJOR_MEDICAL       // Gastos médicos mayores
+  PRODUCTIVITY_BONUS  // Bono de productividad
+  ATTENDANCE_BONUS    // Bono de asistencia
+  PUNCTUALITY_BONUS   // Bono de puntualidad
+  TRANSPORTATION      // Ayuda de transporte
+  OTHER
+}
+
+enum BenefitValueType {
+  FIXED_AMOUNT
+  PERCENTAGE_SALARY
+  DAYS_SALARY
+}
