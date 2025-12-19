@@ -202,4 +202,26 @@ export class EmployeesService {
       data: { baseSalary: newSalary },
     });
   }
+
+  async findByEmail(email: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { email },
+      include: {
+        department: true,
+        jobPosition: true,
+        company: true,
+        workSchedule: {
+          include: {
+            scheduleDetails: true,
+          },
+        },
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado con este email');
+    }
+
+    return employee;
+  }
 }

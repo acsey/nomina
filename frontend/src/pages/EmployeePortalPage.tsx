@@ -10,8 +10,9 @@ import {
   DocumentTextIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
-import { attendanceApi, payrollApi, vacationsApi, incidentsApi } from '../services/api';
+import { attendanceApi, payrollApi, vacationsApi, incidentsApi, employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
@@ -38,25 +39,32 @@ export default function EmployeePortalPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'attendance' | 'receipts' | 'vacations' | 'incidents'>('attendance');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showVacationModal, setShowVacationModal] = useState(false);
+  const [vacationForm, setVacationForm] = useState({
+    type: 'VACATION',
+    startDate: '',
+    endDate: '',
+    reason: '',
+  });
 
-  // Get employee data linked to user
-  const { data: employeeData } = useQuery({
-    queryKey: ['my-employee', user?.id],
+  // Get employee data linked to user by email
+  const { data: employeeData, isLoading: isLoadingEmployee } = useQuery({
+    queryKey: ['my-employee', user?.email],
     queryFn: async () => {
-      // For employees, the user.id should map to an employee
-      // In a real app, you'd have a dedicated endpoint
-      const response = await attendanceApi.getTodayRecord(user?.id || '');
+      const response = await employeesApi.getByEmail(user?.email || '');
       return response.data;
     },
-    enabled: !!user?.id && user?.role === 'employee',
+    enabled: !!user?.email,
     retry: false,
   });
 
+  const employeeId = employeeData?.id;
+
   // Get today's attendance for self-service
   const { data: todayAttendance, isLoading: isLoadingAttendance } = useQuery({
-    queryKey: ['my-attendance-today', user?.id],
-    queryFn: () => attendanceApi.getTodayRecord(user?.id || ''),
-    enabled: !!user?.id,
+    queryKey: ['my-attendance-today', employeeId],
+    queryFn: () => attendanceApi.getTodayRecord(employeeId || ''),
+    enabled: !!employeeId,
     refetchInterval: 30000,
   });
 
@@ -64,39 +72,39 @@ export default function EmployeePortalPage() {
 
   // Get my payroll receipts
   const { data: receiptsData, isLoading: isLoadingReceipts } = useQuery({
-    queryKey: ['my-receipts', user?.id, selectedYear],
-    queryFn: () => payrollApi.getEmployeeReceipts(user?.id || '', selectedYear),
-    enabled: !!user?.id && activeTab === 'receipts',
+    queryKey: ['my-receipts', employeeId, selectedYear],
+    queryFn: () => payrollApi.getEmployeeReceipts(employeeId || '', selectedYear),
+    enabled: !!employeeId && activeTab === 'receipts',
   });
   const receipts = receiptsData?.data || [];
 
   // Get my vacation balance
   const { data: vacationBalanceData } = useQuery({
-    queryKey: ['my-vacation-balance', user?.id],
-    queryFn: () => vacationsApi.getBalance(user?.id || ''),
-    enabled: !!user?.id && activeTab === 'vacations',
+    queryKey: ['my-vacation-balance', employeeId],
+    queryFn: () => vacationsApi.getBalance(employeeId || ''),
+    enabled: !!employeeId && activeTab === 'vacations',
   });
   const vacationBalance = vacationBalanceData?.data;
 
   // Get my vacation requests
   const { data: vacationRequestsData, isLoading: isLoadingVacations } = useQuery({
-    queryKey: ['my-vacations', user?.id],
-    queryFn: () => vacationsApi.getEmployeeRequests(user?.id || ''),
-    enabled: !!user?.id && activeTab === 'vacations',
+    queryKey: ['my-vacations', employeeId],
+    queryFn: () => vacationsApi.getEmployeeRequests(employeeId || ''),
+    enabled: !!employeeId && activeTab === 'vacations',
   });
   const vacationRequests = vacationRequestsData?.data || [];
 
   // Get my incidents
   const { data: incidentsData, isLoading: isLoadingIncidents } = useQuery({
-    queryKey: ['my-incidents', user?.id],
-    queryFn: () => incidentsApi.getEmployeeIncidents(user?.id || ''),
-    enabled: !!user?.id && activeTab === 'incidents',
+    queryKey: ['my-incidents', employeeId],
+    queryFn: () => incidentsApi.getEmployeeIncidents(employeeId || ''),
+    enabled: !!employeeId && activeTab === 'incidents',
   });
   const incidents = incidentsData?.data || [];
 
   // Attendance mutations
   const checkInMutation = useMutation({
-    mutationFn: () => attendanceApi.checkIn(user?.id || ''),
+    mutationFn: () => attendanceApi.checkIn(employeeId || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
       toast.success('Entrada registrada exitosamente');
@@ -107,7 +115,7 @@ export default function EmployeePortalPage() {
   });
 
   const checkOutMutation = useMutation({
-    mutationFn: () => attendanceApi.checkOut(user?.id || ''),
+    mutationFn: () => attendanceApi.checkOut(employeeId || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
       toast.success('Salida registrada exitosamente');
@@ -118,7 +126,7 @@ export default function EmployeePortalPage() {
   });
 
   const breakStartMutation = useMutation({
-    mutationFn: () => attendanceApi.breakStart(user?.id || ''),
+    mutationFn: () => attendanceApi.breakStart(employeeId || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
       toast.success('Descanso iniciado');
@@ -129,7 +137,7 @@ export default function EmployeePortalPage() {
   });
 
   const breakEndMutation = useMutation({
-    mutationFn: () => attendanceApi.breakEnd(user?.id || ''),
+    mutationFn: () => attendanceApi.breakEnd(employeeId || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
       toast.success('Descanso terminado');
@@ -138,6 +146,31 @@ export default function EmployeePortalPage() {
       toast.error(error.response?.data?.message || 'Error al terminar descanso');
     },
   });
+
+  // Vacation request mutation
+  const requestVacationMutation = useMutation({
+    mutationFn: (data: any) => vacationsApi.request(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-vacations'] });
+      queryClient.invalidateQueries({ queryKey: ['my-vacation-balance'] });
+      toast.success('Solicitud enviada exitosamente');
+      setShowVacationModal(false);
+      setVacationForm({ type: 'VACATION', startDate: '', endDate: '', reason: '' });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al enviar solicitud');
+    },
+  });
+
+  const handleVacationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!employeeId) return;
+
+    requestVacationMutation.mutate({
+      employeeId,
+      ...vacationForm,
+    });
+  };
 
   const handleDownloadReceipt = async (detailId: string, periodInfo: string) => {
     try {
@@ -171,13 +204,61 @@ export default function EmployeePortalPage() {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
+  // Loading state for employee data
+  if (isLoadingEmployee) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  // No employee linked to this user
+  if (!employeeId) {
+    return (
+      <div className="card text-center py-12">
+        <ExclamationTriangleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          No hay empleado vinculado
+        </h2>
+        <p className="text-gray-500">
+          Tu cuenta de usuario no esta vinculada a un registro de empleado.
+          <br />
+          Contacta a Recursos Humanos para resolver este problema.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mi Portal</h1>
         <p className="text-gray-500 mt-1">
-          Bienvenido, {user?.firstName} {user?.lastName}
+          Bienvenido, {employeeData?.firstName} {employeeData?.lastName} {employeeData?.secondLastName}
         </p>
+      </div>
+
+      {/* Employee Info Card */}
+      <div className="card mb-6 bg-gradient-to-r from-primary-50 to-blue-50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">No. Empleado</p>
+            <p className="font-semibold">{employeeData?.employeeNumber}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Departamento</p>
+            <p className="font-semibold">{employeeData?.department?.name || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Puesto</p>
+            <p className="font-semibold">{employeeData?.jobPosition?.name || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Fecha de Ingreso</p>
+            <p className="font-semibold">{dayjs(employeeData?.hireDate).format('DD/MM/YYYY')}</p>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -469,6 +550,17 @@ export default function EmployeePortalPage() {
             </div>
           )}
 
+          {/* New Request Button */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowVacationModal(true)}
+              className="btn btn-primary flex items-center gap-2"
+            >
+              <PlusIcon className="h-5 w-5" />
+              Nueva Solicitud
+            </button>
+          </div>
+
           {/* Requests history */}
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">Historial de Solicitudes</h3>
@@ -589,6 +681,97 @@ export default function EmployeePortalPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Vacation Request Modal */}
+      {showVacationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Nueva Solicitud</h2>
+                <button
+                  onClick={() => setShowVacationModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form onSubmit={handleVacationSubmit} className="space-y-4">
+                <div>
+                  <label className="label">Tipo de Solicitud *</label>
+                  <select
+                    value={vacationForm.type}
+                    onChange={(e) => setVacationForm({ ...vacationForm, type: e.target.value })}
+                    className="input"
+                    required
+                  >
+                    <option value="VACATION">Vacaciones</option>
+                    <option value="SICK_LEAVE">Incapacidad por enfermedad</option>
+                    <option value="PERSONAL">Permiso personal</option>
+                    <option value="MEDICAL_APPOINTMENT">Cita medica</option>
+                    <option value="UNPAID">Sin goce de sueldo</option>
+                    <option value="OTHER">Otro</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Fecha Inicio *</label>
+                    <input
+                      type="date"
+                      value={vacationForm.startDate}
+                      onChange={(e) => setVacationForm({ ...vacationForm, startDate: e.target.value })}
+                      className="input"
+                      required
+                      min={dayjs().format('YYYY-MM-DD')}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Fecha Fin *</label>
+                    <input
+                      type="date"
+                      value={vacationForm.endDate}
+                      onChange={(e) => setVacationForm({ ...vacationForm, endDate: e.target.value })}
+                      className="input"
+                      required
+                      min={vacationForm.startDate || dayjs().format('YYYY-MM-DD')}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Motivo</label>
+                  <textarea
+                    value={vacationForm.reason}
+                    onChange={(e) => setVacationForm({ ...vacationForm, reason: e.target.value })}
+                    className="input"
+                    rows={3}
+                    placeholder="Describe el motivo de tu solicitud..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowVacationModal(false)}
+                    className="btn bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={requestVacationMutation.isPending}
+                    className="btn btn-primary"
+                  >
+                    {requestVacationMutation.isPending ? 'Enviando...' : 'Enviar Solicitud'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>
