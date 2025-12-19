@@ -1,9 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import * as ExcelJS from 'exceljs';
-import { Readable } from 'stream';
 
-interface UploadResult {
+export interface UploadResult {
   success: number;
   errors: Array<{ row: number; field: string; message: string }>;
   total: number;
@@ -251,7 +250,7 @@ export class BulkUploadService {
 
   async importEmployees(fileBuffer: Buffer, companyId: string): Promise<UploadResult> {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(fileBuffer);
+    await workbook.xlsx.load(fileBuffer as any);
 
     const sheet = workbook.getWorksheet('Empleados');
     if (!sheet) {
@@ -406,7 +405,7 @@ export class BulkUploadService {
 
   async importCompanies(fileBuffer: Buffer): Promise<UploadResult> {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(fileBuffer);
+    await workbook.xlsx.load(fileBuffer as any);
 
     const sheet = workbook.getWorksheet('Empresas');
     if (!sheet) {
@@ -463,7 +462,7 @@ export class BulkUploadService {
 
   async importDepartments(fileBuffer: Buffer): Promise<UploadResult> {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(fileBuffer);
+    await workbook.xlsx.load(fileBuffer as any);
 
     const sheet = workbook.getWorksheet('Departamentos');
     if (!sheet) {
@@ -537,7 +536,7 @@ export class BulkUploadService {
 
   async importBenefits(fileBuffer: Buffer): Promise<UploadResult> {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(fileBuffer);
+    await workbook.xlsx.load(fileBuffer as any);
 
     const sheet = workbook.getWorksheet('Prestaciones');
     if (!sheet) {
@@ -589,7 +588,7 @@ export class BulkUploadService {
 
   async importJobPositions(fileBuffer: Buffer): Promise<UploadResult> {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(fileBuffer);
+    await workbook.xlsx.load(fileBuffer as any);
 
     const sheet = workbook.getWorksheet('Puestos');
     if (!sheet) {
