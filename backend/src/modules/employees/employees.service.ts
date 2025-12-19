@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, Gender, MaritalStatus, ContractType, EmploymentType, SalaryType, PaymentMethod } from '@prisma/client';
 
 @Injectable()
 export class EmployeesService {
@@ -25,16 +25,39 @@ export class EmployeesService {
       throw new ConflictException('Ya existe un empleado con este CURP');
     }
 
-    const { jobPositionId, departmentId, companyId, bankId, workScheduleId, ...rest } = createEmployeeDto;
-
     return this.prisma.employee.create({
       data: {
-        ...rest,
-        jobPosition: { connect: { id: jobPositionId } },
-        department: { connect: { id: departmentId } },
-        company: { connect: { id: companyId } },
-        ...(bankId && { bank: { connect: { id: bankId } } }),
-        ...(workScheduleId && { workSchedule: { connect: { id: workScheduleId } } }),
+        employeeNumber: createEmployeeDto.employeeNumber,
+        firstName: createEmployeeDto.firstName,
+        middleName: createEmployeeDto.middleName,
+        lastName: createEmployeeDto.lastName,
+        secondLastName: createEmployeeDto.secondLastName,
+        email: createEmployeeDto.email,
+        phone: createEmployeeDto.phone,
+        birthDate: new Date(createEmployeeDto.birthDate),
+        gender: createEmployeeDto.gender as Gender,
+        maritalStatus: createEmployeeDto.maritalStatus as MaritalStatus,
+        rfc: createEmployeeDto.rfc,
+        curp: createEmployeeDto.curp,
+        nss: createEmployeeDto.nss,
+        address: createEmployeeDto.address,
+        colony: createEmployeeDto.colony,
+        city: createEmployeeDto.city,
+        state: createEmployeeDto.state,
+        zipCode: createEmployeeDto.zipCode,
+        hireDate: new Date(createEmployeeDto.hireDate),
+        contractType: createEmployeeDto.contractType as ContractType,
+        employmentType: createEmployeeDto.employmentType as EmploymentType,
+        baseSalary: createEmployeeDto.baseSalary,
+        salaryType: createEmployeeDto.salaryType as SalaryType,
+        paymentMethod: createEmployeeDto.paymentMethod as PaymentMethod,
+        bankAccount: createEmployeeDto.bankAccount,
+        clabe: createEmployeeDto.clabe,
+        jobPosition: { connect: { id: createEmployeeDto.jobPositionId } },
+        department: { connect: { id: createEmployeeDto.departmentId } },
+        company: { connect: { id: createEmployeeDto.companyId } },
+        ...(createEmployeeDto.bankId && { bank: { connect: { id: createEmployeeDto.bankId } } }),
+        ...(createEmployeeDto.workScheduleId && { workSchedule: { connect: { id: createEmployeeDto.workScheduleId } } }),
       },
       include: {
         department: true,
