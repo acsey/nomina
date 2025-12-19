@@ -32,13 +32,16 @@ CREATE TYPE "DocumentType" AS ENUM ('INE', 'PASSPORT', 'CURP', 'RFC', 'NSS', 'PR
 CREATE TYPE "AttendanceStatus" AS ENUM ('PRESENT', 'ABSENT', 'LATE', 'EARLY_LEAVE', 'VACATION', 'SICK_LEAVE', 'PERMIT', 'HOLIDAY', 'REST_DAY');
 
 -- CreateEnum
-CREATE TYPE "LeaveType" AS ENUM ('VACATION', 'SICK_LEAVE', 'MATERNITY', 'PATERNITY', 'BEREAVEMENT', 'PERSONAL', 'UNPAID', 'OTHER');
+CREATE TYPE "LeaveType" AS ENUM ('VACATION', 'SICK_LEAVE', 'SICK_LEAVE_IMSS', 'WORK_ACCIDENT', 'MATERNITY', 'PATERNITY', 'BEREAVEMENT_DIRECT', 'BEREAVEMENT_INDIRECT', 'PERSONAL', 'UNPAID', 'MEDICAL_APPOINTMENT', 'GOVERNMENT_PROCEDURE', 'STUDY_PERMIT', 'OTHER');
 
 -- CreateEnum
 CREATE TYPE "RequestStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "PeriodType" AS ENUM ('WEEKLY', 'BIWEEKLY', 'MONTHLY');
+CREATE TYPE "PeriodType" AS ENUM ('WEEKLY', 'BIWEEKLY', 'MONTHLY', 'EXTRAORDINARY');
+
+-- CreateEnum
+CREATE TYPE "ExtraordinaryType" AS ENUM ('AGUINALDO', 'VACATION_PREMIUM', 'PTU', 'SETTLEMENT', 'LIQUIDATION', 'BONUS', 'RETROACTIVE', 'OTHER');
 
 -- CreateEnum
 CREATE TYPE "PayrollStatus" AS ENUM ('DRAFT', 'PROCESSING', 'CALCULATED', 'APPROVED', 'PAID', 'CLOSED', 'CANCELLED');
@@ -312,6 +315,8 @@ CREATE TABLE "vacation_requests" (
     "end_date" DATE NOT NULL,
     "total_days" INTEGER NOT NULL,
     "reason" TEXT,
+    "document_path" TEXT,
+    "is_paid" BOOLEAN NOT NULL DEFAULT true,
     "status" "RequestStatus" NOT NULL DEFAULT 'PENDING',
     "approved_by_id" TEXT,
     "approved_at" TIMESTAMP(3),
@@ -321,6 +326,25 @@ CREATE TABLE "vacation_requests" (
 
     CONSTRAINT "vacation_requests_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateTable
+CREATE TABLE "leave_type_configs" (
+    "id" TEXT NOT NULL,
+    "type" "LeaveType" NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "max_days" INTEGER NOT NULL,
+    "is_paid" BOOLEAN NOT NULL DEFAULT true,
+    "requires_document" BOOLEAN NOT NULL DEFAULT false,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "leave_type_configs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "leave_type_configs_type_key" ON "leave_type_configs"("type");
 
 -- CreateTable
 CREATE TABLE "vacation_balances" (
@@ -342,8 +366,10 @@ CREATE TABLE "payroll_periods" (
     "id" TEXT NOT NULL,
     "company_id" TEXT NOT NULL,
     "period_type" "PeriodType" NOT NULL,
+    "extraordinary_type" "ExtraordinaryType",
     "period_number" INTEGER NOT NULL,
     "year" INTEGER NOT NULL,
+    "description" TEXT,
     "start_date" DATE NOT NULL,
     "end_date" DATE NOT NULL,
     "payment_date" DATE NOT NULL,
