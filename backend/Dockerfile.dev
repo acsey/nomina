@@ -6,8 +6,10 @@ WORKDIR /app
 # Instalar dependencias del sistema
 RUN apk add --no-cache python3 make g++
 
-# Copiar archivos de dependencias
+# Copiar archivos de configuración
 COPY package*.json ./
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
 COPY prisma ./prisma/
 
 # Instalar dependencias
@@ -15,6 +17,9 @@ RUN npm install
 
 # Generar cliente Prisma
 RUN npx prisma generate
+
+# Copiar código fuente (será sobreescrito por el volumen en desarrollo)
+COPY src ./src/
 
 # Exponer puerto
 EXPOSE 3000

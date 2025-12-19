@@ -3,11 +3,19 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copiar archivos de configuración
 COPY package*.json ./
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+COPY index.html ./
 
 # Instalar dependencias
 RUN npm install
+
+# Copiar código fuente (será sobreescrito por el volumen en desarrollo)
+COPY src ./src/
 
 # Exponer puerto de Vite
 EXPOSE 5173
