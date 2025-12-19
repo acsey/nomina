@@ -25,8 +25,17 @@ export class EmployeesService {
       throw new ConflictException('Ya existe un empleado con este CURP');
     }
 
+    const { jobPositionId, departmentId, companyId, bankId, workScheduleId, ...rest } = createEmployeeDto;
+
     return this.prisma.employee.create({
-      data: createEmployeeDto as Prisma.EmployeeCreateInput,
+      data: {
+        ...rest,
+        jobPosition: { connect: { id: jobPositionId } },
+        department: { connect: { id: departmentId } },
+        company: { connect: { id: companyId } },
+        ...(bankId && { bank: { connect: { id: bankId } } }),
+        ...(workScheduleId && { workSchedule: { connect: { id: workScheduleId } } }),
+      },
       include: {
         department: true,
         jobPosition: true,
