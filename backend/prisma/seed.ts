@@ -602,106 +602,40 @@ async function main() {
   // Prestaciones generales (Ley Federal del Trabajo - LFT)
   await Promise.all([
     // Aguinaldo - 15 días mínimo por ley
-    prisma.payrollConcept.upsert({
-      where: { code: 'PREST001' },
-      update: {},
-      create: { code: 'PREST001', name: 'Aguinaldo', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false, description: 'Aguinaldo anual - 15 días mínimo LFT' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'PREST001' }, update: {}, create: { code: 'PREST001', name: 'Aguinaldo (15 días LFT)', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false }}),
     // Prima Vacacional - 25% mínimo por ley
-    prisma.payrollConcept.upsert({
-      where: { code: 'PREST002' },
-      update: {},
-      create: { code: 'PREST002', name: 'Prima Vacacional', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false, description: 'Prima vacacional - 25% mínimo LFT' },
-    }),
-    // Vales de Despensa
-    prisma.payrollConcept.upsert({
-      where: { code: 'PREST003' },
-      update: {},
-      create: { code: 'PREST003', name: 'Vales de Despensa', type: 'PERCEPTION', satCode: '029', isTaxable: false, isFixed: true, description: 'Vales de despensa mensuales' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'PREST002' }, update: {}, create: { code: 'PREST002', name: 'Prima Vacacional (25% LFT)', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false }}),
     // Fondo de Ahorro (Aportación empresa)
-    prisma.payrollConcept.upsert({
-      where: { code: 'PREST004' },
-      update: {},
-      create: { code: 'PREST004', name: 'Fondo de Ahorro Patronal', type: 'PERCEPTION', satCode: '005', isTaxable: false, isFixed: true, description: 'Aportación patronal al fondo de ahorro' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'PREST003' }, update: {}, create: { code: 'PREST003', name: 'Fondo de Ahorro Patronal', type: 'PERCEPTION', satCode: '005', isTaxable: false, isFixed: true }}),
     // Seguro de Vida
-    prisma.payrollConcept.upsert({
-      where: { code: 'PREST005' },
-      update: {},
-      create: { code: 'PREST005', name: 'Seguro de Vida', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true, description: 'Prima de seguro de vida pagada por empresa' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'PREST004' }, update: {}, create: { code: 'PREST004', name: 'Seguro de Vida', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true }}),
     // Seguro de Gastos Médicos Mayores
-    prisma.payrollConcept.upsert({
-      where: { code: 'PREST006' },
-      update: {},
-      create: { code: 'PREST006', name: 'Seguro Gastos Médicos', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true, description: 'Seguro de gastos médicos mayores' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'PREST005' }, update: {}, create: { code: 'PREST005', name: 'Seguro Gastos Médicos Mayores', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true }}),
     // PTU - Reparto de Utilidades
-    prisma.payrollConcept.upsert({
-      where: { code: 'PREST007' },
-      update: {},
-      create: { code: 'PREST007', name: 'PTU', type: 'PERCEPTION', satCode: '003', isTaxable: true, isFixed: false, description: 'Participación de los Trabajadores en las Utilidades' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'PREST006' }, update: {}, create: { code: 'PREST006', name: 'PTU (Reparto Utilidades)', type: 'PERCEPTION', satCode: '003', isTaxable: true, isFixed: false }}),
   ]);
 
   // Prestaciones específicas de gobierno (ISSSTE)
   await Promise.all([
     // Aguinaldo gobierno - 40 días
-    prisma.payrollConcept.upsert({
-      where: { code: 'GOB001' },
-      update: {},
-      create: { code: 'GOB001', name: 'Aguinaldo Gobierno', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false, description: 'Aguinaldo gobierno - 40 días' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'GOB001' }, update: {}, create: { code: 'GOB001', name: 'Aguinaldo Gobierno (40 días)', type: 'PERCEPTION', satCode: '002', isTaxable: true, isFixed: false }}),
     // Prima Vacacional gobierno - 50%
-    prisma.payrollConcept.upsert({
-      where: { code: 'GOB002' },
-      update: {},
-      create: { code: 'GOB002', name: 'Prima Vacacional Gobierno', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false, description: 'Prima vacacional gobierno - 50%' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'GOB002' }, update: {}, create: { code: 'GOB002', name: 'Prima Vacacional Gobierno (50%)', type: 'PERCEPTION', satCode: '021', isTaxable: true, isFixed: false }}),
     // Estímulos al desempeño
-    prisma.payrollConcept.upsert({
-      where: { code: 'GOB003' },
-      update: {},
-      create: { code: 'GOB003', name: 'Estímulos al Desempeño', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false, description: 'Estímulos por productividad y desempeño' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'GOB003' }, update: {}, create: { code: 'GOB003', name: 'Estímulos al Desempeño', type: 'PERCEPTION', satCode: '038', isTaxable: true, isFixed: false }}),
     // Ayuda para lentes
-    prisma.payrollConcept.upsert({
-      where: { code: 'GOB004' },
-      update: {},
-      create: { code: 'GOB004', name: 'Ayuda para Lentes', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: false, description: 'Apoyo para adquisición de lentes' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'GOB004' }, update: {}, create: { code: 'GOB004', name: 'Ayuda para Lentes', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: false }}),
     // Canasta Navideña
-    prisma.payrollConcept.upsert({
-      where: { code: 'GOB005' },
-      update: {},
-      create: { code: 'GOB005', name: 'Canasta Navideña', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: false, description: 'Canasta navideña de fin de año' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'GOB005' }, update: {}, create: { code: 'GOB005', name: 'Canasta Navideña', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: false }}),
     // Ayuda de transporte
-    prisma.payrollConcept.upsert({
-      where: { code: 'GOB006' },
-      update: {},
-      create: { code: 'GOB006', name: 'Ayuda de Transporte', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true, description: 'Apoyo mensual para transporte' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'GOB006' }, update: {}, create: { code: 'GOB006', name: 'Ayuda de Transporte', type: 'PERCEPTION', satCode: '038', isTaxable: false, isFixed: true }}),
   ]);
 
   // Deducciones específicas de gobierno (ISSSTE)
   await Promise.all([
-    prisma.payrollConcept.upsert({
-      where: { code: 'DED_ISSSTE' },
-      update: {},
-      create: { code: 'DED_ISSSTE', name: 'ISSSTE Trabajador', type: 'DEDUCTION', satCode: '001', description: 'Cuota ISSSTE trabajador' },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'DED_FOVISSSTE' },
-      update: {},
-      create: { code: 'DED_FOVISSSTE', name: 'FOVISSSTE', type: 'DEDUCTION', satCode: '010', description: 'Fondo de Vivienda ISSSTE' },
-    }),
-    prisma.payrollConcept.upsert({
-      where: { code: 'DED_SAR' },
-      update: {},
-      create: { code: 'DED_SAR', name: 'SAR', type: 'DEDUCTION', satCode: '017', description: 'Sistema de Ahorro para el Retiro' },
-    }),
+    prisma.payrollConcept.upsert({ where: { code: 'DED_ISSSTE' }, update: {}, create: { code: 'DED_ISSSTE', name: 'ISSSTE Trabajador', type: 'DEDUCTION', satCode: '001' }}),
+    prisma.payrollConcept.upsert({ where: { code: 'DED_FOVISSSTE' }, update: {}, create: { code: 'DED_FOVISSSTE', name: 'FOVISSSTE', type: 'DEDUCTION', satCode: '010' }}),
+    prisma.payrollConcept.upsert({ where: { code: 'DED_SAR' }, update: {}, create: { code: 'DED_SAR', name: 'SAR', type: 'DEDUCTION', satCode: '017' }}),
   ]);
 
   console.log('✅ Prestaciones y deducciones creadas (LFT y Gobierno)');
