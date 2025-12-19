@@ -176,3 +176,53 @@ export const catalogsApi = {
   getBanks: () => api.get('/catalogs/banks'),
   getWorkSchedules: () => api.get('/catalogs/work-schedules'),
 };
+
+export const bulkUploadApi = {
+  // Descargar plantillas
+  downloadEmployeesTemplate: () =>
+    api.get('/bulk-upload/templates/employees', { responseType: 'blob' }),
+  downloadCompaniesTemplate: () =>
+    api.get('/bulk-upload/templates/companies', { responseType: 'blob' }),
+  downloadDepartmentsTemplate: () =>
+    api.get('/bulk-upload/templates/departments', { responseType: 'blob' }),
+  downloadBenefitsTemplate: () =>
+    api.get('/bulk-upload/templates/benefits', { responseType: 'blob' }),
+  downloadJobPositionsTemplate: () =>
+    api.get('/bulk-upload/templates/job-positions', { responseType: 'blob' }),
+  // Importar archivos
+  importEmployees: (companyId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/bulk-upload/import/employees/${companyId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  importCompanies: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/bulk-upload/import/companies', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  importDepartments: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/bulk-upload/import/departments', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  importBenefits: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/bulk-upload/import/benefits', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  importJobPositions: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/bulk-upload/import/job-positions', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
