@@ -475,10 +475,360 @@ async function main() {
 
   console.log('✅ Horario de trabajo creado');
 
+  // Crear empleados de prueba
+  const empleados = [
+    {
+      employeeNumber: 'EMP001',
+      firstName: 'Juan',
+      lastName: 'García',
+      secondLastName: 'López',
+      email: 'juan.garcia@empresa.com',
+      phone: '55 1234 0001',
+      birthDate: new Date('1985-03-15'),
+      gender: 'MALE' as const,
+      maritalStatus: 'MARRIED' as const,
+      rfc: 'GALJ850315ABC',
+      curp: 'GALJ850315HDFRPN01',
+      nss: '12345678901',
+      address: 'Calle Principal 123',
+      colony: 'Centro',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '06000',
+      hireDate: new Date('2020-01-15'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[0].id, // Gerente General
+      departmentId: rhDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 75000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[1].id, // BBVA
+      bankAccount: '0123456789',
+      clabe: '012345678901234567',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+    {
+      employeeNumber: 'EMP002',
+      firstName: 'María',
+      lastName: 'Rodríguez',
+      secondLastName: 'Hernández',
+      email: 'maria.rodriguez@empresa.com',
+      phone: '55 1234 0002',
+      birthDate: new Date('1990-07-22'),
+      gender: 'FEMALE' as const,
+      maritalStatus: 'SINGLE' as const,
+      rfc: 'ROHM900722XYZ',
+      curp: 'ROHM900722MDFRDR02',
+      nss: '12345678902',
+      address: 'Av. Insurgentes 456',
+      colony: 'Roma Norte',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '06700',
+      hireDate: new Date('2021-03-01'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[1].id, // Gerente RH
+      departmentId: rhDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 45000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[0].id, // BANAMEX
+      bankAccount: '9876543210',
+      clabe: '002345678901234567',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+    {
+      employeeNumber: 'EMP003',
+      firstName: 'Carlos',
+      lastName: 'Martínez',
+      secondLastName: 'Sánchez',
+      email: 'carlos.martinez@empresa.com',
+      phone: '55 1234 0003',
+      birthDate: new Date('1988-11-10'),
+      gender: 'MALE' as const,
+      maritalStatus: 'MARRIED' as const,
+      rfc: 'MASC881110DEF',
+      curp: 'MASC881110HDFRRR03',
+      nss: '12345678903',
+      address: 'Calle Reforma 789',
+      colony: 'Polanco',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '11550',
+      hireDate: new Date('2019-06-15'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[2].id, // Contador
+      departmentId: finanzasDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 35000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[2].id, // SANTANDER
+      bankAccount: '1111222233',
+      clabe: '014345678901234567',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+    {
+      employeeNumber: 'EMP004',
+      firstName: 'Ana',
+      lastName: 'López',
+      secondLastName: 'Pérez',
+      email: 'ana.lopez@empresa.com',
+      phone: '55 1234 0004',
+      birthDate: new Date('1992-04-05'),
+      gender: 'FEMALE' as const,
+      maritalStatus: 'SINGLE' as const,
+      rfc: 'LOPA920405GHI',
+      curp: 'LOPA920405MDFPPR04',
+      nss: '12345678904',
+      address: 'Calle Madero 321',
+      colony: 'Centro Histórico',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '06010',
+      hireDate: new Date('2022-01-10'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[3].id, // Desarrollador
+      departmentId: tiDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 42000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[4].id, // BANORTE
+      bankAccount: '4444555566',
+      clabe: '072345678901234567',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+    {
+      employeeNumber: 'EMP005',
+      firstName: 'Roberto',
+      lastName: 'Hernández',
+      secondLastName: 'Díaz',
+      email: 'roberto.hernandez@empresa.com',
+      phone: '55 1234 0005',
+      birthDate: new Date('1995-09-18'),
+      gender: 'MALE' as const,
+      maritalStatus: 'SINGLE' as const,
+      rfc: 'HEDR950918JKL',
+      curp: 'HEDR950918HDFRZR05',
+      nss: '12345678905',
+      address: 'Av. Universidad 555',
+      colony: 'Del Valle',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '03100',
+      hireDate: new Date('2023-02-20'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[3].id, // Desarrollador
+      departmentId: tiDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 38000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[1].id, // BBVA
+      bankAccount: '7777888899',
+      clabe: '012987654321234567',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+    {
+      employeeNumber: 'EMP006',
+      firstName: 'Laura',
+      lastName: 'Fernández',
+      secondLastName: 'Mora',
+      email: 'laura.fernandez@empresa.com',
+      phone: '55 1234 0006',
+      birthDate: new Date('1987-12-03'),
+      gender: 'FEMALE' as const,
+      maritalStatus: 'DIVORCED' as const,
+      rfc: 'FEML871203MNO',
+      curp: 'FEML871203MDFRRR06',
+      nss: '12345678906',
+      address: 'Calle Juárez 888',
+      colony: 'Cuauhtémoc',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '06600',
+      hireDate: new Date('2018-08-01'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[2].id, // Contador
+      departmentId: finanzasDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 32000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[3].id, // HSBC
+      bankAccount: '2222333344',
+      clabe: '021345678901234567',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+    {
+      employeeNumber: 'EMP007',
+      firstName: 'Pedro',
+      lastName: 'Ramírez',
+      secondLastName: 'Vargas',
+      email: 'pedro.ramirez@empresa.com',
+      phone: '55 1234 0007',
+      birthDate: new Date('1993-06-25'),
+      gender: 'MALE' as const,
+      maritalStatus: 'MARRIED' as const,
+      rfc: 'RAVP930625PQR',
+      curp: 'RAVP930625HDFMRR07',
+      nss: '12345678907',
+      address: 'Av. Chapultepec 999',
+      colony: 'Condesa',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '06140',
+      hireDate: new Date('2021-11-15'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[4].id, // Operador
+      departmentId: operacionesDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 12000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[0].id, // BANAMEX
+      bankAccount: '5555666677',
+      clabe: '002987654321234567',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+    {
+      employeeNumber: 'EMP008',
+      firstName: 'Sofía',
+      lastName: 'Torres',
+      secondLastName: 'Luna',
+      email: 'sofia.torres@empresa.com',
+      phone: '55 1234 0008',
+      birthDate: new Date('1994-02-14'),
+      gender: 'FEMALE' as const,
+      maritalStatus: 'SINGLE' as const,
+      rfc: 'TOLS940214STU',
+      curp: 'TOLS940214MDFRRF08',
+      nss: '12345678908',
+      address: 'Calle Durango 222',
+      colony: 'Roma Sur',
+      city: 'Ciudad de México',
+      state: 'CDMX',
+      zipCode: '06760',
+      hireDate: new Date('2022-07-01'),
+      contractType: 'INDEFINITE' as const,
+      employmentType: 'FULL_TIME' as const,
+      jobPositionId: puestos[4].id, // Operador
+      departmentId: operacionesDept.id,
+      companyId: company.id,
+      workScheduleId: workSchedule.id,
+      baseSalary: 11000,
+      salaryType: 'MONTHLY' as const,
+      paymentMethod: 'TRANSFER' as const,
+      bankId: bancos[2].id, // SANTANDER
+      bankAccount: '8888999900',
+      clabe: '014111222333444555',
+      tipoSalarioImss: 'FIJO' as const,
+    },
+  ];
+
+  for (const emp of empleados) {
+    await prisma.employee.upsert({
+      where: { employeeNumber: emp.employeeNumber },
+      update: {},
+      create: emp,
+    });
+  }
+
+  console.log('✅ Empleados de prueba creados (8 empleados)');
+
+  // Crear saldos de vacaciones para los empleados
+  const currentYear = new Date().getFullYear();
+  const createdEmployees = await prisma.employee.findMany();
+
+  for (const emp of createdEmployees) {
+    const hireDate = new Date(emp.hireDate);
+    const yearsWorked = currentYear - hireDate.getFullYear();
+    // Días de vacaciones según LFT México (12 días primer año, +2 por año hasta 20, después +2 cada 5 años)
+    let earnedDays = 12;
+    if (yearsWorked >= 1) earnedDays = Math.min(12 + (yearsWorked * 2), 20);
+    if (yearsWorked >= 5) earnedDays = 20 + Math.floor((yearsWorked - 4) / 5) * 2;
+
+    await prisma.vacationBalance.upsert({
+      where: {
+        employeeId_year: {
+          employeeId: emp.id,
+          year: currentYear,
+        },
+      },
+      update: {},
+      create: {
+        employeeId: emp.id,
+        year: currentYear,
+        earnedDays,
+        usedDays: 0,
+        pendingDays: 0,
+        expiredDays: 0,
+      },
+    });
+  }
+
+  console.log('✅ Saldos de vacaciones creados');
+
+  // Asignar prestaciones a algunos empleados
+  const valesDespensa = prestaciones[0];
+  const fondoAhorro = prestaciones[1];
+
+  for (const emp of createdEmployees.slice(0, 5)) {
+    await prisma.employeeBenefit.upsert({
+      where: {
+        employeeId_benefitId: {
+          employeeId: emp.id,
+          benefitId: valesDespensa.id,
+        },
+      },
+      update: {},
+      create: {
+        employeeId: emp.id,
+        benefitId: valesDespensa.id,
+        startDate: new Date(),
+      },
+    });
+
+    await prisma.employeeBenefit.upsert({
+      where: {
+        employeeId_benefitId: {
+          employeeId: emp.id,
+          benefitId: fondoAhorro.id,
+        },
+      },
+      update: {},
+      create: {
+        employeeId: emp.id,
+        benefitId: fondoAhorro.id,
+        startDate: new Date(),
+      },
+    });
+  }
+
+  console.log('✅ Prestaciones asignadas a empleados');
+
   console.log('\n🎉 Seed completado exitosamente!');
   console.log('\n📧 Usuario de prueba:');
   console.log('   Email: admin@empresa.com');
   console.log('   Password: admin123');
+  console.log('\n👥 Empleados de prueba: 8 empleados en diferentes departamentos');
 }
 
 main()
