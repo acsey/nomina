@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { PayrollCalculatorService } from './services/payroll-calculator.service';
 import { CfdiService } from '../cfdi/cfdi.service';
-import { Prisma, PayrollStatus, PeriodType } from '@prisma/client';
+import { Prisma, PayrollStatus, PeriodType, ExtraordinaryType } from '@prisma/client';
 
 @Injectable()
 export class PayrollService {
@@ -17,6 +17,8 @@ export class PayrollService {
   async createPeriod(data: {
     companyId: string;
     periodType: PeriodType;
+    extraordinaryType?: ExtraordinaryType;
+    description?: string;
     periodNumber: number;
     year: number;
     startDate: string | Date;
@@ -47,6 +49,8 @@ export class PayrollService {
       data: {
         companyId: data.companyId,
         periodType: data.periodType,
+        extraordinaryType: data.extraordinaryType,
+        description: data.description,
         periodNumber: data.periodNumber,
         year: data.year,
         startDate,
@@ -154,6 +158,8 @@ export class PayrollService {
       period: {
         id: period.id,
         periodType: period.periodType,
+        extraordinaryType: period.extraordinaryType,
+        description: period.description,
         periodNumber: period.periodNumber,
         year: period.year,
         startDate: period.startDate,
@@ -300,6 +306,39 @@ export class PayrollService {
       data: {
         status: PayrollStatus.CLOSED,
         closedAt: new Date(),
+      },
+    });
+  }
+
+  async deletePeriod(periodId: string) {
+    const period = await this.findPeriod(periodId);
+
+    if (period.status !== PayrollStatus.DRAFT) {
+      throw new BadRequestException('Solo se pueden eliminar períodos en estado borrador');
+    }
+
+    // Delete any payroll details first (cascade should handle this, but being explicit)
+    await this.prisma.payrollDetail.deleteMany({
+      where: { payrollPeriodId: periodId },
+    });
+
+    return this.prisma.payrollPeriod.delete({
+      where: { id: periodId },
+    });
+  }
+
+  async updatePeriod(periodId: string, data: { extraordinaryType?: ExtraordinaryType; description?: string }) {
+    const period = await this.findPeriod(periodId);
+
+    if (period.status !== PayrollStatus.DRAFT) {
+      throw new BadRequestException('Solo se pueden actualizar períodos en estado borrador');
+    }
+
+    return this.prisma.payrollPeriod.update({
+      where: { id: periodId },
+      data: {
+        extraordinaryType: data.extraordinaryType,
+        description: data.description,
       },
     });
   }

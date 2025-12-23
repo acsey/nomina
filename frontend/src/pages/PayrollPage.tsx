@@ -11,6 +11,7 @@ import {
   EyeIcon,
   BanknotesIcon,
   ArrowDownTrayIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { payrollApi, reportsApi, catalogsApi } from '../services/api';
 import toast from 'react-hot-toast';
@@ -119,6 +120,24 @@ export default function PayrollPage() {
       queryClient.invalidateQueries({ queryKey: ['payroll-periods'] });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (periodId: string) => payrollApi.deletePeriod(periodId),
+    onSuccess: () => {
+      toast.success('Periodo eliminado');
+      queryClient.invalidateQueries({ queryKey: ['payroll-periods'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar periodo');
+    },
+  });
+
+  const handleDeletePeriod = (period: any) => {
+    const confirmMessage = `¿Está seguro de eliminar el periodo ${period.periodNumber}/${period.year}?`;
+    if (window.confirm(confirmMessage)) {
+      deleteMutation.mutate(period.id);
+    }
+  };
 
   const handlePreview = async (periodId: string) => {
     setIsLoadingPreview(true);
@@ -354,6 +373,14 @@ export default function PayrollPage() {
                               title="Calcular Directamente"
                             >
                               <CalculatorIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePeriod(period)}
+                              disabled={deleteMutation.isPending}
+                              className="text-red-600 hover:text-red-800"
+                              title="Eliminar Periodo"
+                            >
+                              <TrashIcon className="h-5 w-5" />
                             </button>
                           </>
                         )}
@@ -597,6 +624,45 @@ export default function PayrollPage() {
                   </div>
                 ) : previewData ? (
                   <>
+                    {/* Warning for extraordinary periods without type */}
+                    {previewData.period?.periodType === 'EXTRAORDINARY' && !previewData.period?.extraordinaryType && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-yellow-800">
+                              Tipo de nómina extraordinaria no especificado
+                            </h3>
+                            <p className="mt-1 text-sm text-yellow-700">
+                              Este período extraordinario no tiene un tipo definido (Aguinaldo, Prima Vacacional, PTU, Bono).
+                              Por favor, elimina este período y crea uno nuevo seleccionando el tipo de extraordinario.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Extraordinary type badge */}
+                    {previewData.period?.periodType === 'EXTRAORDINARY' && previewData.period?.extraordinaryType && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+                        <div className="flex items-center">
+                          <span className="text-purple-700 font-medium">Tipo de Extraordinario:</span>
+                          <span className="ml-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                            {extraordinaryTypeLabels[previewData.period.extraordinaryType] || previewData.period.extraordinaryType}
+                          </span>
+                          {previewData.period.description && (
+                            <span className="ml-4 text-purple-600 text-sm">
+                              {previewData.period.description}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Summary Cards */}
                     <div className="grid grid-cols-4 gap-4 mb-6">
                       <div className="bg-gray-50 rounded-lg p-4">
