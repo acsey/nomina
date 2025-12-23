@@ -21,6 +21,7 @@ import {
   UserGroupIcon,
   CogIcon,
   DocumentTextIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -45,7 +46,8 @@ const navigation: NavItem[] = [
   { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Prestaciones', href: '/benefits', icon: GiftIcon, roles: ['admin', 'rh'] },
   { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon, roles: ['admin', 'rh'] },
-  { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon, roles: ['admin', 'rh'] },
+  { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon, roles: ['admin', 'rh', 'company_admin'] },
+  { name: 'Config. Contable', href: '/accounting-config', icon: CalculatorIcon, roles: ['admin', 'company_admin'] },
 ];
 
 export default function Layout() {

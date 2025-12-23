@@ -263,6 +263,104 @@ export const usersApi = {
   getRoles: () => api.get('/users/roles'),
 };
 
+export const liquidationsApi = {
+  // Calculate/preview liquidation
+  calculate: (data: {
+    employeeId: string;
+    terminationDate: string;
+    type: 'FINIQUITO' | 'LIQUIDACION' | 'RESCISION' | 'JUBILACION' | 'MUERTE';
+    terminationReason?: string;
+    saveToDb?: boolean;
+  }) => api.post('/liquidations/calculate', data),
+
+  // Create and save liquidation
+  create: (data: {
+    employeeId: string;
+    terminationDate: string;
+    type: 'FINIQUITO' | 'LIQUIDACION' | 'RESCISION' | 'JUBILACION' | 'MUERTE';
+    terminationReason?: string;
+  }) => api.post('/liquidations', data),
+
+  // Get liquidation by ID
+  getById: (id: string) => api.get(`/liquidations/${id}`),
+
+  // Get all liquidations for an employee
+  getByEmployee: (employeeId: string) =>
+    api.get(`/liquidations/employee/${employeeId}`),
+
+  // Approve liquidation
+  approve: (id: string) => api.post(`/liquidations/${id}/approve`),
+
+  // Mark as paid
+  pay: (id: string) => api.post(`/liquidations/${id}/pay`),
+
+  // Cancel liquidation
+  cancel: (id: string) => api.post(`/liquidations/${id}/cancel`),
+};
+
+export const accountingConfigApi = {
+  // Summary
+  getSummary: () => api.get('/accounting-config/summary'),
+
+  // ISN (Impuesto Sobre Nómina) por estado
+  getAllIsnConfigs: (activeOnly = true) =>
+    api.get('/accounting-config/isn', { params: { activeOnly } }),
+  getIsnConfig: (stateCode: string) =>
+    api.get(`/accounting-config/isn/${stateCode}`),
+  getIsnRate: (stateCode: string) =>
+    api.get(`/accounting-config/isn/${stateCode}/rate`),
+  createIsnConfig: (data: any) => api.post('/accounting-config/isn', data),
+  updateIsnConfig: (stateCode: string, data: any) =>
+    api.patch(`/accounting-config/isn/${stateCode}`, data),
+
+  // Valores fiscales (UMA, SMG)
+  getAllFiscalValues: () => api.get('/accounting-config/fiscal'),
+  getCurrentFiscalValues: () => api.get('/accounting-config/fiscal/current'),
+  getFiscalValues: (year: number) =>
+    api.get(`/accounting-config/fiscal/${year}`),
+  createFiscalValues: (data: any) => api.post('/accounting-config/fiscal', data),
+  updateFiscalValues: (year: number, data: any) =>
+    api.patch(`/accounting-config/fiscal/${year}`, data),
+
+  // Configuración de nómina por empresa
+  getCompanyPayrollConfig: (companyId: string) =>
+    api.get(`/accounting-config/company/${companyId}`),
+  createOrUpdateCompanyPayrollConfig: (data: any) =>
+    api.post('/accounting-config/company', data),
+  updateCompanyPayrollConfig: (companyId: string, data: any) =>
+    api.patch(`/accounting-config/company/${companyId}`, data),
+
+  // Tablas ISR
+  getAllIsrTables: () => api.get('/accounting-config/isr'),
+  getIsrTable: (year: number, periodType: string) =>
+    api.get(`/accounting-config/isr/${year}/${periodType}`),
+  calculateIsr: (taxableIncome: number, year: number, periodType: string) =>
+    api.post('/accounting-config/isr/calculate', { taxableIncome, year, periodType }),
+  createIsrTableRow: (data: any) => api.post('/accounting-config/isr', data),
+  updateIsrTableRow: (id: string, data: any) =>
+    api.patch(`/accounting-config/isr/${id}`, data),
+  deleteIsrTableRow: (id: string) => api.delete(`/accounting-config/isr/${id}`),
+
+  // Tablas Subsidio al Empleo
+  getAllSubsidioTables: () => api.get('/accounting-config/subsidio'),
+  getSubsidioTable: (year: number, periodType: string) =>
+    api.get(`/accounting-config/subsidio/${year}/${periodType}`),
+  createSubsidioTableRow: (data: any) =>
+    api.post('/accounting-config/subsidio', data),
+  updateSubsidioTableRow: (id: string, data: any) =>
+    api.patch(`/accounting-config/subsidio/${id}`, data),
+  deleteSubsidioTableRow: (id: string) =>
+    api.delete(`/accounting-config/subsidio/${id}`),
+
+  // Tasas IMSS
+  getAllImssRates: () => api.get('/accounting-config/imss'),
+  getImssRates: (year: number) => api.get(`/accounting-config/imss/${year}`),
+  createImssRate: (data: any) => api.post('/accounting-config/imss', data),
+  updateImssRate: (id: string, data: any) =>
+    api.patch(`/accounting-config/imss/${id}`, data),
+  deleteImssRate: (id: string) => api.delete(`/accounting-config/imss/${id}`),
+};
+
 export const bulkUploadApi = {
   // Descargar plantillas
   downloadEmployeesTemplate: () =>
