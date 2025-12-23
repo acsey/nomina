@@ -1198,7 +1198,7 @@ enum LiquidationStatus {
 model IsrTable {
   id              String   @id @default(uuid())
   year            Int
-  periodType      PeriodType // WEEKLY, BIWEEKLY, MONTHLY
+  periodType      PeriodType @map("period_type") // WEEKLY, BIWEEKLY, MONTHLY
   lowerLimit      Decimal  @map("lower_limit") @db.Decimal(14, 2)
   upperLimit      Decimal  @map("upper_limit") @db.Decimal(14, 2)
   fixedFee        Decimal  @map("fixed_fee") @db.Decimal(14, 2)
@@ -1213,7 +1213,7 @@ model IsrTable {
 model SubsidioEmpleoTable {
   id              String   @id @default(uuid())
   year            Int
-  periodType      PeriodType
+  periodType      PeriodType @map("period_type")
   lowerLimit      Decimal  @map("lower_limit") @db.Decimal(14, 2)
   upperLimit      Decimal  @map("upper_limit") @db.Decimal(14, 2)
   subsidyAmount   Decimal  @map("subsidy_amount") @db.Decimal(14, 2)
