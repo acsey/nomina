@@ -37,7 +37,7 @@ export class IsrCalculatorService {
 
     // Calcular ISR
     const excedent = taxableIncome - Number(range.lowerLimit);
-    const marginalTax = excedent * (Number(range.percentage) / 100);
+    const marginalTax = excedent * Number(range.rateOnExcess);
     const isr = Number(range.fixedFee) + marginalTax;
 
     // Obtener subsidio al empleo
@@ -51,7 +51,7 @@ export class IsrCalculatorService {
     periodType: string,
     year: number,
   ): Promise<number> {
-    const subsidyTable = await this.prisma.subsidioTable.findMany({
+    const subsidyTable = await this.prisma.subsidioEmpleoTable.findMany({
       where: {
         year,
         periodType: periodType as any,
@@ -64,7 +64,7 @@ export class IsrCalculatorService {
     }
 
     const range = subsidyTable.find(
-      (r) =>
+      (r: { lowerLimit: any; upperLimit: any }) =>
         taxableIncome >= Number(r.lowerLimit) &&
         taxableIncome <= Number(r.upperLimit),
     );

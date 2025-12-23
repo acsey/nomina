@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
-import { Roles } from '@/modules/auth/decorators/roles.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
 import { AccountingConfigService } from './accounting-config.service';
 import {
   CreateStateIsnConfigDto,
