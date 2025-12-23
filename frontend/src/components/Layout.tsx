@@ -22,6 +22,7 @@ import {
   CogIcon,
   DocumentTextIcon,
   CalculatorIcon,
+  QuestionMarkCircleIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -48,6 +49,7 @@ const navigation: NavItem[] = [
   { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon, roles: ['admin', 'rh'] },
   { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon, roles: ['admin', 'rh', 'company_admin'] },
   { name: 'Config. Contable', href: '/accounting-config', icon: CalculatorIcon, roles: ['admin', 'company_admin'] },
+  { name: 'Ayuda', href: '/help', icon: QuestionMarkCircleIcon },
 ];
 
 export default function Layout() {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   DocumentArrowDownIcon,
@@ -10,6 +10,7 @@ import { payrollApi, employeesApi, catalogsApi, cfdiApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
+import SearchableSelect from '../components/SearchableSelect';
 
 const periodTypeLabels: Record<string, string> = {
   WEEKLY: 'Semanal',
@@ -47,6 +48,24 @@ export default function PayrollReceiptsPage() {
     enabled: !!selectedCompanyId,
   });
   const employees = employeesData?.data?.data || [];
+
+  // Prepare employee options for SearchableSelect
+  const employeeOptions = useMemo(() => {
+    return employees.map((emp: any) => ({
+      value: emp.id,
+      label: `${emp.firstName} ${emp.lastName}`,
+      description: `${emp.employeeNumber} - ${emp.department?.name || 'Sin depto.'}`,
+    }));
+  }, [employees]);
+
+  // Prepare company options for SearchableSelect
+  const companyOptions = useMemo(() => {
+    return companies.map((company: any) => ({
+      value: company.id,
+      label: company.name,
+      description: company.rfc,
+    }));
+  }, [companies]);
 
   // Reset employee selection when company changes
   useEffect(() => {
@@ -139,41 +158,24 @@ export default function PayrollReceiptsPage() {
         <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           {/* Company selector for admin */}
           {isAdmin && (
-            <div>
-              <label className="label">Empresa</label>
-              <select
-                value={selectedCompanyId}
-                onChange={(e) => setSelectedCompanyId(e.target.value)}
-                className="input"
-                disabled={isLoadingCompanies}
-              >
-                <option value="">Seleccionar empresa...</option>
-                {companies.map((company: any) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              label="Empresa"
+              options={companyOptions}
+              value={selectedCompanyId}
+              onChange={setSelectedCompanyId}
+              placeholder="Buscar empresa..."
+              loading={isLoadingCompanies}
+            />
           )}
-          <div>
-            <label className="label">Empleado</label>
-            <select
-              value={selectedEmployeeId}
-              onChange={(e) => setSelectedEmployeeId(e.target.value)}
-              className="input"
-              disabled={!selectedCompanyId || isLoadingEmployees}
-            >
-              <option value="">
-                {isLoadingEmployees ? 'Cargando...' : 'Seleccionar empleado...'}
-              </option>
-              {employees.map((emp: any) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.firstName} {emp.lastName} - {emp.employeeNumber}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Empleado"
+            options={employeeOptions}
+            value={selectedEmployeeId}
+            onChange={setSelectedEmployeeId}
+            placeholder="Buscar empleado..."
+            loading={isLoadingEmployees}
+            disabled={!selectedCompanyId}
+          />
           <div>
             <label className="label">Ano</label>
             <select
