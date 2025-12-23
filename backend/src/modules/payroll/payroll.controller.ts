@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -46,6 +48,20 @@ export class PayrollController {
   @ApiOperation({ summary: 'Obtener periodo de nomina' })
   findPeriod(@Param('id') id: string) {
     return this.payrollService.findPeriod(id);
+  }
+
+  @Patch('periods/:id')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Actualizar periodo de nomina (solo en estado borrador)' })
+  updatePeriod(@Param('id') id: string, @Body() updateDto: any) {
+    return this.payrollService.updatePeriod(id, updateDto);
+  }
+
+  @Delete('periods/:id')
+  @Roles('admin', 'company_admin')
+  @ApiOperation({ summary: 'Eliminar periodo de nomina (solo en estado borrador)' })
+  deletePeriod(@Param('id') id: string) {
+    return this.payrollService.deletePeriod(id);
   }
 
   @Get('periods/:id/preview')

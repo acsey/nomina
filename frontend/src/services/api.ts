@@ -97,6 +97,8 @@ export const payrollApi = {
     api.get('/payroll/periods', { params: { companyId, year } }),
   getPeriod: (id: string) => api.get(`/payroll/periods/${id}`),
   createPeriod: (data: any) => api.post('/payroll/periods', data),
+  updatePeriod: (id: string, data: any) => api.patch(`/payroll/periods/${id}`, data),
+  deletePeriod: (id: string) => api.delete(`/payroll/periods/${id}`),
   previewPayroll: (id: string) => api.get(`/payroll/periods/${id}/preview`),
   calculatePayroll: (id: string) => api.post(`/payroll/periods/${id}/calculate`),
   approvePayroll: (id: string) => api.post(`/payroll/periods/${id}/approve`),
