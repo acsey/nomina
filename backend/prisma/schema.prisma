@@ -120,6 +120,11 @@ model Company {
   payrollConfig CompanyPayrollConfig?
   payrollConcepts CompanyPayrollConcept[]
 
+  // Configuración de nóminas especiales
+  specialPayrollConfig CompanySpecialPayrollConfig?
+  specialPayrollHistory SpecialPayrollHistory[]
+  calculationFormulas CompanyCalculationFormula[]
+
   @@map("companies")
 }
 
@@ -502,6 +507,7 @@ model PayrollDetail {
   perceptions     PayrollPerception[]
   deductions      PayrollDeduction[]
   cfdiNomina      CfdiNomina?
+  calculationAudits PayrollCalculationAudit[]
 
   @@unique([payrollPeriodId, employeeId])
   @@map("payroll_details")
@@ -1218,7 +1224,177 @@ model SubsidioEmpleoTable {
   upperLimit      Decimal  @map("upper_limit") @db.Decimal(14, 2)
   subsidyAmount   Decimal  @map("subsidy_amount") @db.Decimal(14, 2)
   createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@unique([year, periodType, lowerLimit])
   @@map("subsidio_empleo_tables")
+}
+
+// ============================================
+// MÓDULO: AUDITORÍA DE CÁLCULOS DE NÓMINA
+// ============================================
+
+// Auditoría de cálculos de nómina - Transparencia en cálculos
+model PayrollCalculationAudit {
+  id              String   @id @default(uuid())
+  payrollDetailId String   @map("payroll_detail_id")
+  payrollDetail   PayrollDetail @relation(fields: [payrollDetailId], references: [id], onDelete: Cascade)
+
+  calculatedAt    DateTime @map("calculated_at")
+  calculatedBy    String?  @map("calculated_by")
+
+  // Desglose de percepciones (JSON con pasos de cálculo)
+  perceptionBreakdown Json @map("perception_breakdown")
+
+  // Desglose de deducciones (JSON con pasos de cálculo)
+  deductionBreakdown  Json @map("deduction_breakdown")
+
+  // Snapshot de configuración usada
+  configSnapshot  Json     @map("config_snapshot")
+
+  // Metadatos
+  version         Int      @default(1)
+  isLatest        Boolean  @default(true) @map("is_latest")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("payroll_calculation_audits")
+}
+
+// Auditoría de recálculos
+model RecalculationAudit {
+  id              String   @id @default(uuid())
+
+  type            String   // 'SINGLE' o 'PERIOD'
+  payrollPeriodId String?  @map("payroll_period_id")
+  payrollDetailId String?  @map("payroll_detail_id")
+
+  reason          String   @db.Text
+  recalculatedBy  String   @map("recalculated_by")
+  recalculatedAt  DateTime @default(now()) @map("recalculated_at")
+
+  // Estado anterior al recálculo
+  previousState   Json     @map("previous_state")
+
+  // Nuevo estado después del recálculo
+  newState        Json     @map("new_state")
+
+  // Resumen de diferencias
+  differences     Json
+
+  // Control de reversión
+  revertedAt      DateTime? @map("reverted_at")
+  revertedBy      String?   @map("reverted_by")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("recalculation_audits")
+}
+
+// ============================================
+// MÓDULO: NÓMINAS ESPECIALES (Aguinaldo, PTU, Bonos)
+// ============================================
+
+// Configuración de nóminas especiales por empresa
+model CompanySpecialPayrollConfig {
+  id              String   @id @default(uuid())
+  companyId       String   @unique @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Configuración de Aguinaldo
+  aguinaldoDays               Int      @default(15) @map("aguinaldo_days")
+  aguinaldoDefaultPaymentMonth Int     @default(12) @map("aguinaldo_default_payment_month")
+  aguinaldoDefaultPaymentDay   Int     @default(20) @map("aguinaldo_default_payment_day")
+  aguinaldoIncludeVariableIncome Boolean @default(false) @map("aguinaldo_include_variable")
+
+  // Configuración de PTU
+  ptuEnabled                  Boolean  @default(true) @map("ptu_enabled")
+  ptuDefaultPaymentMonth      Int      @default(5) @map("ptu_default_payment_month")
+  ptuMaxSalaryMultiplier      Decimal? @map("ptu_max_salary_multiplier") @db.Decimal(5, 2)
+
+  // Plantillas de bonos (JSON con configuraciones predefinidas)
+  bonusTemplates              Json?    @map("bonus_templates")
+
+  // Configuración de finiquito/liquidación
+  liquidationSeniorityPremium Decimal  @default(12) @map("liquidation_seniority_premium") @db.Decimal(5, 2) // Días por año
+  liquidation3MonthsConstitutional Boolean @default(true) @map("liquidation_3months_constitutional")
+  liquidation20DaysPerYear    Boolean  @default(true) @map("liquidation_20days_per_year")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("company_special_payroll_configs")
+}
+
+// Historial de nóminas especiales
+model SpecialPayrollHistory {
+  id              String   @id @default(uuid())
+  companyId       String   @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  type            ExtraordinaryType
+  year            Int
+  periodId        String?  @map("period_id")
+
+  totalEmployees  Int      @map("total_employees")
+  totalGross      Decimal  @map("total_gross") @db.Decimal(14, 2)
+  totalExempt     Decimal  @default(0) @map("total_exempt") @db.Decimal(14, 2)
+  totalTaxable    Decimal  @default(0) @map("total_taxable") @db.Decimal(14, 2)
+  totalIsr        Decimal  @default(0) @map("total_isr") @db.Decimal(14, 2)
+  totalNet        Decimal  @map("total_net") @db.Decimal(14, 2)
+
+  // Datos específicos según el tipo
+  configSnapshot  Json     @map("config_snapshot")
+  calculationSummary Json  @map("calculation_summary")
+  employeeDetails Json?    @map("employee_details") // Detalle por empleado
+
+  status          String   @default("DRAFT") // DRAFT, CALCULATED, APPROVED, PAID
+  paymentDate     DateTime? @map("payment_date")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  createdBy       String?  @map("created_by")
+  approvedAt      DateTime? @map("approved_at")
+  approvedBy      String?  @map("approved_by")
+
+  @@map("special_payroll_history")
+}
+
+// ============================================
+// MÓDULO: CONFIGURACIÓN DE CÁLCULOS POR EMPRESA
+// ============================================
+
+// Fórmulas personalizadas de cálculo por empresa
+model CompanyCalculationFormula {
+  id              String   @id @default(uuid())
+  companyId       String   @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  conceptCode     String   @map("concept_code") // P001, D001, etc.
+  conceptType     String   @map("concept_type") // PERCEPTION, DEDUCTION
+
+  name            String
+  description     String?  @db.Text
+
+  // Fórmula de cálculo (expresión evaluable)
+  formula         String   @db.Text // Ej: "baseSalary * workedDays / 30"
+
+  // Variables disponibles para la fórmula
+  availableVariables Json  @default("[]") @map("available_variables")
+
+  // Configuración fiscal
+  isTaxable       Boolean  @default(true) @map("is_taxable")
+  isExempt        Boolean  @default(false) @map("is_exempt")
+  exemptLimit     Decimal? @map("exempt_limit") @db.Decimal(14, 2) // En UMAs o monto fijo
+  exemptLimitType String?  @map("exempt_limit_type") // UMA, SMG, FIXED
+
+  // SAT Integration
+  satConceptKey   String?  @map("sat_concept_key")
+
+  isActive        Boolean  @default(true) @map("is_active")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, conceptCode])
+  @@map("company_calculation_formulas")
 }
