@@ -46,7 +46,7 @@ export default function PayrollReceiptsPage() {
     queryFn: () => employeesApi.getAll({ companyId: selectedCompanyId, limit: 1000 }),
     enabled: !!selectedCompanyId,
   });
-  const employees = employeesData?.data || [];
+  const employees = employeesData?.data?.data || [];
 
   // Reset employee selection when company changes
   useEffect(() => {
