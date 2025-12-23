@@ -340,9 +340,149 @@ export class CreateCompanyPayrollConfigDto {
   roundingMethod?: string;
 }
 
-export class UpdateCompanyPayrollConfigDto extends CreateCompanyPayrollConfigDto {
+export class UpdateCompanyPayrollConfigDto {
   @IsOptional()
-  companyId?: string;
+  @IsEnum(PeriodType)
+  defaultPeriodType?: PeriodType;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(7)
+  payDayOfWeek?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(31)
+  payDayOfMonth?: number;
+
+  @IsOptional()
+  @IsString()
+  stateCode?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  applyIsn?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(15)
+  @Max(60)
+  aguinaldoDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(12)
+  aguinaldoPayMonth?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(31)
+  aguinaldoPayDay?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.25)
+  @Max(1)
+  vacationPremiumPercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  applyPtu?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.2)
+  ptuPercent?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(12)
+  ptuPayMonth?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(31)
+  ptuPayDay?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  savingsFundEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.13)
+  savingsFundEmployeePercent?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.13)
+  savingsFundCompanyPercent?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.13)
+  savingsFundMaxPercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  savingsBoxEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.15)
+  savingsBoxEmployeePercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  foodVouchersEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.40)
+  foodVouchersPercent?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  foodVouchersMaxUma?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(12)
+  overtimeDoubleAfter?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(9)
+  overtimeTripleAfter?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(18)
+  maxOvertimeHoursWeek?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  applySubsidioEmpleo?: boolean;
+
+  @IsOptional()
+  @IsString()
+  roundingMethod?: string;
 }
 
 // ============================================
