@@ -129,7 +129,7 @@ export default function ReportsPage() {
     queryKey: ['employees-list'],
     queryFn: () => employeesApi.getAll({ limit: 1000 }),
   });
-  const employees = employeesData?.data || [];
+  const employees = employeesData?.data?.data || [];
 
   // Get departments
   const { data: departmentsData } = useQuery({
