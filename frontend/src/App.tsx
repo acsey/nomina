@@ -20,6 +20,7 @@ import CompanyConfigPage from './pages/CompanyConfigPage';
 import IncidentsPage from './pages/IncidentsPage';
 import EmployeePortalPage from './pages/EmployeePortalPage';
 import UsersPage from './pages/UsersPage';
+import AccountingConfigPage from './pages/AccountingConfigPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -69,6 +70,7 @@ function App() {
             <Route path="companies" element={<CompaniesPage />} />
             <Route path="company-config" element={<CompanyConfigPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="accounting-config" element={<AccountingConfigPage />} />
             <Route path="my-portal" element={<EmployeePortalPage />} />
             </Route>
           </Routes>

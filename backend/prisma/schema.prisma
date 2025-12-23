@@ -116,6 +116,10 @@ model Company {
   payrollPeriods PayrollPeriod[]
   users        User[]
 
+  // Configuración contable
+  payrollConfig CompanyPayrollConfig?
+  payrollConcepts CompanyPayrollConcept[]
+
   @@map("companies")
 }
 
@@ -217,6 +221,7 @@ model Employee {
   emergencyContacts   EmergencyContact[]
   documents           EmployeeDocument[]
   incidents           EmployeeIncident[]
+  liquidations        LiquidationCalculation[]
 
   @@map("employees")
 }
@@ -544,6 +549,7 @@ model PayrollConcept {
 
   perceptions     PayrollPerception[]
   deductions      PayrollDeduction[]
+  companyConfigs  CompanyPayrollConcept[]
 
   @@map("payroll_concepts")
 }
@@ -551,31 +557,7 @@ model PayrollConcept {
 // ============================================
 // MÓDULO: IMPUESTOS Y CÁLCULOS SAT
 // ============================================
-
-model IsrTable {
-  id              String   @id @default(uuid())
-  year            Int
-  periodType      PeriodType @map("period_type")
-  lowerLimit      Decimal  @map("lower_limit") @db.Decimal(12, 2)
-  upperLimit      Decimal  @map("upper_limit") @db.Decimal(12, 2)
-  fixedFee        Decimal  @map("fixed_fee") @db.Decimal(12, 2)
-  percentage      Decimal  @db.Decimal(5, 2)
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  @@map("isr_tables")
-}
-
-model SubsidioTable {
-  id              String   @id @default(uuid())
-  year            Int
-  periodType      PeriodType @map("period_type")
-  lowerLimit      Decimal  @map("lower_limit") @db.Decimal(12, 2)
-  upperLimit      Decimal  @map("upper_limit") @db.Decimal(12, 2)
-  subsidyAmount   Decimal  @map("subsidy_amount") @db.Decimal(12, 2)
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  @@map("subsidio_tables")
-}
+// Note: IsrTable and SubsidioEmpleoTable are defined in the accounting section below
 
 // ============================================
 // MÓDULO: IMSS / ISSSTE / INFONAVIT
@@ -1014,4 +996,229 @@ enum IncidentStatus {
   REJECTED          // Rechazada
   APPLIED           // Aplicada a nomina
   CANCELLED         // Cancelada
+}
+
+// ============================================
+// MÓDULO: CONFIGURACIÓN CONTABLE Y FISCAL
+// ============================================
+
+// Configuración de ISN (Impuesto Sobre Nómina) por Estado
+model StateIsnConfig {
+  id          String   @id @default(uuid())
+  stateCode   String   @unique @map("state_code") // Código del estado (AGS, BC, etc.)
+  stateName   String   @map("state_name")
+  rate        Decimal  @db.Decimal(5, 4) // Tasa del ISN (ej: 0.0300 = 3%)
+  threshold   Decimal? @db.Decimal(14, 2) // Umbral mínimo para aplicar ISN
+  exemptions  Json?    // Exenciones específicas del estado
+  notes       String?
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("state_isn_configs")
+}
+
+// Valores de UMA y SMG por año
+model FiscalValues {
+  id          String   @id @default(uuid())
+  year        Int      @unique
+  umaDaily    Decimal  @map("uma_daily") @db.Decimal(10, 4) // UMA diaria
+  umaMonthly  Decimal  @map("uma_monthly") @db.Decimal(12, 4) // UMA mensual
+  umaYearly   Decimal  @map("uma_yearly") @db.Decimal(14, 4) // UMA anual
+  smgDaily    Decimal  @map("smg_daily") @db.Decimal(10, 4) // Salario Mínimo General diario
+  smgZfnDaily Decimal? @map("smg_zfn_daily") @db.Decimal(10, 4) // SMG Zona Frontera Norte
+  aguinaldoDays Int    @default(15) @map("aguinaldo_days") // Días de aguinaldo (15 o 30)
+  vacationPremiumPercent Decimal @default(0.25) @map("vacation_premium_percent") @db.Decimal(5, 4) // Prima vacacional (25%)
+  ptuDeadline DateTime? @map("ptu_deadline") @db.Date // Fecha límite PTU
+  isrTableVersion String? @map("isr_table_version") // Versión de tabla ISR
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("fiscal_values")
+}
+
+// Configuración de nómina por empresa
+model CompanyPayrollConfig {
+  id                String   @id @default(uuid())
+  companyId         String   @unique @map("company_id")
+  company           Company  @relation(fields: [companyId], references: [id])
+
+  // Configuración de períodos
+  defaultPeriodType PeriodType @default(BIWEEKLY) @map("default_period_type")
+  payDayOfWeek      Int?     @map("pay_day_of_week") // Día de pago (1-7)
+  payDayOfMonth     Int?     @map("pay_day_of_month") // Día del mes para pago
+
+  // ISN
+  stateCode         String?  @map("state_code") // Estado para cálculo de ISN
+  applyIsn          Boolean  @default(true) @map("apply_isn")
+
+  // Aguinaldo
+  aguinaldoDays     Int      @default(15) @map("aguinaldo_days") // Días de aguinaldo
+  aguinaldoPayMonth Int      @default(12) @map("aguinaldo_pay_month") // Mes de pago
+  aguinaldoPayDay   Int      @default(20) @map("aguinaldo_pay_day") // Día de pago
+
+  // Prima vacacional
+  vacationPremiumPercent Decimal @default(0.25) @map("vacation_premium_percent") @db.Decimal(5, 4)
+
+  // PTU
+  applyPtu          Boolean  @default(true) @map("apply_ptu")
+  ptuPercent        Decimal  @default(0.10) @map("ptu_percent") @db.Decimal(5, 4) // 10%
+  ptuPayMonth       Int      @default(5) @map("ptu_pay_month") // Mayo
+  ptuPayDay         Int      @default(30) @map("ptu_pay_day")
+
+  // Fondo de ahorro
+  savingsFundEnabled Boolean @default(false) @map("savings_fund_enabled")
+  savingsFundEmployeePercent Decimal? @map("savings_fund_employee_percent") @db.Decimal(5, 4)
+  savingsFundCompanyPercent Decimal? @map("savings_fund_company_percent") @db.Decimal(5, 4)
+  savingsFundMaxPercent Decimal? @default(0.13) @map("savings_fund_max_percent") @db.Decimal(5, 4)
+
+  // Caja de ahorro
+  savingsBoxEnabled Boolean @default(false) @map("savings_box_enabled")
+  savingsBoxEmployeePercent Decimal? @map("savings_box_employee_percent") @db.Decimal(5, 4)
+
+  // Vales de despensa
+  foodVouchersEnabled Boolean @default(false) @map("food_vouchers_enabled")
+  foodVouchersPercent Decimal? @map("food_vouchers_percent") @db.Decimal(5, 4)
+  foodVouchersMaxUma  Decimal? @map("food_vouchers_max_uma") @db.Decimal(5, 2) // Máx en UMAs (exento)
+
+  // Horas extra
+  overtimeDoubleAfter Int @default(9) @map("overtime_double_after") // Después de X horas = doble
+  overtimeTripleAfter Int @default(3) @map("overtime_triple_after") // Después de X horas extra = triple
+  maxOvertimeHoursWeek Int @default(9) @map("max_overtime_hours_week") // Máx horas extra semana
+
+  // Otros
+  applySubsidioEmpleo Boolean @default(true) @map("apply_subsidio_empleo")
+  roundingMethod    String   @default("ROUND") @map("rounding_method") // ROUND, FLOOR, CEIL
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("company_payroll_configs")
+}
+
+// Conceptos de nómina por empresa (personalización)
+model CompanyPayrollConcept {
+  id              String   @id @default(uuid())
+  companyId       String   @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id])
+  conceptId       String   @map("concept_id")
+  concept         PayrollConcept @relation(fields: [conceptId], references: [id])
+
+  // Configuración específica de la empresa
+  customName      String?  @map("custom_name") // Nombre personalizado
+  customCode      String?  @map("custom_code") // Código personalizado
+  defaultAmount   Decimal? @map("default_amount") @db.Decimal(12, 2)
+  formula         String?  // Fórmula de cálculo personalizada
+  appliesTo       String?  @map("applies_to") // "ALL", "DEPARTMENT:xxx", "POSITION:xxx"
+  isActive        Boolean  @default(true) @map("is_active")
+  sortOrder       Int      @default(0) @map("sort_order")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, conceptId])
+  @@map("company_payroll_concepts")
+}
+
+// Cálculo de liquidaciones/finiquitos
+model LiquidationCalculation {
+  id              String   @id @default(uuid())
+  employeeId      String   @map("employee_id")
+  employee        Employee @relation(fields: [employeeId], references: [id])
+
+  // Tipo
+  type            LiquidationType
+  terminationDate DateTime @map("termination_date") @db.Date
+  terminationReason String? @map("termination_reason")
+
+  // Datos del empleado al momento
+  dailySalary     Decimal  @map("daily_salary") @db.Decimal(12, 4)
+  integratedSalary Decimal @map("integrated_salary") @db.Decimal(12, 4)
+  yearsOfService  Decimal  @map("years_of_service") @db.Decimal(5, 2)
+
+  // Conceptos calculados
+  pendingSalary   Decimal  @default(0) @map("pending_salary") @db.Decimal(14, 2) // Salario pendiente
+  proportionalAguinaldo Decimal @default(0) @map("proportional_aguinaldo") @db.Decimal(14, 2)
+  proportionalVacation Decimal @default(0) @map("proportional_vacation") @db.Decimal(14, 2)
+  vacationPremium Decimal  @default(0) @map("vacation_premium") @db.Decimal(14, 2)
+
+  // Solo para liquidación (despido injustificado)
+  indemnization90Days Decimal @default(0) @map("indemnization_90_days") @db.Decimal(14, 2) // 90 días
+  indemnization20Days Decimal @default(0) @map("indemnization_20_days") @db.Decimal(14, 2) // 20 días por año
+  seniorityPremium Decimal @default(0) @map("seniority_premium") @db.Decimal(14, 2) // Prima de antigüedad
+
+  // Deducciones
+  pendingLoans    Decimal  @default(0) @map("pending_loans") @db.Decimal(14, 2)
+  pendingInfonavit Decimal @default(0) @map("pending_infonavit") @db.Decimal(14, 2)
+  otherDeductions Decimal  @default(0) @map("other_deductions") @db.Decimal(14, 2)
+  isrRetention    Decimal  @default(0) @map("isr_retention") @db.Decimal(14, 2)
+
+  // Totales
+  grossTotal      Decimal  @map("gross_total") @db.Decimal(14, 2)
+  totalDeductions Decimal  @map("total_deductions") @db.Decimal(14, 2)
+  netTotal        Decimal  @map("net_total") @db.Decimal(14, 2)
+
+  // Estado
+  status          LiquidationStatus @default(DRAFT)
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+  approvedAt      DateTime? @map("approved_at")
+  approvedById    String?  @map("approved_by_id")
+  paidAt          DateTime? @map("paid_at")
+
+  // Detalles JSON
+  calculationDetails Json? @map("calculation_details")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("liquidation_calculations")
+}
+
+enum LiquidationType {
+  FINIQUITO     // Renuncia voluntaria
+  LIQUIDACION   // Despido injustificado
+  RESCISION     // Rescisión de contrato
+  JUBILACION    // Jubilación
+  MUERTE        // Fallecimiento del trabajador
+}
+
+enum LiquidationStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+// Tabla ISR (tarifas mensuales)
+model IsrTable {
+  id              String   @id @default(uuid())
+  year            Int
+  periodType      PeriodType // WEEKLY, BIWEEKLY, MONTHLY
+  lowerLimit      Decimal  @map("lower_limit") @db.Decimal(14, 2)
+  upperLimit      Decimal  @map("upper_limit") @db.Decimal(14, 2)
+  fixedFee        Decimal  @map("fixed_fee") @db.Decimal(14, 2)
+  rateOnExcess    Decimal  @map("rate_on_excess") @db.Decimal(5, 4) // Porcentaje sobre excedente
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([year, periodType, lowerLimit])
+  @@map("isr_tables")
+}
+
+// Tabla de Subsidio al Empleo
+model SubsidioEmpleoTable {
+  id              String   @id @default(uuid())
+  year            Int
+  periodType      PeriodType
+  lowerLimit      Decimal  @map("lower_limit") @db.Decimal(14, 2)
+  upperLimit      Decimal  @map("upper_limit") @db.Decimal(14, 2)
+  subsidyAmount   Decimal  @map("subsidy_amount") @db.Decimal(14, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([year, periodType, lowerLimit])
+  @@map("subsidio_empleo_tables")
 }

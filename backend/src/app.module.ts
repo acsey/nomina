@@ -17,6 +17,7 @@ import { CatalogsModule } from './modules/catalogs/catalogs.module';
 import { BulkUploadModule } from './modules/bulk-upload/bulk-upload.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
 import { UsersModule } from './modules/users/users.module';
+import { AccountingConfigModule } from './modules/accounting-config/accounting-config.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { UsersModule } from './modules/users/users.module';
     CatalogsModule,
     BulkUploadModule,
     IncidentsModule,
+    AccountingConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

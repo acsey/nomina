@@ -885,6 +885,339 @@ async function main() {
   console.log('✅ Saldos de vacaciones creados (según LFT Art. 76)');
 
   // ============================================
+  // CONFIGURACIÓN FISCAL: ISN POR ESTADO
+  // ============================================
+
+  // Tasas de ISN (Impuesto Sobre Nómina) por entidad federativa 2025
+  const stateIsnConfigs = [
+    { stateCode: 'AGS', stateName: 'Aguascalientes', rate: 0.0300 },
+    { stateCode: 'BC', stateName: 'Baja California', rate: 0.0290 },
+    { stateCode: 'BCS', stateName: 'Baja California Sur', rate: 0.0250 },
+    { stateCode: 'CAM', stateName: 'Campeche', rate: 0.0300 },
+    { stateCode: 'CHIS', stateName: 'Chiapas', rate: 0.0200 },
+    { stateCode: 'CHIH', stateName: 'Chihuahua', rate: 0.0300 },
+    { stateCode: 'CDMX', stateName: 'Ciudad de México', rate: 0.0300 },
+    { stateCode: 'COAH', stateName: 'Coahuila', rate: 0.0300 },
+    { stateCode: 'COL', stateName: 'Colima', rate: 0.0200 },
+    { stateCode: 'DGO', stateName: 'Durango', rate: 0.0200 },
+    { stateCode: 'GTO', stateName: 'Guanajuato', rate: 0.0295 },
+    { stateCode: 'GRO', stateName: 'Guerrero', rate: 0.0200 },
+    { stateCode: 'HGO', stateName: 'Hidalgo', rate: 0.0250 },
+    { stateCode: 'JAL', stateName: 'Jalisco', rate: 0.0300 },
+    { stateCode: 'MEX', stateName: 'Estado de México', rate: 0.0300 },
+    { stateCode: 'MICH', stateName: 'Michoacán', rate: 0.0300 },
+    { stateCode: 'MOR', stateName: 'Morelos', rate: 0.0200 },
+    { stateCode: 'NAY', stateName: 'Nayarit', rate: 0.0250 },
+    { stateCode: 'NL', stateName: 'Nuevo León', rate: 0.0300 },
+    { stateCode: 'OAX', stateName: 'Oaxaca', rate: 0.0300 },
+    { stateCode: 'PUE', stateName: 'Puebla', rate: 0.0300 },
+    { stateCode: 'QRO', stateName: 'Querétaro', rate: 0.0300 },
+    { stateCode: 'QROO', stateName: 'Quintana Roo', rate: 0.0300 },
+    { stateCode: 'SLP', stateName: 'San Luis Potosí', rate: 0.0250 },
+    { stateCode: 'SIN', stateName: 'Sinaloa', rate: 0.0265 },
+    { stateCode: 'SON', stateName: 'Sonora', rate: 0.0225 },
+    { stateCode: 'TAB', stateName: 'Tabasco', rate: 0.0300 },
+    { stateCode: 'TAM', stateName: 'Tamaulipas', rate: 0.0300 },
+    { stateCode: 'TLAX', stateName: 'Tlaxcala', rate: 0.0300 },
+    { stateCode: 'VER', stateName: 'Veracruz', rate: 0.0300 },
+    { stateCode: 'YUC', stateName: 'Yucatán', rate: 0.0300 },
+    { stateCode: 'ZAC', stateName: 'Zacatecas', rate: 0.0250 },
+  ];
+
+  for (const config of stateIsnConfigs) {
+    await prisma.stateIsnConfig.upsert({
+      where: { stateCode: config.stateCode },
+      update: { rate: config.rate, stateName: config.stateName },
+      create: {
+        stateCode: config.stateCode,
+        stateName: config.stateName,
+        rate: config.rate,
+        effectiveFrom: new Date('2025-01-01'),
+        isActive: true,
+      },
+    });
+  }
+
+  console.log('✅ Configuración de ISN por estado creada (32 estados)');
+
+  // ============================================
+  // VALORES FISCALES (UMA, SMG) POR AÑO
+  // ============================================
+
+  const fiscalValues = [
+    {
+      year: 2024,
+      umaDaily: 108.57,
+      umaMonthly: 3301.33,
+      umaYearly: 39615.98,
+      smgDaily: 248.93,
+      smgZfnDaily: 374.89,
+      effectiveFrom: new Date('2024-02-01'),
+    },
+    {
+      year: 2025,
+      umaDaily: 113.14, // Estimado 2025
+      umaMonthly: 3440.50,
+      umaYearly: 41286.00,
+      smgDaily: 278.80, // Salario Mínimo General 2025
+      smgZfnDaily: 419.88, // SMG Zona Frontera Norte 2025
+      effectiveFrom: new Date('2025-01-01'),
+    },
+  ];
+
+  for (const fiscal of fiscalValues) {
+    await prisma.fiscalValues.upsert({
+      where: { year: fiscal.year },
+      update: {
+        umaDaily: fiscal.umaDaily,
+        umaMonthly: fiscal.umaMonthly,
+        umaYearly: fiscal.umaYearly,
+        smgDaily: fiscal.smgDaily,
+        smgZfnDaily: fiscal.smgZfnDaily,
+      },
+      create: {
+        year: fiscal.year,
+        umaDaily: fiscal.umaDaily,
+        umaMonthly: fiscal.umaMonthly,
+        umaYearly: fiscal.umaYearly,
+        smgDaily: fiscal.smgDaily,
+        smgZfnDaily: fiscal.smgZfnDaily,
+        effectiveFrom: fiscal.effectiveFrom,
+        aguinaldoDays: 15,
+        vacationPremiumPercent: 0.25,
+      },
+    });
+  }
+
+  console.log('✅ Valores fiscales creados (UMA, SMG 2024-2025)');
+
+  // ============================================
+  // TABLA ISR 2025 (Mensual)
+  // ============================================
+
+  const isrTableMonthly2025 = [
+    { lowerLimit: 0.01, upperLimit: 746.04, fixedFee: 0, rateOnExcess: 0.0192 },
+    { lowerLimit: 746.05, upperLimit: 6332.05, fixedFee: 14.32, rateOnExcess: 0.0640 },
+    { lowerLimit: 6332.06, upperLimit: 11128.01, fixedFee: 371.83, rateOnExcess: 0.1088 },
+    { lowerLimit: 11128.02, upperLimit: 12935.82, fixedFee: 893.63, rateOnExcess: 0.1600 },
+    { lowerLimit: 12935.83, upperLimit: 15487.71, fixedFee: 1182.88, rateOnExcess: 0.1792 },
+    { lowerLimit: 15487.72, upperLimit: 31236.49, fixedFee: 1640.18, rateOnExcess: 0.2136 },
+    { lowerLimit: 31236.50, upperLimit: 49233.00, fixedFee: 5004.12, rateOnExcess: 0.2352 },
+    { lowerLimit: 49233.01, upperLimit: 93993.90, fixedFee: 9236.89, rateOnExcess: 0.3000 },
+    { lowerLimit: 93993.91, upperLimit: 125325.20, fixedFee: 22665.17, rateOnExcess: 0.3200 },
+    { lowerLimit: 125325.21, upperLimit: 375975.61, fixedFee: 32691.18, rateOnExcess: 0.3400 },
+    { lowerLimit: 375975.62, upperLimit: 999999999.99, fixedFee: 117912.32, rateOnExcess: 0.3500 },
+  ];
+
+  for (const isr of isrTableMonthly2025) {
+    await prisma.isrTable.upsert({
+      where: {
+        year_periodType_lowerLimit: {
+          year: 2025,
+          periodType: 'MONTHLY',
+          lowerLimit: isr.lowerLimit,
+        },
+      },
+      update: { upperLimit: isr.upperLimit, fixedFee: isr.fixedFee, rateOnExcess: isr.rateOnExcess },
+      create: {
+        year: 2025,
+        periodType: 'MONTHLY',
+        lowerLimit: isr.lowerLimit,
+        upperLimit: isr.upperLimit,
+        fixedFee: isr.fixedFee,
+        rateOnExcess: isr.rateOnExcess,
+      },
+    });
+  }
+
+  console.log('✅ Tabla ISR 2025 mensual creada');
+
+  // ============================================
+  // TABLA SUBSIDIO AL EMPLEO 2025 (Mensual)
+  // ============================================
+
+  const subsidioTable2025 = [
+    { lowerLimit: 0.01, upperLimit: 1768.96, subsidyAmount: 407.02 },
+    { lowerLimit: 1768.97, upperLimit: 2653.38, subsidyAmount: 406.83 },
+    { lowerLimit: 2653.39, upperLimit: 3472.84, subsidyAmount: 406.62 },
+    { lowerLimit: 3472.85, upperLimit: 3537.87, subsidyAmount: 392.77 },
+    { lowerLimit: 3537.88, upperLimit: 4446.15, subsidyAmount: 382.46 },
+    { lowerLimit: 4446.16, upperLimit: 4717.18, subsidyAmount: 354.23 },
+    { lowerLimit: 4717.19, upperLimit: 5335.42, subsidyAmount: 324.87 },
+    { lowerLimit: 5335.43, upperLimit: 6224.67, subsidyAmount: 294.63 },
+    { lowerLimit: 6224.68, upperLimit: 7113.90, subsidyAmount: 253.54 },
+    { lowerLimit: 7113.91, upperLimit: 7382.33, subsidyAmount: 217.61 },
+    { lowerLimit: 7382.34, upperLimit: 999999999.99, subsidyAmount: 0 },
+  ];
+
+  for (const sub of subsidioTable2025) {
+    await prisma.subsidioEmpleoTable.upsert({
+      where: {
+        year_periodType_lowerLimit: {
+          year: 2025,
+          periodType: 'MONTHLY',
+          lowerLimit: sub.lowerLimit,
+        },
+      },
+      update: { upperLimit: sub.upperLimit, subsidyAmount: sub.subsidyAmount },
+      create: {
+        year: 2025,
+        periodType: 'MONTHLY',
+        lowerLimit: sub.lowerLimit,
+        upperLimit: sub.upperLimit,
+        subsidyAmount: sub.subsidyAmount,
+      },
+    });
+  }
+
+  console.log('✅ Tabla Subsidio al Empleo 2025 creada');
+
+  // ============================================
+  // CONFIGURACIÓN DE NÓMINA POR EMPRESA
+  // ============================================
+
+  // BFS Ingeniería (Aguascalientes)
+  await prisma.companyPayrollConfig.upsert({
+    where: { companyId: bfsCompany.id },
+    update: {},
+    create: {
+      companyId: bfsCompany.id,
+      defaultPeriodType: 'BIWEEKLY',
+      stateCode: 'AGS',
+      applyIsn: true,
+      aguinaldoDays: 15,
+      vacationPremiumPercent: 0.25,
+      applyPtu: true,
+      ptuPercent: 0.10,
+      savingsFundEnabled: true,
+      savingsFundEmployeePercent: 0.05,
+      savingsFundCompanyPercent: 0.05,
+      foodVouchersEnabled: true,
+      overtimeDoubleAfter: 9,
+      overtimeTripleAfter: 3,
+      applySubsidioEmpleo: true,
+    },
+  });
+
+  // Tech Solutions (CDMX)
+  await prisma.companyPayrollConfig.upsert({
+    where: { companyId: techCompany.id },
+    update: {},
+    create: {
+      companyId: techCompany.id,
+      defaultPeriodType: 'BIWEEKLY',
+      stateCode: 'CDMX',
+      applyIsn: true,
+      aguinaldoDays: 30, // Empresa tech con mejores prestaciones
+      vacationPremiumPercent: 0.25,
+      applyPtu: true,
+      ptuPercent: 0.10,
+      savingsFundEnabled: true,
+      savingsFundEmployeePercent: 0.05,
+      savingsFundCompanyPercent: 0.05,
+      foodVouchersEnabled: true,
+      overtimeDoubleAfter: 9,
+      overtimeTripleAfter: 3,
+      applySubsidioEmpleo: true,
+    },
+  });
+
+  // Comercializadora del Norte (Nuevo León)
+  await prisma.companyPayrollConfig.upsert({
+    where: { companyId: norteCompany.id },
+    update: {},
+    create: {
+      companyId: norteCompany.id,
+      defaultPeriodType: 'WEEKLY',
+      stateCode: 'NL',
+      applyIsn: true,
+      aguinaldoDays: 15,
+      vacationPremiumPercent: 0.25,
+      applyPtu: true,
+      ptuPercent: 0.10,
+      savingsFundEnabled: false,
+      foodVouchersEnabled: true,
+      overtimeDoubleAfter: 9,
+      overtimeTripleAfter: 3,
+      applySubsidioEmpleo: true,
+    },
+  });
+
+  // INSABI (Gobierno CDMX)
+  await prisma.companyPayrollConfig.upsert({
+    where: { companyId: insabiCompany.id },
+    update: {},
+    create: {
+      companyId: insabiCompany.id,
+      defaultPeriodType: 'BIWEEKLY',
+      stateCode: 'CDMX',
+      applyIsn: false, // Gobierno exento
+      aguinaldoDays: 40, // Gobierno 40 días
+      vacationPremiumPercent: 0.50, // Gobierno 50%
+      applyPtu: false, // Gobierno no aplica PTU
+      ptuPercent: 0,
+      savingsFundEnabled: true,
+      savingsFundEmployeePercent: 0.05,
+      savingsFundCompanyPercent: 0.05,
+      foodVouchersEnabled: false,
+      overtimeDoubleAfter: 9,
+      overtimeTripleAfter: 3,
+      applySubsidioEmpleo: true,
+    },
+  });
+
+  console.log('✅ Configuración de nómina por empresa creada');
+
+  // ============================================
+  // TASAS IMSS 2025
+  // ============================================
+
+  const imssRates2025 = [
+    // Enfermedades y Maternidad (EyM) - Prestaciones en especie (Cuota fija)
+    { concept: 'EYM_CUOTA_FIJA', employerRate: 0.2040, employeeRate: 0, salaryBase: 'SMG' },
+    // EyM - Prestaciones en especie (Excedente 3 SMG)
+    { concept: 'EYM_EXCEDENTE', employerRate: 0.0110, employeeRate: 0.0040, salaryBase: 'SBC' },
+    // EyM - Prestaciones en dinero
+    { concept: 'EYM_DINERO', employerRate: 0.0070, employeeRate: 0.0025, salaryBase: 'SBC' },
+    // EyM - Gastos médicos pensionados
+    { concept: 'EYM_PENSIONADOS', employerRate: 0.0105, employeeRate: 0.00375, salaryBase: 'SBC' },
+    // Invalidez y Vida (IV)
+    { concept: 'IV', employerRate: 0.0175, employeeRate: 0.00625, salaryBase: 'SBC' },
+    // Retiro
+    { concept: 'RCV_RETIRO', employerRate: 0.02, employeeRate: 0, salaryBase: 'SBC' },
+    // Cesantía en edad avanzada y vejez (empleador 2025)
+    { concept: 'RCV_CESANTIA_PATRONAL', employerRate: 0.04375, employeeRate: 0, salaryBase: 'SBC' },
+    // Cesantía en edad avanzada y vejez (trabajador)
+    { concept: 'RCV_CESANTIA_TRABAJADOR', employerRate: 0, employeeRate: 0.01125, salaryBase: 'SBC' },
+    // Riesgo de Trabajo (varía por clase, aquí Clase I)
+    { concept: 'RT_CLASE_I', employerRate: 0.0054355, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_II', employerRate: 0.0113065, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_III', employerRate: 0.025984, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_IV', employerRate: 0.0465325, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_V', employerRate: 0.0758875, employeeRate: 0, salaryBase: 'SBC' },
+    // Guarderías y Prestaciones Sociales
+    { concept: 'GUARDERIA', employerRate: 0.01, employeeRate: 0, salaryBase: 'SBC' },
+    // INFONAVIT
+    { concept: 'INFONAVIT', employerRate: 0.05, employeeRate: 0, salaryBase: 'SBC' },
+  ];
+
+  for (const rate of imssRates2025) {
+    await prisma.imssRate.upsert({
+      where: { year_concept: { year: 2025, concept: rate.concept }},
+      update: { employerRate: rate.employerRate, employeeRate: rate.employeeRate, salaryBase: rate.salaryBase as any },
+      create: {
+        year: 2025,
+        concept: rate.concept,
+        employerRate: rate.employerRate,
+        employeeRate: rate.employeeRate,
+        salaryBase: rate.salaryBase as any,
+      },
+    });
+  }
+
+  console.log('✅ Tasas IMSS 2025 creadas');
+
+  // ============================================
   // RESUMEN FINAL
   // ============================================
 
@@ -929,6 +1262,14 @@ async function main() {
   console.log('   - Prestaciones LFT: Aguinaldo, Prima Vacacional, Vales, etc.');
   console.log('   - Prestaciones Gobierno: ISSSTE, FOVISSSTE, SAR, Estímulos');
   console.log('   - Vacaciones según LFT Art. 76 (0 días primer año, 12 días al cumplir 1 año)');
+  console.log('='.repeat(60));
+  console.log('\n💼 CONFIGURACIÓN FISCAL:');
+  console.log('   - 32 estados con tasas ISN (Impuesto Sobre Nómina)');
+  console.log('   - Valores fiscales UMA/SMG 2024-2025');
+  console.log('   - Tablas ISR 2025 (mensual)');
+  console.log('   - Tablas Subsidio al Empleo 2025');
+  console.log('   - Tasas IMSS 2025 (todas las ramas)');
+  console.log('   - Configuración de nómina por empresa');
   console.log('='.repeat(60));
 }
 
