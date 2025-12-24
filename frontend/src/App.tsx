@@ -21,6 +21,8 @@ import IncidentsPage from './pages/IncidentsPage';
 import EmployeePortalPage from './pages/EmployeePortalPage';
 import UsersPage from './pages/UsersPage';
 import AccountingConfigPage from './pages/AccountingConfigPage';
+import WorkSchedulesPage from './pages/WorkSchedulesPage';
+import DevicesPage from './pages/DevicesPage';
 import HelpPage from './pages/HelpPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -72,6 +74,8 @@ function App() {
             <Route path="company-config" element={<CompanyConfigPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="accounting-config" element={<AccountingConfigPage />} />
+            <Route path="work-schedules" element={<WorkSchedulesPage />} />
+            <Route path="devices" element={<DevicesPage />} />
             <Route path="my-portal" element={<EmployeePortalPage />} />
             <Route path="help" element={<HelpPage />} />
             </Route>

@@ -18,6 +18,7 @@ import { BulkUploadModule } from './modules/bulk-upload/bulk-upload.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
 import { UsersModule } from './modules/users/users.module';
 import { AccountingConfigModule } from './modules/accounting-config/accounting-config.module';
+import { DevicesModule } from './modules/devices/devices.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AccountingConfigModule } from './modules/accounting-config/accounting-c
     BulkUploadModule,
     IncidentsModule,
     AccountingConfigModule,
+    DevicesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
