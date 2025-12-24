@@ -357,11 +357,11 @@ export default function EmployeeFormPage() {
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => navigate('/employees')}
-          className="p-2 text-gray-500 hover:text-gray-700"
+          className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
         >
           <ArrowLeftIcon className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isEditMode ? 'Editar Empleado' : 'Nuevo Empleado'}
         </h1>
       </div>
@@ -369,7 +369,7 @@ export default function EmployeeFormPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Datos personales */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Datos Personales</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Datos Personales</h2>
 
           {/* Photo Upload Section */}
           <div className="flex items-center gap-6 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
@@ -529,7 +529,7 @@ export default function EmployeeFormPage() {
 
         {/* Contacto */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Contacto</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Contacto</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="label">Email</label>
@@ -556,7 +556,7 @@ export default function EmployeeFormPage() {
 
         {/* Documentos fiscales */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Documentos Fiscales</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Documentos Fiscales</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="label">RFC *</label>
@@ -598,7 +598,7 @@ export default function EmployeeFormPage() {
 
         {/* Direccion */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Direccion</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Direccion</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="label">Calle y Numero</label>
@@ -656,7 +656,7 @@ export default function EmployeeFormPage() {
 
         {/* Datos laborales */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Datos Laborales</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Datos Laborales</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="label">Empresa *</label>
@@ -797,7 +797,7 @@ export default function EmployeeFormPage() {
 
         {/* Datos de pago */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Datos de Pago</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Datos de Pago</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="label">Salario Base *</label>
