@@ -27,6 +27,8 @@ import DevicesPage from './pages/DevicesPage';
 import SystemSettingsPage from './pages/SystemSettingsPage';
 import HelpPage from './pages/HelpPage';
 import OrgChartPage from './pages/OrgChartPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
+import WebTimeclockPage from './pages/WebTimeclockPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -50,6 +52,7 @@ function App() {
           <ThemeProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
               <Route
                 path="/"
@@ -84,6 +87,7 @@ function App() {
               <Route path="my-portal" element={<EmployeePortalPage />} />
               <Route path="help" element={<HelpPage />} />
               <Route path="org-chart" element={<OrgChartPage />} />
+              <Route path="timeclock" element={<WebTimeclockPage />} />
               </Route>
             </Routes>
           </ThemeProvider>

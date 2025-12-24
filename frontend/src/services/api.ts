@@ -67,6 +67,9 @@ export const authApi = {
   getProfile: () => api.get('/auth/profile'),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.post('/auth/change-password', data),
+  // Microsoft Auth
+  getMicrosoftStatus: () => api.get('/auth/microsoft/status'),
+  getMicrosoftLoginUrl: () => api.get('/auth/microsoft/login'),
 };
 
 export const employeesApi = {
@@ -81,6 +84,14 @@ export const employeesApi = {
     api.post(`/employees/${id}/terminate`, { terminationDate }),
   updateSalary: (id: string, newSalary: number, reason?: string) =>
     api.post(`/employees/${id}/salary`, { newSalary, reason }),
+  uploadPhoto: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return api.post(`/uploads/employees/${id}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  deletePhoto: (id: string) => api.delete(`/uploads/employees/${id}/photo`),
 };
 
 export const departmentsApi = {

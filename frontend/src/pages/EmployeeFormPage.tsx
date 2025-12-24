@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CameraIcon, TrashIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { employeesApi, catalogsApi, departmentsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -89,6 +89,9 @@ export default function EmployeeFormPage() {
     // Pre-select user's company for non-admin users
     companyId: user?.companyId || '',
   });
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch employee data when editing
   const { data: employeeData, isLoading: employeeLoading } = useQuery({
@@ -135,6 +138,10 @@ export default function EmployeeFormPage() {
         bankAccount: emp.bankAccount || '',
         clabe: emp.clabe || '',
       });
+      // Set photo URL if exists
+      if (emp.photoUrl) {
+        setPhotoUrl(emp.photoUrl);
+      }
     }
   }, [employeeData]);
 
@@ -234,6 +241,69 @@ export default function EmployeeFormPage() {
     },
   });
 
+  // Photo upload mutation
+  const uploadPhotoMutation = useMutation({
+    mutationFn: ({ employeeId, file }: { employeeId: string; file: File }) =>
+      employeesApi.uploadPhoto(employeeId, file),
+    onSuccess: (response) => {
+      toast.success('Foto subida exitosamente');
+      setPhotoUrl(response.data.photoUrl);
+      setPhotoPreview(null);
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al subir la foto');
+    },
+  });
+
+  // Photo delete mutation
+  const deletePhotoMutation = useMutation({
+    mutationFn: (employeeId: string) => employeesApi.deletePhoto(employeeId),
+    onSuccess: () => {
+      toast.success('Foto eliminada');
+      setPhotoUrl(null);
+      setPhotoPreview(null);
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al eliminar la foto');
+    },
+  });
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        toast.error('Solo se permiten archivos JPG, PNG o WebP');
+        return;
+      }
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('El archivo no puede ser mayor a 5MB');
+        return;
+      }
+      // Show preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      // Upload if editing
+      if (isEditMode && id) {
+        uploadPhotoMutation.mutate({ employeeId: id, file });
+      }
+    }
+  };
+
+  const handleDeletePhoto = () => {
+    if (isEditMode && id && photoUrl) {
+      deletePhotoMutation.mutate(id);
+    } else {
+      setPhotoPreview(null);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -274,6 +344,65 @@ export default function EmployeeFormPage() {
         {/* Datos personales */}
         <div className="card">
           <h2 className="text-lg font-semibold mb-4">Datos Personales</h2>
+
+          {/* Photo Upload Section */}
+          <div className="flex items-center gap-6 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative">
+              {photoPreview || photoUrl ? (
+                <img
+                  src={photoPreview || (photoUrl?.startsWith('/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${photoUrl}` : photoUrl) || ''}
+                  alt="Foto de perfil"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <UserCircleIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                </div>
+              )}
+              {uploadPhotoMutation.isPending && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {isEditMode ? 'Foto de perfil del empleado' : 'Podrás agregar foto después de crear el empleado'}
+              </p>
+              {isEditMode && (
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handlePhotoSelect}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadPhotoMutation.isPending}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    <CameraIcon className="w-4 h-4" />
+                    {photoUrl ? 'Cambiar' : 'Subir'} Foto
+                  </button>
+                  {(photoUrl || photoPreview) && (
+                    <button
+                      type="button"
+                      onClick={handleDeletePhoto}
+                      disabled={deletePhotoMutation.isPending}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="label">No. Empleado *</label>

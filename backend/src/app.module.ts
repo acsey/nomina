@@ -21,6 +21,7 @@ import { AccountingConfigModule } from './modules/accounting-config/accounting-c
 import { DevicesModule } from './modules/devices/devices.module';
 import { SystemConfigModule } from './modules/system-config/system-config.module';
 import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
     DevicesModule,
     SystemConfigModule,
     HierarchyModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
