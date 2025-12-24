@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+
+type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeColors {
   primaryColor: string;
@@ -8,6 +10,10 @@ interface ThemeColors {
 
 interface ThemeContextType {
   colors: ThemeColors;
+  mode: ThemeMode;
+  isDark: boolean;
+  setMode: (mode: ThemeMode) => void;
+  toggleDarkMode: () => void;
   applyTheme: (colors: ThemeColors) => void;
 }
 
@@ -17,6 +23,9 @@ const defaultColors: ThemeColors = {
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+// Storage key for theme preference
+const THEME_STORAGE_KEY = 'nomina-theme-mode';
 
 // Convierte hex a HSL para generar paletas de colores
 function hexToHSL(hex: string): { h: number; s: number; l: number } {
@@ -61,12 +70,68 @@ function generateColorPalette(hex: string, prefix: string) {
   return cssVars;
 }
 
+// Get initial theme from localStorage or system preference
+function getInitialMode(): ThemeMode {
+  if (typeof window === 'undefined') return 'light';
+
+  const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
+  if (stored && ['light', 'dark', 'system'].includes(stored)) {
+    return stored;
+  }
+  return 'system';
+}
+
+// Check if system prefers dark mode
+function getSystemPrefersDark(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const [mode, setModeState] = useState<ThemeMode>(getInitialMode);
+  const [systemPrefersDark, setSystemPrefersDark] = useState(getSystemPrefersDark);
+
+  // Calculate if we should use dark mode
+  const isDark = mode === 'dark' || (mode === 'system' && systemPrefersDark);
 
   const colors: ThemeColors = {
     primaryColor: user?.company?.primaryColor || defaultColors.primaryColor,
     secondaryColor: user?.company?.secondaryColor || defaultColors.secondaryColor,
+  };
+
+  // Listen for system preference changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => setSystemPrefersDark(e.matches);
+
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  const setMode = (newMode: ThemeMode) => {
+    setModeState(newMode);
+    localStorage.setItem(THEME_STORAGE_KEY, newMode);
+  };
+
+  const toggleDarkMode = () => {
+    if (mode === 'system') {
+      // If in system mode, switch to the opposite of current system preference
+      setMode(systemPrefersDark ? 'light' : 'dark');
+    } else {
+      // Toggle between light and dark
+      setMode(mode === 'dark' ? 'light' : 'dark');
+    }
   };
 
   const applyTheme = (themeColors: ThemeColors) => {
@@ -86,7 +151,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [user?.company?.primaryColor, user?.company?.secondaryColor]);
 
   return (
-    <ThemeContext.Provider value={{ colors, applyTheme }}>
+    <ThemeContext.Provider value={{ colors, mode, isDark, setMode, toggleDarkMode, applyTheme }}>
       {children}
     </ThemeContext.Provider>
   );

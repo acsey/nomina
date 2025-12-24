@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   HomeIcon,
   UsersIcon,
@@ -26,6 +27,8 @@ import {
   QuestionMarkCircleIcon,
   ComputerDesktopIcon,
   Cog8ToothIcon,
+  SunIcon,
+  MoonIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -63,6 +66,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const { multiCompanyEnabled } = useSystemConfig();
+  const { isDark, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -82,7 +86,7 @@ export default function Layout() {
   }, [user?.role, multiCompanyEnabled]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Mobile sidebar */}
       <div
         className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'hidden'}`}
@@ -92,18 +96,18 @@ export default function Layout() {
           onClick={() => setSidebarOpen(false)}
         />
 
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-          <div className="flex h-16 items-center justify-between px-4 border-b">
+        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white dark:bg-gray-800">
+          <div className="flex h-16 items-center justify-between px-4 border-b dark:border-gray-700">
             <span className="text-xl font-bold text-primary-600">Nómina</span>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
 
-          <nav className="flex-1 px-2 py-4 space-y-1">
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
             {filteredNavigation.map((item) => (
               <NavLink
                 key={item.name}
@@ -112,8 +116,8 @@ export default function Layout() {
                 className={({ isActive }) =>
                   `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
                     isActive
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                   }`
                 }
               >
@@ -127,14 +131,14 @@ export default function Layout() {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-1 bg-white border-r">
-          <div className="flex h-16 items-center px-6 border-b">
+        <div className="flex flex-col flex-1 bg-white dark:bg-gray-800 border-r dark:border-gray-700">
+          <div className="flex h-16 items-center px-6 border-b dark:border-gray-700">
             <span className="text-xl font-bold text-primary-600">
               Sistema de Nómina
             </span>
           </div>
 
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {filteredNavigation.map((item) => (
               <NavLink
                 key={item.name}
@@ -142,8 +146,8 @@ export default function Layout() {
                 className={({ isActive }) =>
                   `flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                   }`
                 }
               >
@@ -153,19 +157,19 @@ export default function Layout() {
             ))}
           </nav>
 
-          <div className="p-4 border-t">
+          <div className="p-4 border-t dark:border-gray-700">
             <div className="flex items-center">
               <UserCircleIcon className="h-10 w-10 text-gray-400" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-xs text-gray-500">{user?.role}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+              className="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
             >
               <ArrowRightOnRectangleIcon className="mr-2 h-5 w-5" />
               Cerrar sesión
@@ -177,10 +181,10 @@ export default function Layout() {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 flex h-16 items-center gap-x-4 bg-white border-b px-4 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-16 items-center gap-x-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 lg:px-8">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
@@ -188,7 +192,20 @@ export default function Layout() {
           <div className="flex-1" />
 
           <div className="flex items-center gap-x-4">
-            <span className="hidden sm:block text-sm text-gray-500">
+            {/* Theme toggle button */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+              title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            >
+              {isDark ? (
+                <SunIcon className="h-5 w-5" />
+              ) : (
+                <MoonIcon className="h-5 w-5" />
+              )}
+            </button>
+
+            <span className="hidden sm:block text-sm text-gray-500 dark:text-gray-400">
               {user?.email}
             </span>
           </div>
