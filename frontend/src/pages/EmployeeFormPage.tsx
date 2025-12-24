@@ -94,10 +94,11 @@ export default function EmployeeFormPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch employee data when editing
-  const { data: employeeData, isLoading: employeeLoading } = useQuery({
+  const { data: employeeData, isLoading: employeeLoading, error: employeeError } = useQuery({
     queryKey: ['employee', id],
     queryFn: () => employeesApi.getById(id!),
     enabled: isEditMode,
+    retry: 1,
   });
 
   // Populate form when employee data is loaded
@@ -322,6 +323,31 @@ export default function EmployeeFormPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (isEditMode && employeeError) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => navigate('/employees')}
+            className="p-2 text-gray-500 hover:text-gray-700"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Error</h1>
+        </div>
+        <div className="card text-center py-12">
+          <p className="text-red-500 mb-4">No se pudo cargar los datos del empleado</p>
+          <button
+            onClick={() => navigate('/employees')}
+            className="btn btn-primary"
+          >
+            Volver a empleados
+          </button>
+        </div>
       </div>
     );
   }

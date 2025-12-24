@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -24,7 +24,19 @@ import {
   ChevronRightIcon,
   UserIcon,
   ArrowsUpDownIcon,
+  ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline';
+
+// Type for undo history
+interface UndoAction {
+  employeeId: string;
+  employeeName: string;
+  previousSupervisorId: string | null;
+  previousSupervisorName: string | null;
+  newSupervisorId: string | null;
+  newSupervisorName: string | null;
+  timestamp: Date;
+}
 import { hierarchyApi, catalogsApi, employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -124,7 +136,6 @@ function DraggableCard({ node, level, isSelected, onSelect, scale, canDrag, isDr
           setDropRef(el);
         }}
         onClick={() => onSelect(node)}
-        style={style}
         {...(canDrag ? { ...attributes, ...listeners } : {})}
         className={`
           relative transition-all duration-200 rounded-lg shadow-lg
@@ -298,6 +309,7 @@ export default function OrgChartPage() {
   const [editMode, setEditMode] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeNode, setActiveNode] = useState<HierarchyNode | null>(null);
+  const [undoHistory, setUndoHistory] = useState<UndoAction[]>([]);
   const [delegationForm, setDelegationForm] = useState({
     delegateeId: '',
     delegationType: 'ALL',
@@ -329,6 +341,17 @@ export default function OrgChartPage() {
   });
 
   const myEmployeeId = myEmployeeData?.id;
+  const myCompanyId = myEmployeeData?.companyId;
+
+  // Determine if user can see all companies
+  const canViewAllCompanies = user?.role === 'admin' || user?.role === 'rh' || user?.role === 'super_admin';
+
+  // Auto-set company filter for non-admin users
+  useEffect(() => {
+    if (!canViewAllCompanies && myCompanyId && !selectedCompany) {
+      setSelectedCompany(myCompanyId);
+    }
+  }, [canViewAllCompanies, myCompanyId, selectedCompany]);
 
   // Get my hierarchy chain (my supervisors)
   const { data: myChainData } = useQuery({
@@ -375,6 +398,38 @@ export default function OrgChartPage() {
       toast.error(error.response?.data?.message || 'Error al actualizar jerarquia');
     },
   });
+
+  // Add action to undo history
+  const addToUndoHistory = (action: UndoAction) => {
+    setUndoHistory((prev) => [action, ...prev].slice(0, 20)); // Keep last 20 actions
+  };
+
+  // Undo last action
+  const handleUndo = () => {
+    if (undoHistory.length === 0) return;
+
+    const lastAction = undoHistory[0];
+    updateSupervisorMutation.mutate(
+      {
+        employeeId: lastAction.employeeId,
+        supervisorId: lastAction.previousSupervisorId,
+      },
+      {
+        onSuccess: () => {
+          setUndoHistory((prev) => prev.slice(1));
+          toast.success(`Deshecho: ${lastAction.employeeName} regresó a ${lastAction.previousSupervisorName || 'nivel superior'}`);
+        },
+      }
+    );
+  };
+
+  // Clear undo history when exiting edit mode
+  const handleToggleEditMode = () => {
+    if (editMode) {
+      setUndoHistory([]);
+    }
+    setEditMode(!editMode);
+  };
 
   // Create delegation mutation
   const createDelegationMutation = useMutation({
@@ -468,9 +523,36 @@ export default function OrgChartPage() {
 
     const draggedNodeId = String(active.id).replace('drag-', '');
     const overId = String(over.id);
+    const draggedNode = findNodeById(orgChart, draggedNodeId);
+
+    if (!draggedNode) return;
+
+    // Find current supervisor
+    const findSupervisor = (nodes: HierarchyNode[], targetId: string): HierarchyNode | null => {
+      for (const node of nodes) {
+        if (node.subordinates.some((sub) => sub.id === targetId)) {
+          return node;
+        }
+        const found = findSupervisor(node.subordinates, targetId);
+        if (found) return found;
+      }
+      return null;
+    };
+    const currentSupervisor = findSupervisor(orgChart, draggedNodeId);
 
     // Handle remove supervisor
     if (overId === 'remove-supervisor') {
+      // Save to undo history
+      addToUndoHistory({
+        employeeId: draggedNodeId,
+        employeeName: draggedNode.fullName,
+        previousSupervisorId: currentSupervisor?.id || null,
+        previousSupervisorName: currentSupervisor?.fullName || null,
+        newSupervisorId: null,
+        newSupervisorName: null,
+        timestamp: new Date(),
+      });
+
       updateSupervisorMutation.mutate({
         employeeId: draggedNodeId,
         supervisorId: null,
@@ -481,12 +563,12 @@ export default function OrgChartPage() {
     // Handle drop on another employee
     if (overId.startsWith('drop-')) {
       const targetNodeId = overId.replace('drop-', '');
+      const targetNode = findNodeById(orgChart, targetNodeId);
 
       // Can't drop on self
       if (draggedNodeId === targetNodeId) return;
 
       // Can't drop on own subordinate (would create circular reference)
-      const draggedNode = findNodeById(orgChart, draggedNodeId);
       if (draggedNode) {
         const isSubordinate = (node: HierarchyNode, targetId: string): boolean => {
           if (node.id === targetId) return true;
@@ -497,6 +579,17 @@ export default function OrgChartPage() {
           return;
         }
       }
+
+      // Save to undo history
+      addToUndoHistory({
+        employeeId: draggedNodeId,
+        employeeName: draggedNode.fullName,
+        previousSupervisorId: currentSupervisor?.id || null,
+        previousSupervisorName: currentSupervisor?.fullName || null,
+        newSupervisorId: targetNodeId,
+        newSupervisorName: targetNode?.fullName || null,
+        timestamp: new Date(),
+      });
 
       updateSupervisorMutation.mutate({
         employeeId: draggedNodeId,
@@ -546,15 +639,28 @@ export default function OrgChartPage() {
 
           <div className="flex items-center gap-2">
             {canEditOrgChart && (
-              <button
-                onClick={() => setEditMode(!editMode)}
-                className={`btn text-sm py-1.5 ${editMode ? 'btn-primary' : 'btn-secondary'}`}
-              >
-                <ArrowsUpDownIcon className="h-4 w-4 mr-1" />
-                {editMode ? 'Modo edicion activo' : 'Editar organigrama'}
-              </button>
+              <>
+                <button
+                  onClick={handleToggleEditMode}
+                  className={`btn text-sm py-1.5 ${editMode ? 'btn-primary' : 'btn-secondary'}`}
+                >
+                  <ArrowsUpDownIcon className="h-4 w-4 mr-1" />
+                  {editMode ? 'Modo edicion activo' : 'Editar organigrama'}
+                </button>
+                {editMode && undoHistory.length > 0 && (
+                  <button
+                    onClick={handleUndo}
+                    disabled={updateSupervisorMutation.isPending}
+                    className="btn btn-secondary text-sm py-1.5"
+                    title={`Deshacer: ${undoHistory[0]?.employeeName}`}
+                  >
+                    <ArrowUturnLeftIcon className="h-4 w-4 mr-1" />
+                    Deshacer ({undoHistory.length})
+                  </button>
+                )}
+              </>
             )}
-            {companies.length > 1 && (
+            {canViewAllCompanies && companies.length > 1 && (
               <select
                 value={selectedCompany}
                 onChange={(e) => setSelectedCompany(e.target.value)}

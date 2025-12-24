@@ -78,8 +78,8 @@ export default function DashboardPage() {
 
   const { data: pendingVacations } = useQuery({
     queryKey: ['pending-vacations', companyId],
-    queryFn: () => vacationsApi.getPending(),
-    enabled: !isEmployee,
+    queryFn: () => vacationsApi.getPendingRequests(companyId || ''),
+    enabled: !isEmployee && !!companyId,
   });
 
   const { data: attendanceToday } = useQuery({
