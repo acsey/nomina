@@ -428,3 +428,14 @@ export const bulkUploadApi = {
     });
   },
 };
+
+export const systemConfigApi = {
+  // Public endpoint - no auth required
+  getPublic: () => api.get('/system-config/public'),
+  // Admin endpoints
+  getAll: () => api.get('/system-config'),
+  getByKey: (key: string) => api.get(`/system-config/${key}`),
+  update: (key: string, value: string) => api.patch(`/system-config/${key}`, { value }),
+  updateMultiple: (configs: { key: string; value: string }[]) =>
+    api.patch('/system-config', { configs }),
+};

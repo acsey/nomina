@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, Transition } from '@headlessui/react';
 import {
@@ -15,6 +15,7 @@ import {
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { accountingConfigApi, catalogsApi } from '../services/api';
+import { useSystemConfig } from '../contexts/SystemConfigContext';
 import toast from 'react-hot-toast';
 
 type TabType = 'summary' | 'isn' | 'fiscal' | 'company' | 'isr' | 'imss';
@@ -67,6 +68,7 @@ const MEXICAN_STATES = [
 export default function AccountingConfigPage() {
   const [activeTab, setActiveTab] = useState<TabType>('summary');
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const { multiCompanyEnabled } = useSystemConfig();
 
   // Get companies for company config tab
   const { data: companiesData } = useQuery({
@@ -74,6 +76,15 @@ export default function AccountingConfigPage() {
     queryFn: () => catalogsApi.getCompanies(),
   });
   const companies = companiesData?.data || [];
+
+  // Auto-select first company when multi-company is disabled or there's only one
+  useEffect(() => {
+    if (companies.length > 0 && !selectedCompanyId) {
+      if (!multiCompanyEnabled || companies.length === 1) {
+        setSelectedCompanyId(companies[0].id);
+      }
+    }
+  }, [companies, selectedCompanyId, multiCompanyEnabled]);
 
   return (
     <div>
@@ -115,6 +126,7 @@ export default function AccountingConfigPage() {
           companies={companies}
           selectedCompanyId={selectedCompanyId}
           onCompanyChange={setSelectedCompanyId}
+          multiCompanyEnabled={multiCompanyEnabled}
         />
       )}
       {activeTab === 'isr' && <IsrTab />}
@@ -828,10 +840,11 @@ function FiscalValuesTab() {
 // COMPANY CONFIG TAB
 // ============================================
 
-function CompanyConfigTab({ companies, selectedCompanyId, onCompanyChange }: {
+function CompanyConfigTab({ companies, selectedCompanyId, onCompanyChange, multiCompanyEnabled }: {
   companies: any[];
   selectedCompanyId: string;
   onCompanyChange: (id: string) => void;
+  multiCompanyEnabled: boolean;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({});
@@ -919,22 +932,24 @@ function CompanyConfigTab({ companies, selectedCompanyId, onCompanyChange }: {
 
   return (
     <div className="space-y-6">
-      {/* Company Selector */}
-      <div className="card">
-        <label className="label">Seleccionar Empresa</label>
-        <select
-          value={selectedCompanyId}
-          onChange={(e) => onCompanyChange(e.target.value)}
-          className="input max-w-md"
-        >
-          <option value="">-- Seleccionar empresa --</option>
-          {companies.map((company) => (
-            <option key={company.id} value={company.id}>
-              {company.name} ({company.rfc})
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Company Selector - only show when multi-company is enabled and there are multiple companies */}
+      {multiCompanyEnabled && companies.length > 1 && (
+        <div className="card">
+          <label className="label">Seleccionar Empresa</label>
+          <select
+            value={selectedCompanyId}
+            onChange={(e) => onCompanyChange(e.target.value)}
+            className="input max-w-md"
+          >
+            <option value="">-- Seleccionar empresa --</option>
+            {companies.map((company) => (
+              <option key={company.id} value={company.id}>
+                {company.name} ({company.rfc})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {selectedCompanyId && isLoading && (
         <div className="text-center py-8">Cargando configuración...</div>

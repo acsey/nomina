@@ -17,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { employeesApi, payrollApi, vacationsApi, attendanceApi, reportsApi, catalogsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useSystemConfig } from '../contexts/SystemConfigContext';
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -27,6 +28,7 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { multiCompanyEnabled } = useSystemConfig();
   const isEmployee = user?.role === 'employee';
   const isAdmin = user?.role === 'admin';
 
@@ -377,7 +379,7 @@ export default function DashboardPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        {isAdmin && companies.length > 1 && (
+        {isAdmin && multiCompanyEnabled && companies.length > 1 && (
           <div className="mt-4 sm:mt-0 w-64">
             <SearchableSelect
               options={companyOptions}

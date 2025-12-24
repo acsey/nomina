@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { catalogsApi, api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useSystemConfig } from '../contexts/SystemConfigContext';
 import toast from 'react-hot-toast';
 
 // Lista de regimenes fiscales del SAT
@@ -79,6 +80,7 @@ const defaultFormData: ConfigFormData = {
 
 export default function CompanyConfigPage() {
   const { user } = useAuth();
+  const { multiCompanyEnabled } = useSystemConfig();
   const queryClient = useQueryClient();
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [activeTab, setActiveTab] = useState<'branding' | 'cfdi' | 'pac'>('branding');
@@ -245,7 +247,7 @@ export default function CompanyConfigPage() {
       </div>
 
       {/* Company Selector for Admin */}
-      {isAdmin && companies.length > 1 && (
+      {isAdmin && multiCompanyEnabled && companies.length > 1 && (
         <div className="card mb-6 bg-blue-50 border-blue-200">
           <div className="flex items-center gap-4">
             <BuildingOffice2Icon className="h-8 w-8 text-blue-600" />

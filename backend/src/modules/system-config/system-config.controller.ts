@@ -1,0 +1,72 @@
+import { Controller, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { SystemConfigService } from './system-config.service';
+import { IsString, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class UpdateConfigDto {
+  @IsString()
+  key: string;
+
+  @IsString()
+  value: string;
+}
+
+class UpdateMultipleConfigsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateConfigDto)
+  configs: UpdateConfigDto[];
+}
+
+@ApiTags('system-config')
+@Controller('system-config')
+export class SystemConfigController {
+  constructor(private readonly systemConfigService: SystemConfigService) {}
+
+  // Public endpoint - no auth required for public configs
+  @Get('public')
+  @ApiOperation({ summary: 'Obtener configuraciones públicas del sistema' })
+  async getPublicConfigs() {
+    return this.systemConfigService.getPublic();
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener todas las configuraciones (solo admin)' })
+  async getAllConfigs() {
+    return this.systemConfigService.getAll();
+  }
+
+  @Get(':key')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener configuración por clave' })
+  async getConfigByKey(@Param('key') key: string) {
+    return this.systemConfigService.getByKey(key);
+  }
+
+  @Patch(':key')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar configuración' })
+  async updateConfig(@Param('key') key: string, @Body() body: { value: string }) {
+    return this.systemConfigService.update(key, body.value);
+  }
+
+  @Patch()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar múltiples configuraciones' })
+  async updateMultipleConfigs(@Body() body: UpdateMultipleConfigsDto) {
+    return this.systemConfigService.updateMultiple(body.configs);
+  }
+}

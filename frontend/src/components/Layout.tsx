@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSystemConfig } from '../contexts/SystemConfigContext';
 import {
   HomeIcon,
   UsersIcon,
@@ -24,6 +25,7 @@ import {
   CalculatorIcon,
   QuestionMarkCircleIcon,
   ComputerDesktopIcon,
+  Cog8ToothIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -31,13 +33,14 @@ interface NavItem {
   href: string;
   icon: typeof HomeIcon;
   roles?: string[];
+  requiresMultiCompany?: boolean; // Only show when multi-company mode is enabled
 }
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Mi Portal', href: '/my-portal', icon: UserIcon },
   { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['admin', 'rh', 'manager'] },
-  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['admin'] },
+  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['admin'], requiresMultiCompany: true },
   { name: 'Config. Empresa', href: '/company-config', icon: CogIcon, roles: ['admin', 'rh'] },
   { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['admin', 'rh'] },
@@ -52,18 +55,31 @@ const navigation: NavItem[] = [
   { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon, roles: ['admin', 'rh'] },
   { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon, roles: ['admin', 'rh', 'company_admin'] },
   { name: 'Config. Contable', href: '/accounting-config', icon: CalculatorIcon, roles: ['admin', 'company_admin'] },
+  { name: 'Config. Sistema', href: '/system-settings', icon: Cog8ToothIcon, roles: ['admin'] },
   { name: 'Ayuda', href: '/help', icon: QuestionMarkCircleIcon },
 ];
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { multiCompanyEnabled } = useSystemConfig();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  // Filter navigation based on role and multiCompany setting
+  const filteredNavigation = useMemo(() => {
+    return navigation.filter((item) => {
+      // Check role permission
+      const hasRoleAccess = !item.roles || item.roles.includes(user?.role || '');
+      // Check multi-company requirement
+      const meetsMultiCompanyReq = !item.requiresMultiCompany || multiCompanyEnabled;
+      return hasRoleAccess && meetsMultiCompanyReq;
+    });
+  }, [user?.role, multiCompanyEnabled]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -88,9 +104,7 @@ export default function Layout() {
           </div>
 
           <nav className="flex-1 px-2 py-4 space-y-1">
-            {navigation
-              .filter((item) => !item.roles || item.roles.includes(user?.role || ''))
-              .map((item) => (
+            {filteredNavigation.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}
@@ -121,9 +135,7 @@ export default function Layout() {
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-1">
-            {navigation
-              .filter((item) => !item.roles || item.roles.includes(user?.role || ''))
-              .map((item) => (
+            {filteredNavigation.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}
