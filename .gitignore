@@ -10,6 +10,9 @@ package-lock.json
 # Build outputs
 dist/
 build/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
 
 # IDE
 .idea/
