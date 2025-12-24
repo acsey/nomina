@@ -13,7 +13,21 @@ import {
   PlayCircleIcon,
   QuestionMarkCircleIcon,
   DocumentArrowDownIcon,
+  ArrowDownTrayIcon,
+  UserGroupIcon,
+  UserIcon,
+  ShieldCheckIcon,
+  ServerStackIcon,
 } from '@heroicons/react/24/outline';
+import {
+  generateAdminManual,
+  generateHRManual,
+  generateEmployeeManual,
+  generateTechnicalDocument,
+  generateDeploymentDocument,
+} from '../utils/documentGenerator';
+import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 interface HelpSection {
   id: string;
@@ -288,9 +302,62 @@ const faqItems = [
   },
 ];
 
+interface DocumentDownload {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  generator: () => Promise<void>;
+  roles?: string[];
+}
+
+const documentDownloads: DocumentDownload[] = [
+  {
+    id: 'admin-manual',
+    title: 'Manual de Administrador',
+    description: 'Guia completa para administradores del sistema',
+    icon: ShieldCheckIcon,
+    generator: generateAdminManual,
+    roles: ['admin'],
+  },
+  {
+    id: 'hr-manual',
+    title: 'Manual de Recursos Humanos',
+    description: 'Guia para usuarios de RH y gestion de nomina',
+    icon: UserGroupIcon,
+    generator: generateHRManual,
+    roles: ['admin', 'rh', 'company_admin'],
+  },
+  {
+    id: 'employee-manual',
+    title: 'Manual del Empleado',
+    description: 'Guia para uso del portal de empleados',
+    icon: UserIcon,
+    generator: generateEmployeeManual,
+  },
+  {
+    id: 'technical-doc',
+    title: 'Documento Tecnico',
+    description: 'Arquitectura y especificaciones tecnicas del sistema',
+    icon: ServerStackIcon,
+    generator: generateTechnicalDocument,
+    roles: ['admin'],
+  },
+  {
+    id: 'deployment-doc',
+    title: 'Documento de Despliegue',
+    description: 'Guia de instalacion y configuracion',
+    icon: Cog6ToothIcon,
+    generator: generateDeploymentDocument,
+    roles: ['admin'],
+  },
+];
+
 export default function HelpPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>('getting-started');
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const toggleSection = (sectionId: string) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
@@ -301,25 +368,79 @@ export default function HelpPage() {
     setExpandedTopic(expandedTopic === topicTitle ? null : topicTitle);
   };
 
+  const handleDownload = async (doc: DocumentDownload) => {
+    try {
+      setDownloading(doc.id);
+      await doc.generator();
+      toast.success(`${doc.title} descargado`);
+    } catch {
+      toast.error('Error al generar documento');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  // Filter documents based on user role
+  const availableDocuments = documentDownloads.filter(
+    (doc) => !doc.roles || doc.roles.includes(user?.role || '')
+  );
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center mb-4">
-          <BookOpenIcon className="h-8 w-8 text-primary-600 mr-3" />
-          <h1 className="text-2xl font-bold text-gray-900">Manual de Usuario</h1>
+          <BookOpenIcon className="h-8 w-8 text-primary-600 dark:text-primary-400 mr-3" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manual de Usuario</h1>
         </div>
-        <p className="text-gray-500">
+        <p className="text-gray-500 dark:text-gray-400">
           Guia completa para usar el sistema de nomina. Selecciona un tema para ver instrucciones detalladas.
         </p>
       </div>
 
-      {/* Quick Download Section */}
-      <div className="card bg-gradient-to-r from-primary-50 to-primary-100 border-primary-200 mb-8">
+      {/* Document Downloads Section */}
+      <div className="card dark:bg-gray-800 mb-8">
+        <div className="flex items-center mb-4">
+          <ArrowDownTrayIcon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-2" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Descargar Documentacion</h2>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Descarga los manuales en formato Word (.docx) para consultarlos sin conexion.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {availableDocuments.map((doc) => (
+            <button
+              key={doc.id}
+              onClick={() => handleDownload(doc)}
+              disabled={downloading === doc.id}
+              className="flex items-start gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left disabled:opacity-50"
+            >
+              <doc.icon className="h-8 w-8 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 dark:text-white truncate">{doc.title}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{doc.description}</p>
+                {downloading === doc.id ? (
+                  <span className="text-xs text-primary-600 dark:text-primary-400 mt-2 inline-block">
+                    Generando...
+                  </span>
+                ) : (
+                  <span className="text-xs text-primary-600 dark:text-primary-400 mt-2 inline-flex items-center">
+                    <ArrowDownTrayIcon className="h-3 w-3 mr-1" />
+                    Descargar .docx
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Print Section */}
+      <div className="card bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-primary-200 dark:border-primary-800 mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-primary-900">Descargar Manual Completo</h3>
-            <p className="text-sm text-primary-700 mt-1">
-              Descarga el manual en PDF para consultarlo sin conexion
+            <h3 className="font-semibold text-primary-900 dark:text-primary-100">Imprimir Esta Pagina</h3>
+            <p className="text-sm text-primary-700 dark:text-primary-300 mt-1">
+              Imprime esta guia de ayuda o guardala como PDF
             </p>
           </div>
           <button
@@ -335,14 +456,14 @@ export default function HelpPage() {
       {/* Help Sections */}
       <div className="space-y-4 mb-12">
         {helpSections.map((section) => (
-          <div key={section.id} className="card">
+          <div key={section.id} className="card dark:bg-gray-800">
             <button
               onClick={() => toggleSection(section.id)}
               className="w-full flex items-center justify-between text-left"
             >
               <div className="flex items-center">
-                <section.icon className="h-6 w-6 text-primary-600 mr-3" />
-                <span className="font-semibold text-gray-900">{section.title}</span>
+                <section.icon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-3" />
+                <span className="font-semibold text-gray-900 dark:text-white">{section.title}</span>
               </div>
               {expandedSection === section.id ? (
                 <ChevronDownIcon className="h-5 w-5 text-gray-400" />
@@ -354,12 +475,12 @@ export default function HelpPage() {
             {expandedSection === section.id && (
               <div className="mt-4 space-y-3">
                 {section.content.map((topic) => (
-                  <div key={topic.title} className="border-l-2 border-primary-200 pl-4">
+                  <div key={topic.title} className="border-l-2 border-primary-200 dark:border-primary-700 pl-4">
                     <button
                       onClick={() => toggleTopic(topic.title)}
                       className="w-full flex items-center justify-between text-left py-2"
                     >
-                      <span className="font-medium text-gray-700">{topic.title}</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-200">{topic.title}</span>
                       {expandedTopic === topic.title ? (
                         <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                       ) : (
@@ -369,13 +490,13 @@ export default function HelpPage() {
 
                     {expandedTopic === topic.title && (
                       <div className="pb-3">
-                        <p className="text-gray-600 text-sm mb-3">{topic.content}</p>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">{topic.content}</p>
                         {topic.steps && (
-                          <div className="bg-gray-50 rounded-lg p-4">
-                            <p className="text-sm font-medium text-gray-700 mb-2">Pasos:</p>
+                          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Pasos:</p>
                             <ol className="list-decimal list-inside space-y-1">
                               {topic.steps.map((step, index) => (
-                                <li key={index} className="text-sm text-gray-600">{step}</li>
+                                <li key={index} className="text-sm text-gray-600 dark:text-gray-300">{step}</li>
                               ))}
                             </ol>
                           </div>
@@ -393,24 +514,24 @@ export default function HelpPage() {
       {/* FAQ Section */}
       <div className="mb-8">
         <div className="flex items-center mb-4">
-          <QuestionMarkCircleIcon className="h-6 w-6 text-primary-600 mr-2" />
-          <h2 className="text-xl font-bold text-gray-900">Preguntas Frecuentes</h2>
+          <QuestionMarkCircleIcon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-2" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Preguntas Frecuentes</h2>
         </div>
 
         <div className="space-y-4">
           {faqItems.map((item, index) => (
-            <div key={index} className="card">
-              <h3 className="font-medium text-gray-900 mb-2">{item.question}</h3>
-              <p className="text-gray-600 text-sm">{item.answer}</p>
+            <div key={index} className="card dark:bg-gray-800">
+              <h3 className="font-medium text-gray-900 dark:text-white mb-2">{item.question}</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">{item.answer}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Contact Support */}
-      <div className="card bg-gray-50">
-        <h3 className="font-semibold text-gray-900 mb-2">Necesitas mas ayuda?</h3>
-        <p className="text-gray-600 text-sm mb-4">
+      <div className="card bg-gray-50 dark:bg-gray-800">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Necesitas mas ayuda?</h3>
+        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
           Si no encontraste la respuesta a tu pregunta, contacta al equipo de soporte.
         </p>
         <div className="flex flex-wrap gap-4">
@@ -422,7 +543,7 @@ export default function HelpPage() {
           </a>
           <a
             href="tel:+5215512345678"
-            className="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
           >
             Llamar a Soporte
           </a>
