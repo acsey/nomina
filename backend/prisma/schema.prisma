@@ -33,18 +33,21 @@ model SystemConfig {
 // ============================================
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String   @map("first_name")
-  lastName  String   @map("last_name")
-  isActive  Boolean  @default(true) @map("is_active")
-  roleId    String   @map("role_id")
-  role      Role     @relation(fields: [roleId], references: [id])
-  companyId String?  @map("company_id")
-  company   Company? @relation(fields: [companyId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  isActive     Boolean  @default(true) @map("is_active")
+  roleId       String   @map("role_id")
+  role         Role     @relation(fields: [roleId], references: [id])
+  companyId    String?  @map("company_id")
+  company      Company? @relation(fields: [companyId], references: [id])
+  // Autenticación externa (Microsoft, Google, etc.)
+  authProvider String?  @map("auth_provider") // local, microsoft, google
+  externalId   String?  @map("external_id") // ID del proveedor externo
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   auditLogs         AuditLog[]
   benefitsCreated   Benefit[] @relation("BenefitCreator")
@@ -184,6 +187,7 @@ model Employee {
   secondLastName      String?  @map("second_last_name")
   email               String?
   phone               String?
+  photoUrl            String?  @map("photo_url") // URL de la foto de perfil
   birthDate           DateTime @map("birth_date")
   gender              Gender
   maritalStatus       MaritalStatus @map("marital_status")

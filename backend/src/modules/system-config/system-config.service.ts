@@ -27,6 +27,63 @@ const DEFAULT_CONFIGS = [
     category: 'general',
     isPublic: true,
   },
+  // Azure AD / Microsoft Entra ID Configuration
+  {
+    key: 'AZURE_AD_ENABLED',
+    value: 'false',
+    description: 'Habilita la autenticación con Microsoft Azure AD / Entra ID',
+    dataType: 'boolean',
+    category: 'azure_ad',
+    isPublic: true,
+  },
+  {
+    key: 'AZURE_AD_TENANT_ID',
+    value: '',
+    description: 'ID del tenant de Azure AD (Directory ID)',
+    dataType: 'string',
+    category: 'azure_ad',
+    isPublic: false,
+  },
+  {
+    key: 'AZURE_AD_CLIENT_ID',
+    value: '',
+    description: 'ID de la aplicación registrada en Azure AD',
+    dataType: 'string',
+    category: 'azure_ad',
+    isPublic: false,
+  },
+  {
+    key: 'AZURE_AD_CLIENT_SECRET',
+    value: '',
+    description: 'Secreto de la aplicación (mantener seguro)',
+    dataType: 'string',
+    category: 'azure_ad',
+    isPublic: false,
+  },
+  {
+    key: 'AZURE_AD_REDIRECT_URI',
+    value: 'http://localhost:3000/auth/microsoft/callback',
+    description: 'URL de redirección después de la autenticación',
+    dataType: 'string',
+    category: 'azure_ad',
+    isPublic: false,
+  },
+  {
+    key: 'AZURE_AD_AUTO_CREATE_USER',
+    value: 'false',
+    description: 'Crear usuario automáticamente al iniciar sesión con Microsoft si no existe',
+    dataType: 'boolean',
+    category: 'azure_ad',
+    isPublic: false,
+  },
+  {
+    key: 'AZURE_AD_SYNC_PHOTO',
+    value: 'true',
+    description: 'Sincronizar foto de perfil desde Microsoft',
+    dataType: 'boolean',
+    category: 'azure_ad',
+    isPublic: false,
+  },
 ];
 
 @Injectable()

@@ -54,6 +54,7 @@ const navigation: NavItem[] = [
   { name: 'Nomina', href: '/payroll', icon: BanknotesIcon, roles: ['admin', 'rh'], category: 'nomina' },
   { name: 'Recibos', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['admin', 'rh'], category: 'nomina' },
   { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['admin', 'rh', 'manager'], category: 'nomina' },
+  { name: 'Checador Web', href: '/timeclock', icon: ClockIcon, category: 'principal' },
   { name: 'Asistencia', href: '/attendance', icon: ClockIcon, roles: ['admin', 'rh', 'manager'], category: 'control' },
   { name: 'Horarios', href: '/work-schedules', icon: ClockIcon, roles: ['admin', 'rh', 'company_admin'], category: 'control' },
   { name: 'Dispositivos', href: '/devices', icon: ComputerDesktopIcon, roles: ['admin', 'rh', 'company_admin'], category: 'control' },

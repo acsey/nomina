@@ -8,6 +8,7 @@ import {
   XMarkIcon,
   TrashIcon,
   GiftIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { employeesApi, benefitsApi } from '../services/api';
 import dayjs from 'dayjs';
@@ -144,13 +145,27 @@ export default function EmployeeDetailPage() {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {employee.firstName} {employee.lastName}
-          </h1>
-          <p className="text-gray-500">
-            {employee.employeeNumber} • {employee.jobPosition?.name}
-          </p>
+        <div className="flex items-center gap-4">
+          {/* Photo */}
+          {employee.photoUrl ? (
+            <img
+              src={employee.photoUrl.startsWith('/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${employee.photoUrl}` : employee.photoUrl}
+              alt={`${employee.firstName} ${employee.lastName}`}
+              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <UserCircleIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {employee.firstName} {employee.lastName}
+            </h1>
+            <p className="text-gray-500">
+              {employee.employeeNumber} • {employee.jobPosition?.name}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Link

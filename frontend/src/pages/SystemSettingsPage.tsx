@@ -14,6 +14,9 @@ import {
   MoonIcon,
   ComputerDesktopIcon,
   SwatchIcon,
+  CloudIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from '@heroicons/react/24/outline';
 
 interface SystemConfig {
@@ -34,6 +37,7 @@ export default function SystemSettingsPage() {
   const { mode, setMode, isDark } = useTheme();
   const queryClient = useQueryClient();
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
   const isAdmin = user?.role === 'admin';
 
@@ -119,6 +123,10 @@ export default function SystemSettingsPage() {
         return <Cog6ToothIcon className="h-5 w-5" />;
       case 'branding':
         return <BuildingOffice2Icon className="h-5 w-5" />;
+      case 'azure_ad':
+        return <CloudIcon className="h-5 w-5" />;
+      case 'security':
+        return <ShieldCheckIcon className="h-5 w-5" />;
       default:
         return <GlobeAltIcon className="h-5 w-5" />;
     }
@@ -130,9 +138,21 @@ export default function SystemSettingsPage() {
         return 'General';
       case 'branding':
         return 'Marca y Apariencia';
+      case 'azure_ad':
+        return 'Microsoft Azure AD / Entra ID';
+      case 'security':
+        return 'Seguridad';
       default:
         return category.charAt(0).toUpperCase() + category.slice(1);
     }
+  };
+
+  const toggleSecretVisibility = (key: string) => {
+    setShowSecrets((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const isSecretField = (key: string) => {
+    return key.toLowerCase().includes('secret') || key.toLowerCase().includes('password');
   };
 
   const renderConfigInput = (config: SystemConfig) => {
@@ -174,6 +194,31 @@ export default function SystemSettingsPage() {
         );
 
       default:
+        // Check if it's a secret field
+        if (isSecretField(config.key)) {
+          return (
+            <div className="relative max-w-md">
+              <input
+                type={showSecrets[config.key] ? 'text' : 'password'}
+                value={value}
+                onChange={(e) => handleValueChange(config.key, e.target.value)}
+                className="input pr-10 w-full"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => toggleSecretVisibility(config.key)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                {showSecrets[config.key] ? (
+                  <EyeSlashIcon className="h-5 w-5" />
+                ) : (
+                  <EyeIcon className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          );
+        }
         return (
           <input
             type="text"
