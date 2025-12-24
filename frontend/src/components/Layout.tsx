@@ -23,6 +23,7 @@ import {
   DocumentTextIcon,
   CalculatorIcon,
   QuestionMarkCircleIcon,
+  ComputerDesktopIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -44,6 +45,8 @@ const navigation: NavItem[] = [
   { name: 'Recibos Nomina', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['admin', 'rh'] },
   { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Asistencia', href: '/attendance', icon: ClockIcon, roles: ['admin', 'rh', 'manager'] },
+  { name: 'Horarios', href: '/work-schedules', icon: ClockIcon, roles: ['admin', 'rh', 'company_admin'] },
+  { name: 'Dispositivos', href: '/devices', icon: ComputerDesktopIcon, roles: ['admin', 'rh', 'company_admin'] },
   { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon, roles: ['admin', 'rh', 'manager'] },
   { name: 'Prestaciones', href: '/benefits', icon: GiftIcon, roles: ['admin', 'rh'] },
   { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon, roles: ['admin', 'rh'] },
