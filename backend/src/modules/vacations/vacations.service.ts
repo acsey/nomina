@@ -135,14 +135,22 @@ export class VacationsService {
   // Check if an employee can approve a request for another employee
   async canApproveRequest(approverId: string, employeeId: string): Promise<{ allowed: boolean; reason: string; delegatedFrom?: string }> {
     // Get the approver's employee record
-    const approverEmployee = await this.prisma.employee.findFirst({
-      where: {
-        OR: [
-          { id: approverId },
-          { userId: approverId },
-        ],
-      },
+    // First try to find by employee ID
+    let approverEmployee = await this.prisma.employee.findUnique({
+      where: { id: approverId },
     });
+
+    // If not found, try to find by user's email
+    if (!approverEmployee) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: approverId },
+      });
+      if (user?.email) {
+        approverEmployee = await this.prisma.employee.findFirst({
+          where: { email: user.email },
+        });
+      }
+    }
 
     if (!approverEmployee) {
       return { allowed: false, reason: 'Approver not found' };
