@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { SystemConfigProvider } from './contexts/SystemConfigContext';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -23,6 +24,7 @@ import UsersPage from './pages/UsersPage';
 import AccountingConfigPage from './pages/AccountingConfigPage';
 import WorkSchedulesPage from './pages/WorkSchedulesPage';
 import DevicesPage from './pages/DevicesPage';
+import SystemSettingsPage from './pages/SystemSettingsPage';
 import HelpPage from './pages/HelpPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -42,46 +44,49 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ThemeProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+      <SystemConfigProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
 
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <Layout />
-                </PrivateRoute>
-              }
-            >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="employees" element={<EmployeesPage />} />
-            <Route path="employees/new" element={<EmployeeFormPage />} />
-            <Route path="employees/:id" element={<EmployeeDetailPage />} />
-            <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
-            <Route path="departments" element={<DepartmentsPage />} />
-            <Route path="payroll" element={<PayrollPage />} />
-            <Route path="payroll/receipts" element={<PayrollReceiptsPage />} />
-            <Route path="incidents" element={<IncidentsPage />} />
-            <Route path="attendance" element={<AttendancePage />} />
-            <Route path="vacations" element={<VacationsPage />} />
-            <Route path="benefits" element={<BenefitsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="bulk-upload" element={<BulkUploadPage />} />
-            <Route path="companies" element={<CompaniesPage />} />
-            <Route path="company-config" element={<CompanyConfigPage />} />
-            <Route path="users" element={<UsersPage />} />
-            <Route path="accounting-config" element={<AccountingConfigPage />} />
-            <Route path="work-schedules" element={<WorkSchedulesPage />} />
-            <Route path="devices" element={<DevicesPage />} />
-            <Route path="my-portal" element={<EmployeePortalPage />} />
-            <Route path="help" element={<HelpPage />} />
-            </Route>
-          </Routes>
-        </ThemeProvider>
-      </AuthProvider>
+              <Route
+                path="/"
+                element={
+                  <PrivateRoute>
+                    <Layout />
+                  </PrivateRoute>
+                }
+              >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="employees" element={<EmployeesPage />} />
+              <Route path="employees/new" element={<EmployeeFormPage />} />
+              <Route path="employees/:id" element={<EmployeeDetailPage />} />
+              <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
+              <Route path="departments" element={<DepartmentsPage />} />
+              <Route path="payroll" element={<PayrollPage />} />
+              <Route path="payroll/receipts" element={<PayrollReceiptsPage />} />
+              <Route path="incidents" element={<IncidentsPage />} />
+              <Route path="attendance" element={<AttendancePage />} />
+              <Route path="vacations" element={<VacationsPage />} />
+              <Route path="benefits" element={<BenefitsPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="bulk-upload" element={<BulkUploadPage />} />
+              <Route path="companies" element={<CompaniesPage />} />
+              <Route path="company-config" element={<CompanyConfigPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="accounting-config" element={<AccountingConfigPage />} />
+              <Route path="work-schedules" element={<WorkSchedulesPage />} />
+              <Route path="devices" element={<DevicesPage />} />
+              <Route path="system-settings" element={<SystemSettingsPage />} />
+              <Route path="my-portal" element={<EmployeePortalPage />} />
+              <Route path="help" element={<HelpPage />} />
+              </Route>
+            </Routes>
+          </ThemeProvider>
+        </AuthProvider>
+      </SystemConfigProvider>
     </BrowserRouter>
   );
 }

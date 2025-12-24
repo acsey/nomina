@@ -11,6 +11,24 @@ datasource db {
 }
 
 // ============================================
+// MÓDULO: CONFIGURACIÓN DEL SISTEMA
+// ============================================
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  dataType    String   @default("string") @map("data_type") // string, boolean, number, json
+  category    String   @default("general")
+  isPublic    Boolean  @default(false) @map("is_public") // Si es visible para todos los usuarios
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
+}
+
+// ============================================
 // MÓDULO: AUTENTICACIÓN Y USUARIOS
 // ============================================
 

@@ -19,6 +19,7 @@ import { IncidentsModule } from './modules/incidents/incidents.module';
 import { UsersModule } from './modules/users/users.module';
 import { AccountingConfigModule } from './modules/accounting-config/accounting-config.module';
 import { DevicesModule } from './modules/devices/devices.module';
+import { SystemConfigModule } from './modules/system-config/system-config.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { DevicesModule } from './modules/devices/devices.module';
     IncidentsModule,
     AccountingConfigModule,
     DevicesModule,
+    SystemConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
