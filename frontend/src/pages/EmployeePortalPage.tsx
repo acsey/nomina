@@ -242,17 +242,58 @@ export default function EmployeePortalPage() {
 
   // No employee linked to this user
   if (!employeeId) {
+    const isAdminUser = user?.role === 'admin' || user?.role === 'rh' || user?.role === 'super_admin';
+
     return (
-      <div className="card text-center py-12">
-        <ExclamationTriangleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          No hay empleado vinculado
+      <div className="card text-center py-12 max-w-lg mx-auto">
+        <div className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isAdminUser ? 'bg-blue-100' : 'bg-yellow-100'}`}>
+          {isAdminUser ? (
+            <svg className="h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ) : (
+            <ExclamationTriangleIcon className="h-10 w-10 text-yellow-500" />
+          )}
+        </div>
+
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+          {isAdminUser ? 'Modulo exclusivo para empleados' : 'Usuario no vinculado'}
         </h2>
-        <p className="text-gray-500">
-          Tu cuenta de usuario no esta vinculada a un registro de empleado.
-          <br />
-          Contacta a Recursos Humanos para resolver este problema.
+
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          {isAdminUser ? (
+            <>
+              Este modulo es para que los <strong>empleados</strong> puedan consultar su informacion personal,
+              registrar asistencia, ver recibos de nomina y solicitar vacaciones.
+            </>
+          ) : (
+            <>
+              Tu cuenta de usuario (<strong>{user?.email}</strong>) no esta vinculada a un registro de empleado en el sistema.
+            </>
+          )}
         </p>
+
+        <div className={`p-4 rounded-lg text-left text-sm ${isAdminUser ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-yellow-50 dark:bg-yellow-900/20'}`}>
+          {isAdminUser ? (
+            <div className="space-y-2 text-blue-800 dark:text-blue-300">
+              <p className="font-medium">Como usuario administrativo puedes:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Gestionar empleados desde el modulo <strong>Empleados</strong></li>
+                <li>Administrar asistencia desde <strong>Asistencia</strong></li>
+                <li>Procesar nominas desde <strong>Nomina</strong></li>
+                <li>Aprobar vacaciones desde <strong>Vacaciones</strong></li>
+              </ul>
+            </div>
+          ) : (
+            <div className="space-y-2 text-yellow-800 dark:text-yellow-300">
+              <p className="font-medium">Para resolver esto:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Contacta al departamento de <strong>Recursos Humanos</strong></li>
+                <li>Solicita que vinculen tu correo (<strong>{user?.email}</strong>) con tu registro de empleado</li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
