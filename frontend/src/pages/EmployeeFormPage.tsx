@@ -96,7 +96,17 @@ export default function EmployeeFormPage() {
   // Fetch employee data when editing
   const { data: employeeData, isLoading: employeeLoading, error: employeeError } = useQuery({
     queryKey: ['employee', id],
-    queryFn: () => employeesApi.getById(id!),
+    queryFn: async () => {
+      console.log('[EmployeeFormPage] Fetching employee with id:', id);
+      try {
+        const result = await employeesApi.getById(id!);
+        console.log('[EmployeeFormPage] Employee data received:', result.data);
+        return result;
+      } catch (error) {
+        console.error('[EmployeeFormPage] Error fetching employee:', error);
+        throw error;
+      }
+    },
     enabled: isEditMode,
     retry: 1,
   });
@@ -319,34 +329,72 @@ export default function EmployeeFormPage() {
     }
   };
 
+  // Debug logging
+  console.log('[EmployeeFormPage] State:', {
+    isEditMode,
+    id,
+    employeeLoading,
+    employeeError: employeeError ? String(employeeError) : null,
+    hasEmployeeData: !!employeeData?.data
+  });
+
   if (isEditMode && employeeLoading) {
+    console.log('[EmployeeFormPage] Showing loading spinner');
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <span className="ml-3 text-gray-600 dark:text-gray-300">Cargando datos del empleado...</span>
       </div>
     );
   }
 
   if (isEditMode && employeeError) {
+    console.error('[EmployeeFormPage] Employee error:', employeeError);
     return (
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate('/employees')}
-            className="p-2 text-gray-500 hover:text-gray-700"
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Error</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Error</h1>
         </div>
         <div className="card text-center py-12">
           <p className="text-red-500 mb-4">No se pudo cargar los datos del empleado</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {employeeError instanceof Error ? employeeError.message : 'Error desconocido'}
+          </p>
           <button
             onClick={() => navigate('/employees')}
             className="btn btn-primary"
           >
             Volver a empleados
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Edge case: edit mode but no data and no loading (shouldn't happen normally)
+  if (isEditMode && !employeeLoading && !employeeError && !employeeData?.data) {
+    console.warn('[EmployeeFormPage] Edit mode but no employee data loaded');
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => navigate('/employees')}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cargando...</h1>
+        </div>
+        <div className="card text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Esperando datos del empleado...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">ID: {id}</p>
         </div>
       </div>
     );
