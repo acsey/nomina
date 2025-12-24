@@ -33,6 +33,7 @@ interface EmployeeFormData {
   departmentId: string;
   companyId: string;
   workScheduleId: string;
+  supervisorId: string;
   baseSalary: number;
   salaryType: string;
   paymentMethod: string;
@@ -67,6 +68,7 @@ const initialFormData: EmployeeFormData = {
   departmentId: '',
   companyId: '',
   workScheduleId: '',
+  supervisorId: '',
   baseSalary: 0,
   salaryType: 'MONTHLY',
   paymentMethod: 'TRANSFER',
@@ -125,6 +127,7 @@ export default function EmployeeFormPage() {
         departmentId: emp.departmentId || '',
         companyId: emp.companyId || '',
         workScheduleId: emp.workScheduleId || '',
+        supervisorId: emp.supervisorId || '',
         baseSalary: Number(emp.baseSalary) || 0,
         salaryType: emp.salaryType || 'MONTHLY',
         paymentMethod: emp.paymentMethod || 'TRANSFER',
@@ -161,11 +164,28 @@ export default function EmployeeFormPage() {
     queryFn: () => catalogsApi.getWorkSchedules(),
   });
 
+  // Fetch all employees to use as potential supervisors
+  const { data: allEmployeesData } = useQuery({
+    queryKey: ['all-employees-for-supervisor'],
+    queryFn: () => employeesApi.getAll(),
+  });
+
   const companies = companiesData?.data || [];
   const jobPositions = jobPositionsData?.data || [];
   const departments = departmentsData?.data || [];
   const banks = banksData?.data || [];
   const workSchedules = workSchedulesData?.data || [];
+  const allEmployees = allEmployeesData?.data || [];
+
+  // Filter supervisors: only active employees from the same company (if company is selected)
+  const potentialSupervisors = allEmployees.filter((emp: any) => {
+    // Exclude current employee when editing
+    if (isEditMode && emp.id === id) return false;
+    // Filter by company if one is selected
+    if (formData.companyId && emp.companyId !== formData.companyId) return false;
+    // Only active employees
+    return emp.isActive !== false;
+  });
 
   // Prepare payload
   const preparePayload = (data: EmployeeFormData) => ({
@@ -173,6 +193,7 @@ export default function EmployeeFormPage() {
     baseSalary: Number(data.baseSalary),
     bankId: data.bankId || undefined,
     workScheduleId: data.workScheduleId || undefined,
+    supervisorId: data.supervisorId || null,
     middleName: data.middleName || undefined,
     secondLastName: data.secondLastName || undefined,
     email: data.email || undefined,
@@ -595,6 +616,26 @@ export default function EmployeeFormPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="lg:col-span-2">
+              <label className="label">Jefe Directo (Supervisor)</label>
+              <select
+                name="supervisorId"
+                value={formData.supervisorId}
+                onChange={handleChange}
+                className="input"
+              >
+                <option value="">Sin supervisor (nivel más alto)</option>
+                {potentialSupervisors.map((emp: any) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.employeeNumber} - {emp.firstName} {emp.lastName} {emp.secondLastName || ''}
+                    {emp.jobPosition?.name ? ` (${emp.jobPosition.name})` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Este campo define la jerarquía organizacional y quién puede aprobar solicitudes
+              </p>
             </div>
           </div>
         </div>

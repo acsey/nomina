@@ -131,6 +131,11 @@ export class CreateEmployeeDto {
   @IsUUID()
   workScheduleId?: string;
 
+  @ApiPropertyOptional({ description: 'ID del supervisor/jefe directo' })
+  @IsOptional()
+  @IsUUID()
+  supervisorId?: string;
+
   @ApiProperty({ example: 15000.00 })
   @IsNumber()
   baseSalary: number;

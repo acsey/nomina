@@ -58,6 +58,7 @@ export class EmployeesService {
         company: { connect: { id: createEmployeeDto.companyId } },
         ...(createEmployeeDto.bankId && { bank: { connect: { id: createEmployeeDto.bankId } } }),
         ...(createEmployeeDto.workScheduleId && { workSchedule: { connect: { id: createEmployeeDto.workScheduleId } } }),
+        ...(createEmployeeDto.supervisorId && { supervisor: { connect: { id: createEmployeeDto.supervisorId } } }),
       },
       include: {
         department: true,
@@ -160,6 +161,7 @@ export class EmployeesService {
       jobPositionId,
       bankId,
       workScheduleId,
+      supervisorId,
       gender,
       maritalStatus,
       contractType,
@@ -190,6 +192,10 @@ export class EmployeesService {
       ...(jobPositionId && { jobPosition: { connect: { id: jobPositionId } } }),
       ...(bankId && { bank: { connect: { id: bankId } } }),
       ...(workScheduleId && { workSchedule: { connect: { id: workScheduleId } } }),
+      // Handle supervisor connection (can be null to remove supervisor)
+      ...(supervisorId !== undefined && {
+        supervisor: supervisorId ? { connect: { id: supervisorId } } : { disconnect: true },
+      }),
     };
 
     return this.prisma.employee.update({
