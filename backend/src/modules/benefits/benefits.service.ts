@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { BenefitType, BenefitValueType } from '@prisma/client';
+import { BenefitType, BenefitValueType, BenefitStatus } from '@prisma/client';
 
 @Injectable()
 export class BenefitsService {
@@ -12,19 +12,109 @@ export class BenefitsService {
     type: BenefitType;
     value?: number;
     valueType: BenefitValueType;
+    createdById: string;
+    isAdmin: boolean;
   }) {
+    const { isAdmin, createdById, ...benefitData } = data;
+
     return this.prisma.benefit.create({
       data: {
-        ...data,
+        ...benefitData,
         isActive: true,
+        createdById,
+        // Si es admin, se aprueba automáticamente
+        status: isAdmin ? 'APPROVED' : 'PENDING',
+        approvedById: isAdmin ? createdById : null,
+        approvedAt: isAdmin ? new Date() : null,
+      },
+      include: {
+        createdBy: {
+          select: { firstName: true, lastName: true },
+        },
+        approvedBy: {
+          select: { firstName: true, lastName: true },
+        },
       },
     });
   }
 
-  async findAllBenefits() {
+  async findAllBenefits(includeAll = false) {
     return this.prisma.benefit.findMany({
-      where: { isActive: true },
+      where: includeAll ? { isActive: true } : { isActive: true, status: 'APPROVED' },
+      include: {
+        createdBy: {
+          select: { firstName: true, lastName: true },
+        },
+        approvedBy: {
+          select: { firstName: true, lastName: true },
+        },
+      },
       orderBy: { name: 'asc' },
+    });
+  }
+
+  async findPendingBenefits() {
+    return this.prisma.benefit.findMany({
+      where: { isActive: true, status: 'PENDING' },
+      include: {
+        createdBy: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async approveBenefit(id: string, approvedById: string) {
+    const benefit = await this.prisma.benefit.findUnique({
+      where: { id },
+    });
+
+    if (!benefit) {
+      throw new NotFoundException('Prestación no encontrada');
+    }
+
+    if (benefit.status !== 'PENDING') {
+      throw new ForbiddenException('Solo se pueden aprobar prestaciones pendientes');
+    }
+
+    return this.prisma.benefit.update({
+      where: { id },
+      data: {
+        status: 'APPROVED',
+        approvedById,
+        approvedAt: new Date(),
+      },
+      include: {
+        createdBy: {
+          select: { firstName: true, lastName: true },
+        },
+        approvedBy: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+    });
+  }
+
+  async rejectBenefit(id: string, reason: string) {
+    const benefit = await this.prisma.benefit.findUnique({
+      where: { id },
+    });
+
+    if (!benefit) {
+      throw new NotFoundException('Prestación no encontrada');
+    }
+
+    if (benefit.status !== 'PENDING') {
+      throw new ForbiddenException('Solo se pueden rechazar prestaciones pendientes');
+    }
+
+    return this.prisma.benefit.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        rejectedReason: reason,
+      },
     });
   }
 
@@ -32,6 +122,12 @@ export class BenefitsService {
     const benefit = await this.prisma.benefit.findUnique({
       where: { id },
       include: {
+        createdBy: {
+          select: { firstName: true, lastName: true },
+        },
+        approvedBy: {
+          select: { firstName: true, lastName: true },
+        },
         employeeBenefits: {
           where: { isActive: true },
           include: {

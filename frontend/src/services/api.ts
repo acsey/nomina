@@ -178,11 +178,14 @@ export const vacationsApi = {
 };
 
 export const benefitsApi = {
-  getAll: () => api.get('/benefits'),
+  getAll: (includeAll = false) => api.get('/benefits', { params: { includeAll } }),
+  getPending: () => api.get('/benefits/pending'),
   getById: (id: string) => api.get(`/benefits/${id}`),
   create: (data: any) => api.post('/benefits', data),
   update: (id: string, data: any) => api.patch(`/benefits/${id}`, data),
   delete: (id: string) => api.delete(`/benefits/${id}`),
+  approve: (id: string) => api.post(`/benefits/${id}/approve`),
+  reject: (id: string, reason: string) => api.post(`/benefits/${id}/reject`, { reason }),
   assignToEmployee: (data: any) => api.post('/benefits/assign', data),
   removeFromEmployee: (employeeId: string, benefitId: string) =>
     api.delete(`/benefits/employee/${employeeId}/benefit/${benefitId}`),
