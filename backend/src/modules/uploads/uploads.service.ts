@@ -58,9 +58,11 @@ export class UploadsService {
     // Delete old photo if exists
     if (employee.photoUrl) {
       const oldFilename = employee.photoUrl.split('/').pop();
-      const oldPath = path.join(photosDir, oldFilename);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
+      if (oldFilename) {
+        const oldPath = path.join(photosDir, oldFilename);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
       }
     }
 
@@ -88,9 +90,11 @@ export class UploadsService {
 
     if (employee.photoUrl) {
       const filename = employee.photoUrl.split('/').pop();
-      const filePath = path.join(this.uploadDir, 'photos', filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      if (filename) {
+        const filePath = path.join(this.uploadDir, 'photos', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
       }
 
       await this.prisma.employee.update({

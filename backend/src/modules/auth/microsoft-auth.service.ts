@@ -100,20 +100,22 @@ export class MicrosoftAuthService {
     // Find or create user in our system
     const user = await this.findOrCreateUser(userInfo, tokenResponse.access_token);
 
-    // Generate our JWT
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId,
-    };
-    const access_token = this.jwtService.sign(payload);
-
     // Get the user with role
     const userWithRole = await this.prisma.user.findUnique({
       where: { id: user.id },
       include: { role: true },
     });
+
+    const roleName = userWithRole?.role?.name || 'user';
+
+    // Generate our JWT
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: roleName,
+      companyId: user.companyId,
+    };
+    const access_token = this.jwtService.sign(payload);
 
     return {
       access_token,
@@ -122,7 +124,7 @@ export class MicrosoftAuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: userWithRole?.role?.name || 'user',
+        role: roleName,
         companyId: user.companyId,
       },
     };
@@ -217,9 +219,7 @@ export class MicrosoftAuthService {
       }
 
       // Get first company as default
-      const defaultCompany = await this.prisma.company.findFirst({
-        where: { isActive: true },
-      });
+      const defaultCompany = await this.prisma.company.findFirst();
 
       if (!defaultCompany) {
         throw new BadRequestException('No hay empresas configuradas en el sistema');
