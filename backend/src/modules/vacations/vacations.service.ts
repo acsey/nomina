@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { LeaveType, RequestStatus } from '@prisma/client';
 import * as dayjs from 'dayjs';
@@ -84,9 +84,10 @@ export class VacationsService {
     });
   }
 
-  async approveRequest(requestId: string, approvedById: string) {
+  async approveRequest(requestId: string, approvedById: string, skipHierarchyCheck = false) {
     const request = await this.prisma.vacationRequest.findUnique({
       where: { id: requestId },
+      include: { employee: true },
     });
 
     if (!request) {
@@ -95,6 +96,14 @@ export class VacationsService {
 
     if (request.status !== 'PENDING') {
       throw new BadRequestException('Solo se pueden aprobar solicitudes pendientes');
+    }
+
+    // Check if approver has permission (unless admin/rh)
+    if (!skipHierarchyCheck) {
+      const canApprove = await this.canApproveRequest(approvedById, request.employeeId);
+      if (!canApprove.allowed) {
+        throw new ForbiddenException('No tiene permiso para aprobar esta solicitud');
+      }
     }
 
     // Actualizar balance si es vacaciones
@@ -121,6 +130,156 @@ export class VacationsService {
         approvedAt: new Date(),
       },
     });
+  }
+
+  // Check if an employee can approve a request for another employee
+  async canApproveRequest(approverId: string, employeeId: string): Promise<{ allowed: boolean; reason: string; delegatedFrom?: string }> {
+    // Get the approver's employee record
+    const approverEmployee = await this.prisma.employee.findFirst({
+      where: {
+        OR: [
+          { id: approverId },
+          { user: { id: approverId } },
+        ],
+      },
+    });
+
+    if (!approverEmployee) {
+      return { allowed: false, reason: 'Approver not found' };
+    }
+
+    // Check if approver is direct supervisor
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: { supervisor: true },
+    });
+
+    if (!employee) {
+      return { allowed: false, reason: 'Employee not found' };
+    }
+
+    // Direct supervisor can approve
+    if (employee.supervisorId === approverEmployee.id) {
+      return { allowed: true, reason: 'Direct supervisor' };
+    }
+
+    // Check if approver is in the supervisor chain
+    let currentSupervisor = employee.supervisor;
+    while (currentSupervisor) {
+      if (currentSupervisor.id === approverEmployee.id) {
+        return { allowed: true, reason: 'In supervisor chain' };
+      }
+      currentSupervisor = await this.prisma.employee.findUnique({
+        where: { id: currentSupervisor.supervisorId || '' },
+      });
+    }
+
+    // Check for active delegations
+    const today = new Date();
+    const activeDelegation = await this.prisma.approvalDelegation.findFirst({
+      where: {
+        delegateeId: approverEmployee.id,
+        isActive: true,
+        startDate: { lte: today },
+        OR: [
+          { endDate: null },
+          { endDate: { gte: today } },
+        ],
+        delegationType: {
+          in: ['ALL', 'VACATION'],
+        },
+      },
+      include: {
+        delegator: true,
+      },
+    });
+
+    if (activeDelegation) {
+      // Check if delegator is in supervisor chain
+      currentSupervisor = employee.supervisor;
+      while (currentSupervisor) {
+        if (currentSupervisor.id === activeDelegation.delegatorId) {
+          return {
+            allowed: true,
+            reason: 'Delegated authority',
+            delegatedFrom: `${activeDelegation.delegator.firstName} ${activeDelegation.delegator.lastName}`,
+          };
+        }
+        currentSupervisor = await this.prisma.employee.findUnique({
+          where: { id: currentSupervisor.supervisorId || '' },
+        });
+      }
+    }
+
+    return { allowed: false, reason: 'Not authorized' };
+  }
+
+  // Get who can approve a request for an employee
+  async getApproversForEmployee(employeeId: string): Promise<Array<{ id: string; name: string; reason: string }>> {
+    const approvers: Array<{ id: string; name: string; reason: string }> = [];
+
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        supervisor: true,
+      },
+    });
+
+    if (!employee) {
+      return approvers;
+    }
+
+    // Add supervisor chain
+    let currentSupervisor = employee.supervisor;
+    let level = 1;
+    while (currentSupervisor) {
+      approvers.push({
+        id: currentSupervisor.id,
+        name: `${currentSupervisor.firstName} ${currentSupervisor.lastName}`,
+        reason: level === 1 ? 'Supervisor directo' : `Nivel ${level} en cadena`,
+      });
+
+      currentSupervisor = await this.prisma.employee.findUnique({
+        where: { id: currentSupervisor.supervisorId || '' },
+      });
+      level++;
+    }
+
+    // Add delegates
+    const today = new Date();
+    const supervisorIds = approvers.map(a => a.id);
+
+    const activeDelegations = await this.prisma.approvalDelegation.findMany({
+      where: {
+        delegatorId: { in: supervisorIds },
+        isActive: true,
+        startDate: { lte: today },
+        OR: [
+          { endDate: null },
+          { endDate: { gte: today } },
+        ],
+        delegationType: {
+          in: ['ALL', 'VACATION'],
+        },
+      },
+      include: {
+        delegator: true,
+        delegatee: true,
+      },
+    });
+
+    for (const delegation of activeDelegations) {
+      // Avoid duplicates
+      if (!approvers.some(a => a.id === delegation.delegateeId)) {
+        approvers.push({
+          id: delegation.delegateeId,
+          name: `${delegation.delegatee.firstName} ${delegation.delegatee.lastName}`,
+          reason: `Delegado por ${delegation.delegator.firstName} ${delegation.delegator.lastName}`,
+        });
+      }
+    }
+
+    return approvers;
   }
 
   async rejectRequest(requestId: string, reason: string) {

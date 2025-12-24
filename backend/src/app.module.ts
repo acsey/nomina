@@ -20,6 +20,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AccountingConfigModule } from './modules/accounting-config/accounting-config.module';
 import { DevicesModule } from './modules/devices/devices.module';
 import { SystemConfigModule } from './modules/system-config/system-config.module';
+import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { SystemConfigModule } from './modules/system-config/system-config.module
     AccountingConfigModule,
     DevicesModule,
     SystemConfigModule,
+    HierarchyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

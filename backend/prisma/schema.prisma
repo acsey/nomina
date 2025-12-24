@@ -234,6 +234,12 @@ model Employee {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
+  // Jerarquía organizacional
+  supervisorId        String?  @map("supervisor_id")
+  supervisor          Employee? @relation("EmployeeHierarchy", fields: [supervisorId], references: [id])
+  subordinates        Employee[] @relation("EmployeeHierarchy")
+  hierarchyLevel      Int      @default(0) @map("hierarchy_level") // 0 = sin supervisor, 1+ = niveles
+
   // Relaciones
   managedDepartments  Department[] @relation("DepartmentManager")
   attendanceRecords   AttendanceRecord[]
@@ -249,6 +255,11 @@ model Employee {
   documents           EmployeeDocument[]
   incidents           EmployeeIncident[]
   liquidations        LiquidationCalculation[]
+
+  // Delegaciones de aprobación
+  delegationsGiven    ApprovalDelegation[] @relation("DelegationFrom")
+  delegationsReceived ApprovalDelegation[] @relation("DelegationTo")
+  approvedRequests    VacationRequest[] @relation("RequestApprover")
 
   @@map("employees")
 }
@@ -476,13 +487,54 @@ model VacationRequest {
   documentPath  String?  @map("document_path") // Documento de soporte (incapacidad IMSS, acta defuncion, etc)
   isPaid        Boolean  @default(true) @map("is_paid") // Si es con goce de sueldo
   status        RequestStatus @default(PENDING)
+
+  // Aprobador (puede ser jefe directo o delegado)
   approvedById  String?  @map("approved_by_id")
+  approvedBy    Employee? @relation("RequestApprover", fields: [approvedById], references: [id])
   approvedAt    DateTime? @map("approved_at")
   rejectedReason String? @map("rejected_reason")
+
+  // Tracking de la cadena de aprobación
+  approvalChain Json?    @map("approval_chain") // [{level: 1, employeeId: "...", name: "..."}]
+
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("vacation_requests")
+}
+
+// Delegación de aprobaciones
+model ApprovalDelegation {
+  id              String   @id @default(uuid())
+
+  // Quien delega
+  delegatorId     String   @map("delegator_id")
+  delegator       Employee @relation("DelegationFrom", fields: [delegatorId], references: [id])
+
+  // A quien delega
+  delegateeId     String   @map("delegatee_id")
+  delegatee       Employee @relation("DelegationTo", fields: [delegateeId], references: [id])
+
+  // Tipo de aprobación que se delega
+  delegationType  DelegationType @map("delegation_type")
+
+  // Vigencia de la delegación
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  reason          String?  // Motivo de la delegación (vacaciones, viaje, etc)
+
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("approval_delegations")
+}
+
+enum DelegationType {
+  VACATION        // Aprobación de vacaciones
+  PERMISSION      // Aprobación de permisos
+  INCIDENT        // Aprobación de incidencias
+  ALL             // Todos los tipos de aprobación
 }
 
 // Configuracion de dias de permiso por tipo de ausencia

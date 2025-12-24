@@ -32,6 +32,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  RectangleGroupIcon,
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
@@ -49,6 +50,7 @@ const navigation: NavItem[] = [
   { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['admin', 'rh', 'manager'], category: 'personal' },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['admin', 'rh'], category: 'personal' },
   { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['admin', 'rh', 'manager'], category: 'personal' },
+  { name: 'Organigrama', href: '/org-chart', icon: RectangleGroupIcon, roles: ['admin', 'rh', 'manager'], category: 'personal' },
   { name: 'Nomina', href: '/payroll', icon: BanknotesIcon, roles: ['admin', 'rh'], category: 'nomina' },
   { name: 'Recibos', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['admin', 'rh'], category: 'nomina' },
   { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['admin', 'rh', 'manager'], category: 'nomina' },
