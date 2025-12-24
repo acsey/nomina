@@ -44,3 +44,6 @@ ALTER TABLE "benefits" ADD CONSTRAINT "benefits_approved_by_id_fkey" FOREIGN KEY
 
 -- Update existing benefits to APPROVED status (they were created before approval workflow)
 UPDATE "benefits" SET "status" = 'APPROVED' WHERE "status" = 'PENDING';
+
+-- Add approval_chain column to vacation_requests for tracking approval hierarchy
+ALTER TABLE "vacation_requests" ADD COLUMN "approval_chain" JSONB;
