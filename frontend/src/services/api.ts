@@ -439,3 +439,45 @@ export const systemConfigApi = {
   updateMultiple: (configs: { key: string; value: string }[]) =>
     api.patch('/system-config', { configs }),
 };
+
+export const hierarchyApi = {
+  // Organizational chart
+  getOrgChart: (companyId?: string) =>
+    api.get('/hierarchy/org-chart', { params: { companyId } }),
+
+  // Employee hierarchy (supervisors chain)
+  getEmployeeChain: (employeeId: string) =>
+    api.get(`/hierarchy/employee/${employeeId}/chain`),
+
+  // Subordinates
+  getSubordinates: (employeeId: string) =>
+    api.get(`/hierarchy/employee/${employeeId}/subordinates`),
+  getAllSubordinates: (employeeId: string) =>
+    api.get(`/hierarchy/employee/${employeeId}/all-subordinates`),
+
+  // Approvers
+  getApprovers: (employeeId: string) =>
+    api.get(`/hierarchy/employee/${employeeId}/approvers`),
+
+  // Set supervisor
+  setSupervisor: (employeeId: string, supervisorId: string | null) =>
+    api.patch(`/hierarchy/employee/${employeeId}/supervisor`, { supervisorId }),
+
+  // Delegations
+  createDelegation: (data: {
+    delegatorId: string;
+    delegateeId: string;
+    delegationType: string;
+    startDate: string;
+    endDate?: string;
+    reason?: string;
+  }) => api.post('/hierarchy/delegations', data),
+  getDelegations: (employeeId: string) =>
+    api.get(`/hierarchy/employee/${employeeId}/delegations`),
+  revokeDelegation: (delegationId: string) =>
+    api.delete(`/hierarchy/delegations/${delegationId}`),
+
+  // Check approval permission
+  canApprove: (approverId: string, employeeId: string) =>
+    api.get('/hierarchy/can-approve', { params: { approverId, employeeId } }),
+};

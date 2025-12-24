@@ -26,6 +26,7 @@ import WorkSchedulesPage from './pages/WorkSchedulesPage';
 import DevicesPage from './pages/DevicesPage';
 import SystemSettingsPage from './pages/SystemSettingsPage';
 import HelpPage from './pages/HelpPage';
+import OrgChartPage from './pages/OrgChartPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -82,6 +83,7 @@ function App() {
               <Route path="system-settings" element={<SystemSettingsPage />} />
               <Route path="my-portal" element={<EmployeePortalPage />} />
               <Route path="help" element={<HelpPage />} />
+              <Route path="org-chart" element={<OrgChartPage />} />
               </Route>
             </Routes>
           </ThemeProvider>
