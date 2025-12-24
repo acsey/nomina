@@ -44,14 +44,14 @@ export class BenefitsController {
   }
 
   @Get('pending')
-  @Roles('admin')
+  @Roles('admin', 'rh')
   @ApiOperation({ summary: 'Listar prestaciones pendientes de aprobación' })
   findPending() {
     return this.benefitsService.findPendingBenefits();
   }
 
   @Post(':id/approve')
-  @Roles('admin')
+  @Roles('admin', 'rh')
   @ApiOperation({ summary: 'Aprobar prestación' })
   approve(
     @Param('id') id: string,
@@ -61,7 +61,7 @@ export class BenefitsController {
   }
 
   @Post(':id/reject')
-  @Roles('admin')
+  @Roles('admin', 'rh')
   @ApiOperation({ summary: 'Rechazar prestación' })
   reject(
     @Param('id') id: string,
@@ -84,7 +84,7 @@ export class BenefitsController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('admin', 'rh')
   @ApiOperation({ summary: 'Eliminar prestación' })
   remove(@Param('id') id: string) {
     return this.benefitsService.deleteBenefit(id);

@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import {
   ClockIcon,
-  ArrowRightOnRectangleIcon,
-  ArrowLeftOnRectangleIcon,
-  PauseIcon,
-  PlayIcon,
   CalendarDaysIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
@@ -13,7 +10,7 @@ import {
   PlusIcon,
   CodeBracketIcon,
 } from '@heroicons/react/24/outline';
-import { attendanceApi, payrollApi, vacationsApi, incidentsApi, employeesApi, cfdiApi } from '../services/api';
+import { payrollApi, vacationsApi, incidentsApi, employeesApi, cfdiApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
@@ -42,7 +39,7 @@ const leaveTypeLabels: Record<string, string> = {
 export default function EmployeePortalPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'attendance' | 'receipts' | 'vacations' | 'incidents'>('attendance');
+  const [activeTab, setActiveTab] = useState<'receipts' | 'vacations' | 'incidents'>('receipts');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showVacationModal, setShowVacationModal] = useState(false);
   const [vacationForm, setVacationForm] = useState({
@@ -64,16 +61,6 @@ export default function EmployeePortalPage() {
   });
 
   const employeeId = employeeData?.id;
-
-  // Get today's attendance for self-service
-  const { data: todayAttendance, isLoading: isLoadingAttendance } = useQuery({
-    queryKey: ['my-attendance-today', employeeId],
-    queryFn: () => attendanceApi.getTodayRecord(employeeId || ''),
-    enabled: !!employeeId,
-    refetchInterval: 30000,
-  });
-
-  const attendance = todayAttendance?.data;
 
   // Get my payroll receipts
   const { data: receiptsData, isLoading: isLoadingReceipts } = useQuery({
@@ -106,51 +93,6 @@ export default function EmployeePortalPage() {
     enabled: !!employeeId && activeTab === 'incidents',
   });
   const incidents = incidentsData?.data || [];
-
-  // Attendance mutations
-  const checkInMutation = useMutation({
-    mutationFn: () => attendanceApi.checkIn(employeeId || ''),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
-      toast.success('Entrada registrada exitosamente');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al registrar entrada');
-    },
-  });
-
-  const checkOutMutation = useMutation({
-    mutationFn: () => attendanceApi.checkOut(employeeId || ''),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
-      toast.success('Salida registrada exitosamente');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al registrar salida');
-    },
-  });
-
-  const breakStartMutation = useMutation({
-    mutationFn: () => attendanceApi.breakStart(employeeId || ''),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
-      toast.success('Descanso iniciado');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al iniciar descanso');
-    },
-  });
-
-  const breakEndMutation = useMutation({
-    mutationFn: () => attendanceApi.breakEnd(employeeId || ''),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-attendance-today'] });
-      toast.success('Descanso terminado');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al terminar descanso');
-    },
-  });
 
   // Vacation request mutation
   const requestVacationMutation = useMutation({
@@ -223,10 +165,6 @@ export default function EmployeePortalPage() {
       currency: 'MXN',
     }).format(value);
   };
-
-  const hasCheckedIn = !!attendance?.checkIn;
-  const hasCheckedOut = !!attendance?.checkOut;
-  const isOnBreak = attendance?.breakStart && !attendance?.breakEnd;
 
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -329,20 +267,30 @@ export default function EmployeePortalPage() {
         </div>
       </div>
 
+      {/* Quick Link to Timeclock */}
+      <div className="card mb-6 bg-gradient-to-r from-blue-50 to-primary-50 dark:from-blue-900/20 dark:to-primary-900/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+              <ClockIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Registrar Asistencia</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Registra tu entrada, salida y descansos</p>
+            </div>
+          </div>
+          <Link
+            to="/timeclock"
+            className="btn btn-primary"
+          >
+            Ir al Checador Web
+          </Link>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('attendance')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-              activeTab === 'attendance'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <ClockIcon className="h-5 w-5" />
-            Asistencia
-          </button>
           <button
             onClick={() => setActiveTab('receipts')}
             className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -378,126 +326,6 @@ export default function EmployeePortalPage() {
           </button>
         </nav>
       </div>
-
-      {/* Attendance Tab */}
-      {activeTab === 'attendance' && (
-        <div>
-          {/* Current time display */}
-          <div className="card mb-6 text-center">
-            <p className="text-gray-500 text-sm">Fecha actual</p>
-            <p className="text-3xl font-bold text-gray-900">
-              {dayjs().format('dddd, DD [de] MMMM [de] YYYY')}
-            </p>
-            <p className="text-5xl font-bold text-primary-600 mt-2">
-              {dayjs().format('HH:mm')}
-            </p>
-          </div>
-
-          {/* Attendance actions */}
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Registrar Asistencia</h3>
-
-            {isLoadingAttendance ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              </div>
-            ) : (
-              <>
-                {/* Current status */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div>
-                      <p className="text-sm text-gray-500">Entrada</p>
-                      <p className="text-xl font-bold text-green-600">
-                        {attendance?.checkIn
-                          ? dayjs(attendance.checkIn).format('HH:mm')
-                          : '--:--'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Inicio Descanso</p>
-                      <p className="text-xl font-bold text-orange-600">
-                        {attendance?.breakStart
-                          ? dayjs(attendance.breakStart).format('HH:mm')
-                          : '--:--'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Fin Descanso</p>
-                      <p className="text-xl font-bold text-orange-600">
-                        {attendance?.breakEnd
-                          ? dayjs(attendance.breakEnd).format('HH:mm')
-                          : '--:--'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Salida</p>
-                      <p className="text-xl font-bold text-blue-600">
-                        {attendance?.checkOut
-                          ? dayjs(attendance.checkOut).format('HH:mm')
-                          : '--:--'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-4 justify-center">
-                  {!hasCheckedIn && (
-                    <button
-                      onClick={() => checkInMutation.mutate()}
-                      disabled={checkInMutation.isPending}
-                      className="btn btn-primary flex items-center gap-2 px-8 py-4 text-lg"
-                    >
-                      <ArrowRightOnRectangleIcon className="h-6 w-6" />
-                      Registrar Entrada
-                    </button>
-                  )}
-
-                  {hasCheckedIn && !hasCheckedOut && !isOnBreak && (
-                    <>
-                      <button
-                        onClick={() => breakStartMutation.mutate()}
-                        disabled={breakStartMutation.isPending}
-                        className="btn bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 px-6 py-4"
-                      >
-                        <PauseIcon className="h-6 w-6" />
-                        Iniciar Descanso
-                      </button>
-                      <button
-                        onClick={() => checkOutMutation.mutate()}
-                        disabled={checkOutMutation.isPending}
-                        className="btn btn-primary flex items-center gap-2 px-8 py-4 text-lg"
-                      >
-                        <ArrowLeftOnRectangleIcon className="h-6 w-6" />
-                        Registrar Salida
-                      </button>
-                    </>
-                  )}
-
-                  {isOnBreak && (
-                    <button
-                      onClick={() => breakEndMutation.mutate()}
-                      disabled={breakEndMutation.isPending}
-                      className="btn bg-green-500 hover:bg-green-600 text-white flex items-center gap-2 px-8 py-4 text-lg animate-pulse"
-                    >
-                      <PlayIcon className="h-6 w-6" />
-                      Terminar Descanso
-                    </button>
-                  )}
-
-                  {hasCheckedOut && (
-                    <div className="flex items-center gap-2 text-green-600 bg-green-50 px-6 py-4 rounded-lg">
-                      <CheckCircleIcon className="h-8 w-8" />
-                      <span className="text-lg font-medium">Jornada completada</span>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Receipts Tab */}
       {activeTab === 'receipts' && (
