@@ -193,7 +193,8 @@ export default function EmployeeFormPage() {
   const departments = departmentsData?.data || [];
   const banks = banksData?.data || [];
   const workSchedules = workSchedulesData?.data || [];
-  const allEmployees = allEmployeesData?.data || [];
+  // Note: employeesApi.getAll() returns { data: [...], meta: {...} }, so we need .data.data
+  const allEmployees = allEmployeesData?.data?.data || [];
 
   // Filter supervisors: only active employees from the same company (if company is selected)
   const potentialSupervisors = allEmployees.filter((emp: any) => {
