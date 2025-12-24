@@ -229,6 +229,22 @@ export const catalogsApi = {
   getJobPositions: () => api.get('/catalogs/job-positions'),
   getBanks: () => api.get('/catalogs/banks'),
   getWorkSchedules: () => api.get('/catalogs/work-schedules'),
+  getWorkScheduleById: (id: string) => api.get(`/catalogs/work-schedules/${id}`),
+  createWorkSchedule: (data: any) => api.post('/catalogs/work-schedules', data),
+  updateWorkSchedule: (id: string, data: any) => api.patch(`/catalogs/work-schedules/${id}`, data),
+  deleteWorkSchedule: (id: string) => api.delete(`/catalogs/work-schedules/${id}`),
+};
+
+export const devicesApi = {
+  getAll: (companyId: string) => api.get('/devices', { params: { companyId } }),
+  getById: (id: string) => api.get(`/devices/${id}`),
+  create: (data: any) => api.post('/devices', data),
+  update: (id: string, data: any) => api.patch(`/devices/${id}`, data),
+  delete: (id: string) => api.delete(`/devices/${id}`),
+  testConnection: (id: string) => api.post(`/devices/${id}/test-connection`),
+  syncRecords: (id: string) => api.post(`/devices/${id}/sync`),
+  getLogs: (id: string, params?: { startDate?: string; endDate?: string; limit?: number }) =>
+    api.get(`/devices/${id}/logs`, { params }),
 };
 
 export const incidentsApi = {

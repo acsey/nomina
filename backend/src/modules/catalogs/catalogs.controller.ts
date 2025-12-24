@@ -1,11 +1,12 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { IsString, IsOptional, IsEmail } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsBoolean, IsArray, ValidateNested, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 class CreateCompanyDto {
   @IsString()
@@ -156,6 +157,70 @@ class UpdateCompanyDto {
   pacMode?: string;
 }
 
+// Work Schedule DTOs
+class ScheduleDetailDto {
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  dayOfWeek: number;
+
+  @IsString()
+  startTime: string;
+
+  @IsString()
+  endTime: string;
+
+  @IsString()
+  @IsOptional()
+  breakStart?: string;
+
+  @IsString()
+  @IsOptional()
+  breakEnd?: string;
+
+  @IsBoolean()
+  isWorkDay: boolean;
+}
+
+class CreateWorkScheduleDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ScheduleDetailDto)
+  @IsOptional()
+  scheduleDetails?: ScheduleDetailDto[];
+}
+
+class UpdateWorkScheduleDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ScheduleDetailDto)
+  @IsOptional()
+  scheduleDetails?: ScheduleDetailDto[];
+}
+
 @ApiTags('catalogs')
 @Controller('catalogs')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -277,11 +342,107 @@ export class CatalogsController {
   @ApiOperation({ summary: 'Listar horarios de trabajo' })
   async getWorkSchedules() {
     return this.prisma.workSchedule.findMany({
-      where: { isActive: true },
       include: {
-        scheduleDetails: true,
+        scheduleDetails: {
+          orderBy: { dayOfWeek: 'asc' },
+        },
       },
       orderBy: { name: 'asc' },
+    });
+  }
+
+  @Get('work-schedules/:id')
+  @ApiOperation({ summary: 'Obtener horario de trabajo por ID' })
+  async getWorkScheduleById(@Param('id') id: string) {
+    return this.prisma.workSchedule.findUnique({
+      where: { id },
+      include: {
+        scheduleDetails: {
+          orderBy: { dayOfWeek: 'asc' },
+        },
+      },
+    });
+  }
+
+  @Post('work-schedules')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Crear horario de trabajo' })
+  async createWorkSchedule(@Body() data: CreateWorkScheduleDto) {
+    return this.prisma.workSchedule.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        isActive: data.isActive ?? true,
+        scheduleDetails: data.scheduleDetails
+          ? {
+              create: data.scheduleDetails.map((detail) => ({
+                dayOfWeek: detail.dayOfWeek,
+                startTime: detail.startTime,
+                endTime: detail.endTime,
+                breakStart: detail.breakStart,
+                breakEnd: detail.breakEnd,
+                isWorkDay: detail.isWorkDay,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        scheduleDetails: {
+          orderBy: { dayOfWeek: 'asc' },
+        },
+      },
+    });
+  }
+
+  @Patch('work-schedules/:id')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Actualizar horario de trabajo' })
+  async updateWorkSchedule(@Param('id') id: string, @Body() data: UpdateWorkScheduleDto) {
+    // If scheduleDetails are provided, delete existing and create new ones
+    if (data.scheduleDetails) {
+      await this.prisma.workScheduleDetail.deleteMany({
+        where: { workScheduleId: id },
+      });
+    }
+
+    return this.prisma.workSchedule.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.scheduleDetails && {
+          scheduleDetails: {
+            create: data.scheduleDetails.map((detail) => ({
+              dayOfWeek: detail.dayOfWeek,
+              startTime: detail.startTime,
+              endTime: detail.endTime,
+              breakStart: detail.breakStart,
+              breakEnd: detail.breakEnd,
+              isWorkDay: detail.isWorkDay,
+            })),
+          },
+        }),
+      },
+      include: {
+        scheduleDetails: {
+          orderBy: { dayOfWeek: 'asc' },
+        },
+      },
+    });
+  }
+
+  @Delete('work-schedules/:id')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Eliminar horario de trabajo' })
+  async deleteWorkSchedule(@Param('id') id: string) {
+    // First delete related schedule details
+    await this.prisma.workScheduleDetail.deleteMany({
+      where: { workScheduleId: id },
+    });
+
+    return this.prisma.workSchedule.delete({
+      where: { id },
     });
   }
 }
