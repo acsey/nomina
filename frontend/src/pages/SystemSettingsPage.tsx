@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { systemConfigApi } from '../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -9,6 +10,10 @@ import {
   BuildingOffice2Icon,
   GlobeAltIcon,
   ShieldCheckIcon,
+  SunIcon,
+  MoonIcon,
+  ComputerDesktopIcon,
+  SwatchIcon,
 } from '@heroicons/react/24/outline';
 
 interface SystemConfig {
@@ -21,9 +26,12 @@ interface SystemConfig {
   isPublic: boolean;
 }
 
+type ThemeMode = 'light' | 'dark' | 'system';
+
 export default function SystemSettingsPage() {
   const { user } = useAuth();
   const { refreshConfigs } = useSystemConfig();
+  const { mode, setMode, isDark } = useTheme();
   const queryClient = useQueryClient();
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
 
@@ -206,6 +214,134 @@ export default function SystemSettingsPage() {
             {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         )}
+      </div>
+
+      {/* Theme Settings Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+          <div className="text-primary-600">
+            <SwatchIcon className="h-5 w-5" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Tema de la Interfaz
+          </h2>
+        </div>
+
+        <div className="p-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Selecciona el tema de la interfaz. Esta preferencia se guarda en tu navegador.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Light Mode */}
+            <button
+              onClick={() => setMode('light')}
+              className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                mode === 'light'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+              }`}
+            >
+              <div className={`p-3 rounded-full ${
+                mode === 'light'
+                  ? 'bg-primary-100 dark:bg-primary-800'
+                  : 'bg-gray-100 dark:bg-gray-700'
+              }`}>
+                <SunIcon className={`h-6 w-6 ${
+                  mode === 'light'
+                    ? 'text-primary-600'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`} />
+              </div>
+              <div className="text-center">
+                <p className={`font-medium ${
+                  mode === 'light'
+                    ? 'text-primary-700 dark:text-primary-300'
+                    : 'text-gray-700 dark:text-gray-300'
+                }`}>
+                  Claro
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Tema claro
+                </p>
+              </div>
+            </button>
+
+            {/* Dark Mode */}
+            <button
+              onClick={() => setMode('dark')}
+              className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                mode === 'dark'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+              }`}
+            >
+              <div className={`p-3 rounded-full ${
+                mode === 'dark'
+                  ? 'bg-primary-100 dark:bg-primary-800'
+                  : 'bg-gray-100 dark:bg-gray-700'
+              }`}>
+                <MoonIcon className={`h-6 w-6 ${
+                  mode === 'dark'
+                    ? 'text-primary-600'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`} />
+              </div>
+              <div className="text-center">
+                <p className={`font-medium ${
+                  mode === 'dark'
+                    ? 'text-primary-700 dark:text-primary-300'
+                    : 'text-gray-700 dark:text-gray-300'
+                }`}>
+                  Oscuro
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Tema oscuro
+                </p>
+              </div>
+            </button>
+
+            {/* System Mode */}
+            <button
+              onClick={() => setMode('system')}
+              className={`flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                mode === 'system'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+              }`}
+            >
+              <div className={`p-3 rounded-full ${
+                mode === 'system'
+                  ? 'bg-primary-100 dark:bg-primary-800'
+                  : 'bg-gray-100 dark:bg-gray-700'
+              }`}>
+                <ComputerDesktopIcon className={`h-6 w-6 ${
+                  mode === 'system'
+                    ? 'text-primary-600'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`} />
+              </div>
+              <div className="text-center">
+                <p className={`font-medium ${
+                  mode === 'system'
+                    ? 'text-primary-700 dark:text-primary-300'
+                    : 'text-gray-700 dark:text-gray-300'
+                }`}>
+                  Sistema
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Segun tu dispositivo
+                </p>
+              </div>
+            </button>
+          </div>
+
+          {mode === 'system' && (
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+              Actualmente usando tema {isDark ? 'oscuro' : 'claro'} basado en la preferencia del sistema.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Multi-company warning */}
