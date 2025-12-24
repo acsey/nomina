@@ -12,9 +12,22 @@ import {
   MinusIcon,
   TrashIcon,
   ArrowPathIcon,
+  ChevronRightIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import { hierarchyApi, catalogsApi, employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+
+interface ChainMember {
+  level: number;
+  employeeId: string;
+  employeeNumber: string;
+  name: string;
+  jobPosition: string;
+  canApprove: boolean;
+  isDelegated: boolean;
+  delegatedFrom?: string;
+}
 
 interface HierarchyNode {
   id: string;
@@ -214,6 +227,28 @@ export default function OrgChartPage() {
 
   const companies = companiesData?.data || [];
 
+  // Get current user's employee record (for showing personal hierarchy)
+  const { data: myEmployeeData } = useQuery({
+    queryKey: ['my-employee-for-chart', user?.email],
+    queryFn: async () => {
+      const response = await employeesApi.getByEmail(user?.email || '');
+      return response.data;
+    },
+    enabled: !!user?.email,
+    retry: false,
+  });
+
+  const myEmployeeId = myEmployeeData?.id;
+
+  // Get my hierarchy chain (my supervisors)
+  const { data: myChainData } = useQuery({
+    queryKey: ['my-hierarchy-chain', myEmployeeId],
+    queryFn: () => hierarchyApi.getEmployeeChain(myEmployeeId!),
+    enabled: !!myEmployeeId,
+  });
+
+  const myChain: ChainMember[] = myChainData?.data || [];
+
   // Get org chart
   const { data: orgChartData, isLoading, refetch } = useQuery({
     queryKey: ['org-chart', selectedCompany],
@@ -351,6 +386,78 @@ export default function OrgChartPage() {
           )}
         </div>
       </div>
+
+      {/* Mi Cadena de Mando - visible for all employees */}
+      {myEmployeeData && (
+        <div className="card dark:bg-gray-800 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20">
+          <div className="flex items-center gap-2 mb-3">
+            <UserIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            <h2 className="font-semibold text-gray-900 dark:text-white">Mi Cadena de Mando</h2>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Yo */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-primary-500 text-white rounded-lg shadow">
+              <UserCircleIcon className="h-6 w-6" />
+              <div className="text-sm">
+                <p className="font-semibold">{myEmployeeData.firstName} {myEmployeeData.lastName}</p>
+                <p className="text-xs text-primary-100">{myEmployeeData.jobPosition?.name || 'Sin puesto'}</p>
+              </div>
+            </div>
+
+            {/* Flecha y supervisores */}
+            {myChain.length > 0 ? (
+              myChain.map((supervisor, index) => (
+                <div key={supervisor.employeeId} className="flex items-center gap-2">
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow cursor-pointer hover:shadow-md transition-shadow ${
+                      index === 0
+                        ? 'bg-emerald-500 text-white'
+                        : index === 1
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-orange-500 text-white'
+                    }`}
+                    onClick={() => {
+                      // Buscar el nodo en el organigrama y seleccionarlo
+                      const findNode = (nodes: HierarchyNode[]): HierarchyNode | null => {
+                        for (const node of nodes) {
+                          if (node.id === supervisor.employeeId) return node;
+                          const found = findNode(node.subordinates);
+                          if (found) return found;
+                        }
+                        return null;
+                      };
+                      const node = findNode(orgChart);
+                      if (node) setSelectedNode(node);
+                    }}
+                  >
+                    <UserCircleIcon className="h-6 w-6" />
+                    <div className="text-sm">
+                      <p className="font-semibold">{supervisor.name}</p>
+                      <p className={`text-xs ${index === 0 ? 'text-emerald-100' : index === 1 ? 'text-purple-100' : 'text-orange-100'}`}>
+                        {supervisor.jobPosition || 'Sin puesto'}
+                        {index === 0 && ' (Mi jefe directo)'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 ml-2">
+                <ChevronRightIcon className="h-5 w-5 text-gray-300" />
+                <span className="italic">Sin supervisor asignado</span>
+              </div>
+            )}
+          </div>
+
+          {myChain.length > 0 && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+              Haz clic en cualquier supervisor para ver sus detalles en el organigrama
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Org Chart Visual */}
