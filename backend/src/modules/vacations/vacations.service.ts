@@ -139,7 +139,7 @@ export class VacationsService {
       where: {
         OR: [
           { id: approverId },
-          { user: { id: approverId } },
+          { userId: approverId },
         ],
       },
     });
