@@ -1,18 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   UserCircleIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
   UsersIcon,
   BuildingOfficeIcon,
   MagnifyingGlassIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
-  ArrowPathIcon,
   XMarkIcon,
   PlusIcon,
+  MinusIcon,
   TrashIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { hierarchyApi, catalogsApi, employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,7 +40,7 @@ interface Delegation {
   reason?: string;
   isActive: boolean;
   delegator?: { firstName: string; lastName: string };
-  delegatee?: { firstName: string; lastName: string };
+  delegatee?: { firstName: string; lastName: string; jobPosition?: { name: string } };
 }
 
 const DELEGATION_TYPES = [
@@ -51,118 +50,140 @@ const DELEGATION_TYPES = [
   { value: 'INCIDENT', label: 'Incidencias' },
 ];
 
-interface OrgNodeProps {
+// Colores para los niveles del organigrama
+const LEVEL_COLORS = [
+  { bg: 'bg-blue-500', border: 'border-blue-600', text: 'text-white', light: 'bg-blue-50 dark:bg-blue-900/30' },
+  { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-white', light: 'bg-emerald-50 dark:bg-emerald-900/30' },
+  { bg: 'bg-purple-500', border: 'border-purple-600', text: 'text-white', light: 'bg-purple-50 dark:bg-purple-900/30' },
+  { bg: 'bg-orange-500', border: 'border-orange-600', text: 'text-white', light: 'bg-orange-50 dark:bg-orange-900/30' },
+  { bg: 'bg-pink-500', border: 'border-pink-600', text: 'text-white', light: 'bg-pink-50 dark:bg-pink-900/30' },
+  { bg: 'bg-cyan-500', border: 'border-cyan-600', text: 'text-white', light: 'bg-cyan-50 dark:bg-cyan-900/30' },
+];
+
+// Componente de nodo del organigrama visual
+interface OrgNodeCardProps {
   node: HierarchyNode;
-  expandedNodes: Set<string>;
-  toggleNode: (id: string) => void;
-  searchTerm: string;
-  selectedId: string | null;
-  onSelect: (node: HierarchyNode) => void;
   level: number;
+  isSelected: boolean;
+  onSelect: (node: HierarchyNode) => void;
+  scale: number;
 }
 
-function OrgNode({ node, expandedNodes, toggleNode, searchTerm, selectedId, onSelect, level }: OrgNodeProps) {
-  const isExpanded = expandedNodes.has(node.id);
+function OrgNodeCard({ node, level, isSelected, onSelect, scale }: OrgNodeCardProps) {
+  const colors = LEVEL_COLORS[level % LEVEL_COLORS.length];
   const hasSubordinates = node.subordinates.length > 0;
-  const isSelected = selectedId === node.id;
-
-  // Check if node matches search
-  const matchesSearch = searchTerm
-    ? node.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      node.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      node.jobPosition.toLowerCase().includes(searchTerm.toLowerCase())
-    : true;
-
-  // Check if any descendant matches search
-  const hasMatchingDescendant = (n: HierarchyNode): boolean => {
-    if (searchTerm) {
-      const matches =
-        n.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.jobPosition.toLowerCase().includes(searchTerm.toLowerCase());
-      if (matches) return true;
-      return n.subordinates.some(hasMatchingDescendant);
-    }
-    return true;
-  };
-
-  const showNode = matchesSearch || hasMatchingDescendant(node);
-
-  if (!showNode) return null;
-
-  const levelColors = [
-    'border-l-blue-500',
-    'border-l-green-500',
-    'border-l-purple-500',
-    'border-l-orange-500',
-    'border-l-pink-500',
-    'border-l-cyan-500',
-  ];
-
-  const borderColor = levelColors[level % levelColors.length];
 
   return (
-    <div className="ml-4">
+    <div className="flex flex-col items-center">
+      {/* Card del empleado */}
       <div
-        className={`flex items-center gap-2 p-2 rounded-lg border-l-4 ${borderColor} cursor-pointer transition-all ${
-          isSelected
-            ? 'bg-primary-100 dark:bg-primary-900/30'
-            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-        }`}
         onClick={() => onSelect(node)}
+        className={`
+          relative cursor-pointer transition-all duration-200 rounded-lg shadow-lg
+          ${isSelected ? 'ring-4 ring-primary-400 ring-offset-2 dark:ring-offset-gray-900' : 'hover:shadow-xl hover:-translate-y-1'}
+          ${colors.light} border-2 ${colors.border}
+        `}
+        style={{
+          minWidth: `${Math.max(140, 180 * scale)}px`,
+          maxWidth: `${Math.max(160, 220 * scale)}px`,
+        }}
       >
-        {hasSubordinates && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleNode(node.id);
-            }}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-          >
-            {isExpanded ? (
-              <ChevronDownIcon className="h-4 w-4 text-gray-500" />
-            ) : (
-              <ChevronRightIcon className="h-4 w-4 text-gray-500" />
-            )}
-          </button>
-        )}
-        {!hasSubordinates && <div className="w-6" />}
-
-        <UserCircleIcon className="h-8 w-8 text-gray-400 flex-shrink-0" />
-
-        <div className="flex-1 min-w-0">
-          <p className={`font-medium text-sm truncate ${matchesSearch && searchTerm ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+        {/* Header con color */}
+        <div className={`${colors.bg} ${colors.text} px-3 py-2 rounded-t-md`}>
+          <p className="font-semibold text-sm truncate text-center">
             {node.fullName}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {node.jobPosition}
-          </p>
         </div>
 
-        {hasSubordinates && (
-          <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-            <UsersIcon className="h-3 w-3" />
-            {node.subordinates.length}
-          </span>
-        )}
+        {/* Contenido */}
+        <div className="p-3 bg-white dark:bg-gray-800 rounded-b-md">
+          <p className="text-xs text-gray-600 dark:text-gray-300 text-center truncate font-medium">
+            {node.jobPosition || 'Sin puesto'}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate mt-1">
+            {node.department || 'Sin departamento'}
+          </p>
+          {hasSubordinates && (
+            <div className="flex items-center justify-center gap-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <UsersIcon className="h-3 w-3" />
+              <span>{node.subordinates.length}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Indicador de nivel */}
+        <div className={`absolute -top-2 -right-2 ${colors.bg} ${colors.text} text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow`}>
+          {level}
+        </div>
       </div>
 
-      {isExpanded && hasSubordinates && (
-        <div className="ml-3 mt-1 space-y-1">
-          {node.subordinates.map((sub) => (
-            <OrgNode
-              key={sub.id}
-              node={sub}
-              expandedNodes={expandedNodes}
-              toggleNode={toggleNode}
-              searchTerm={searchTerm}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              level={level + 1}
+      {/* Línea vertical hacia abajo */}
+      {hasSubordinates && (
+        <div className="w-0.5 h-6 bg-gray-300 dark:bg-gray-600" />
+      )}
+
+      {/* Subordinados */}
+      {hasSubordinates && (
+        <div className="relative">
+          {/* Línea horizontal que conecta todos los subordinados */}
+          {node.subordinates.length > 1 && (
+            <div
+              className="absolute top-0 h-0.5 bg-gray-300 dark:bg-gray-600"
+              style={{
+                left: '50%',
+                right: '50%',
+                transform: 'translateX(-50%)',
+                width: `calc(100% - ${Math.max(140, 180 * scale)}px)`,
+              }}
             />
-          ))}
+          )}
+
+          {/* Contenedor de subordinados */}
+          <div className="flex gap-4 pt-6">
+            {node.subordinates.map((sub, index) => (
+              <div key={sub.id} className="relative flex flex-col items-center">
+                {/* Línea vertical desde la línea horizontal */}
+                <div className="absolute -top-6 w-0.5 h-6 bg-gray-300 dark:bg-gray-600" />
+
+                <OrgNodeCard
+                  node={sub}
+                  level={level + 1}
+                  isSelected={isSelected}
+                  onSelect={onSelect}
+                  scale={scale}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Componente de árbol con líneas CSS
+interface OrgTreeProps {
+  nodes: HierarchyNode[];
+  selectedId: string | null;
+  onSelect: (node: HierarchyNode) => void;
+  scale: number;
+}
+
+function OrgTree({ nodes, selectedId, onSelect, scale }: OrgTreeProps) {
+  if (nodes.length === 0) return null;
+
+  return (
+    <div className="org-tree flex justify-center gap-8">
+      {nodes.map((node) => (
+        <OrgNodeCard
+          key={node.id}
+          node={node}
+          level={0}
+          isSelected={selectedId === node.id}
+          onSelect={onSelect}
+          scale={scale}
+        />
+      ))}
     </div>
   );
 }
@@ -170,11 +191,13 @@ function OrgNode({ node, expandedNodes, toggleNode, searchTerm, selectedId, onSe
 export default function OrgChartPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNode, setSelectedNode] = useState<HierarchyNode | null>(null);
   const [showDelegationModal, setShowDelegationModal] = useState(false);
+  const [scale, setScale] = useState(1);
   const [delegationForm, setDelegationForm] = useState({
     delegateeId: '',
     delegationType: 'ALL',
@@ -192,7 +215,7 @@ export default function OrgChartPage() {
   const companies = companiesData?.data || [];
 
   // Get org chart
-  const { data: orgChartData, isLoading } = useQuery({
+  const { data: orgChartData, isLoading, refetch } = useQuery({
     queryKey: ['org-chart', selectedCompany],
     queryFn: () => hierarchyApi.getOrgChart(selectedCompany || undefined),
   });
@@ -240,31 +263,30 @@ export default function OrgChartPage() {
 
   const orgChart: HierarchyNode[] = orgChartData?.data || [];
 
-  // Toggle node expansion
-  const toggleNode = useCallback((id: string) => {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
+  // Filter nodes by search term
+  const filterNodes = useCallback((nodes: HierarchyNode[], term: string): HierarchyNode[] => {
+    if (!term) return nodes;
+
+    const filterNode = (node: HierarchyNode): HierarchyNode | null => {
+      const matches =
+        node.fullName.toLowerCase().includes(term.toLowerCase()) ||
+        node.employeeNumber.toLowerCase().includes(term.toLowerCase()) ||
+        node.jobPosition.toLowerCase().includes(term.toLowerCase());
+
+      const filteredSubordinates = node.subordinates
+        .map(filterNode)
+        .filter((n): n is HierarchyNode => n !== null);
+
+      if (matches || filteredSubordinates.length > 0) {
+        return { ...node, subordinates: filteredSubordinates };
       }
-      return next;
-    });
-  }, []);
-
-  // Expand all nodes
-  const expandAll = useCallback(() => {
-    const getAllIds = (nodes: HierarchyNode[]): string[] => {
-      return nodes.flatMap((n) => [n.id, ...getAllIds(n.subordinates)]);
+      return null;
     };
-    setExpandedNodes(new Set(getAllIds(orgChart)));
-  }, [orgChart]);
 
-  // Collapse all nodes
-  const collapseAll = useCallback(() => {
-    setExpandedNodes(new Set());
+    return nodes.map(filterNode).filter((n): n is HierarchyNode => n !== null);
   }, []);
+
+  const filteredOrgChart = filterNodes(orgChart, searchTerm);
 
   // Count total employees
   const countEmployees = (nodes: HierarchyNode[]): number => {
@@ -272,6 +294,11 @@ export default function OrgChartPage() {
   };
 
   const totalEmployees = countEmployees(orgChart);
+
+  // Zoom controls
+  const zoomIn = () => setScale((s) => Math.min(s + 0.1, 1.5));
+  const zoomOut = () => setScale((s) => Math.max(s - 0.1, 0.5));
+  const resetZoom = () => setScale(1);
 
   // Handle create delegation
   const handleCreateDelegation = () => {
@@ -297,7 +324,8 @@ export default function OrgChartPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 h-full">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">Organigrama</h1>
@@ -324,9 +352,9 @@ export default function OrgChartPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Org Chart */}
-        <div className="lg:col-span-2 card dark:bg-gray-800">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Org Chart Visual */}
+        <div className="lg:col-span-3 card dark:bg-gray-800 overflow-hidden">
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
             <div className="relative flex-1">
@@ -341,18 +369,35 @@ export default function OrgChartPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={expandAll}
-                className="btn-secondary text-xs py-1.5 px-3"
-                title="Expandir todo"
+                onClick={zoomOut}
+                className="btn-secondary text-xs py-1.5 px-2"
+                title="Alejar"
+              >
+                <MinusIcon className="h-4 w-4" />
+              </button>
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-center">
+                {Math.round(scale * 100)}%
+              </span>
+              <button
+                onClick={zoomIn}
+                className="btn-secondary text-xs py-1.5 px-2"
+                title="Acercar"
+              >
+                <PlusIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={resetZoom}
+                className="btn-secondary text-xs py-1.5 px-2"
+                title="Restablecer zoom"
               >
                 <ArrowsPointingOutIcon className="h-4 w-4" />
               </button>
               <button
-                onClick={collapseAll}
-                className="btn-secondary text-xs py-1.5 px-3"
-                title="Colapsar todo"
+                onClick={() => refetch()}
+                className="btn-secondary text-xs py-1.5 px-2"
+                title="Actualizar"
               >
-                <ArrowsPointingInIcon className="h-4 w-4" />
+                <ArrowPathIcon className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -369,41 +414,58 @@ export default function OrgChartPage() {
             </span>
           </div>
 
-          {/* Tree */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
-            </div>
-          ) : orgChart.length === 0 ? (
-            <div className="text-center py-12">
-              <UsersIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400">
-                No hay estructura jerárquica definida
-              </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                Asigna supervisores a los empleados para crear el organigrama
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1 max-h-[600px] overflow-y-auto">
-              {orgChart.map((node) => (
-                <OrgNode
-                  key={node.id}
-                  node={node}
-                  expandedNodes={expandedNodes}
-                  toggleNode={toggleNode}
-                  searchTerm={searchTerm}
+          {/* Chart Container */}
+          <div
+            ref={containerRef}
+            className="overflow-auto bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
+            style={{ minHeight: '500px', maxHeight: 'calc(100vh - 300px)' }}
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center h-96">
+                <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
+              </div>
+            ) : filteredOrgChart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-96">
+                <UsersIcon className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 text-lg">
+                  {searchTerm ? 'No se encontraron empleados' : 'No hay estructura jerárquica definida'}
+                </p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                  {searchTerm ? 'Intenta con otro término de búsqueda' : 'Asigna supervisores a los empleados para crear el organigrama'}
+                </p>
+              </div>
+            ) : (
+              <div
+                className="p-8 inline-block min-w-full"
+                style={{
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top center',
+                }}
+              >
+                <OrgTree
+                  nodes={filteredOrgChart}
                   selectedId={selectedNode?.id || null}
                   onSelect={setSelectedNode}
-                  level={0}
+                  scale={scale}
                 />
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+
+          {/* Leyenda */}
+          <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <span className="font-medium">Niveles:</span>
+            {LEVEL_COLORS.map((color, i) => (
+              <span key={i} className="flex items-center gap-1">
+                <span className={`w-3 h-3 rounded ${color.bg}`}></span>
+                Nivel {i}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Details Panel */}
-        <div className="card dark:bg-gray-800">
+        <div className="card dark:bg-gray-800 h-fit">
           <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
             Detalles del Empleado
           </h2>
@@ -411,7 +473,9 @@ export default function OrgChartPage() {
           {selectedNode ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <UserCircleIcon className="h-16 w-16 text-gray-400" />
+                <div className={`${LEVEL_COLORS[selectedNode.level % LEVEL_COLORS.length].bg} p-3 rounded-full`}>
+                  <UserCircleIcon className="h-8 w-8 text-white" />
+                </div>
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {selectedNode.fullName}
@@ -446,7 +510,7 @@ export default function OrgChartPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Correo
                     </p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white break-all">
                       {selectedNode.email}
                     </p>
                   </div>
@@ -476,14 +540,14 @@ export default function OrgChartPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                     Equipo directo
                   </p>
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
                     {selectedNode.subordinates.map((sub) => (
                       <div
                         key={sub.id}
                         className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                         onClick={() => setSelectedNode(sub)}
                       >
-                        <UserCircleIcon className="h-6 w-6 text-gray-400" />
+                        <UserCircleIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                             {sub.fullName}
@@ -502,7 +566,7 @@ export default function OrgChartPage() {
               <div className="border-t dark:border-gray-700 pt-4 mt-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Delegaciones de autorización
+                    Delegaciones
                   </p>
                   <button
                     onClick={() => setShowDelegationModal(true)}
@@ -534,26 +598,21 @@ export default function OrgChartPage() {
                               {getDelegationTypeLabel(delegation.delegationType)}
                             </p>
                             <p className="text-amber-700 dark:text-amber-400">
-                              Delegado a: {delegation.delegatee?.firstName} {delegation.delegatee?.lastName}
+                              A: {delegation.delegatee?.firstName} {delegation.delegatee?.lastName}
                             </p>
                             <p className="text-amber-600 dark:text-amber-500">
                               {formatDate(delegation.startDate)}
-                              {delegation.endDate ? ` - ${formatDate(delegation.endDate)}` : ' (sin fecha fin)'}
+                              {delegation.endDate ? ` - ${formatDate(delegation.endDate)}` : ''}
                             </p>
                           </div>
                           <button
                             onClick={() => revokeDelegationMutation.mutate(delegation.id)}
                             className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                            title="Revocar delegación"
+                            title="Revocar"
                           >
-                            <TrashIcon className="h-4 w-4" />
+                            <TrashIcon className="h-3 w-3" />
                           </button>
                         </div>
-                        {delegation.reason && (
-                          <p className="text-amber-600 dark:text-amber-500 mt-1 italic">
-                            "{delegation.reason}"
-                          </p>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -564,7 +623,7 @@ export default function OrgChartPage() {
             <div className="text-center py-8">
               <UserCircleIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Selecciona un empleado para ver sus detalles
+                Selecciona un empleado del organigrama
               </p>
             </div>
           )}
@@ -577,7 +636,7 @@ export default function OrgChartPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <h3 className="font-semibold text-gray-900 dark:text-white">
-                Crear Delegación de Autorización
+                Crear Delegación
               </h3>
               <button
                 onClick={() => setShowDelegationModal(false)}
@@ -664,7 +723,7 @@ export default function OrgChartPage() {
                 <textarea
                   value={delegationForm.reason}
                   onChange={(e) => setDelegationForm({ ...delegationForm, reason: e.target.value })}
-                  placeholder="Ej: Vacaciones, Incapacidad, Viaje de trabajo..."
+                  placeholder="Ej: Vacaciones, Incapacidad..."
                   rows={2}
                   className="input w-full"
                 />
@@ -683,12 +742,19 @@ export default function OrgChartPage() {
                 disabled={!delegationForm.delegateeId || createDelegationMutation.isPending}
                 className="btn-primary"
               >
-                {createDelegationMutation.isPending ? 'Creando...' : 'Crear Delegación'}
+                {createDelegationMutation.isPending ? 'Creando...' : 'Crear'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* CSS for tree structure */}
+      <style>{`
+        .org-tree {
+          padding: 20px;
+        }
+      `}</style>
     </div>
   );
 }
