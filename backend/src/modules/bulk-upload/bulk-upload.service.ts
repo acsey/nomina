@@ -43,6 +43,7 @@ export class BulkUploadService {
       { header: 'Tipo Empleo* (FULL_TIME/PART_TIME/HOURLY)', key: 'employmentType', width: 35 },
       { header: 'Nombre Departamento*', key: 'departmentName', width: 25 },
       { header: 'Nombre Puesto*', key: 'jobPositionName', width: 25 },
+      { header: 'No. Empleado Jefe Directo', key: 'supervisorEmployeeNumber', width: 25 },
       { header: 'Salario Base*', key: 'baseSalary', width: 15 },
       { header: 'Tipo Salario* (MONTHLY/BIWEEKLY/WEEKLY/DAILY/HOURLY)', key: 'salaryType', width: 45 },
       { header: 'Metodo Pago* (TRANSFER/CHECK/CASH)', key: 'paymentMethod', width: 30 },
@@ -85,6 +86,7 @@ export class BulkUploadService {
       employmentType: 'FULL_TIME',
       departmentName: 'Recursos Humanos',
       jobPositionName: 'Analista',
+      supervisorEmployeeNumber: 'EMP000',
       baseSalary: 15000,
       salaryType: 'MONTHLY',
       paymentMethod: 'TRANSFER',
@@ -103,7 +105,8 @@ export class BulkUploadService {
     instructionsSheet.addRow(['3. Los valores de enumeracion deben coincidir exactamente con los indicados en el encabezado']);
     instructionsSheet.addRow(['4. El departamento y puesto deben existir previamente en el sistema']);
     instructionsSheet.addRow(['5. El codigo de banco debe coincidir con los bancos registrados en el sistema']);
-    instructionsSheet.addRow(['6. La fila 2 contiene un ejemplo que debe ser eliminado antes de cargar']);
+    instructionsSheet.addRow(['6. El "No. Empleado Jefe Directo" es el numero de empleado del supervisor (debe existir en el sistema)']);
+    instructionsSheet.addRow(['7. La fila 2 contiene un ejemplo que debe ser eliminado antes de cargar']);
     instructionsSheet.getRow(1).font = { bold: true, size: 14 };
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -293,12 +296,13 @@ export class BulkUploadService {
           employmentType: String(values[21] || '').trim() as any,
           departmentName: String(values[22] || '').trim(),
           jobPositionName: String(values[23] || '').trim(),
-          baseSalary: Number(values[24]) || 0,
-          salaryType: String(values[25] || '').trim() as any,
-          paymentMethod: String(values[26] || '').trim() as any,
-          bankCode: values[27] ? String(values[27]).trim() : null,
-          bankAccount: values[28] ? String(values[28]).trim() : null,
-          clabe: values[29] ? String(values[29]).trim() : null,
+          supervisorEmployeeNumber: values[24] ? String(values[24]).trim() : null,
+          baseSalary: Number(values[25]) || 0,
+          salaryType: String(values[26] || '').trim() as any,
+          paymentMethod: String(values[27] || '').trim() as any,
+          bankCode: values[28] ? String(values[28]).trim() : null,
+          bankAccount: values[29] ? String(values[29]).trim() : null,
+          clabe: values[30] ? String(values[30]).trim() : null,
         };
 
         // Validations
@@ -354,6 +358,19 @@ export class BulkUploadService {
           bankId = bank.id;
         }
 
+        // Find supervisor if provided
+        let supervisorId = null;
+        if (employeeData.supervisorEmployeeNumber) {
+          const supervisor = await this.prisma.employee.findFirst({
+            where: { employeeNumber: employeeData.supervisorEmployeeNumber, companyId },
+          });
+          if (!supervisor) {
+            result.errors.push({ row: rowNumber, field: 'supervisorEmployeeNumber', message: `Supervisor con numero "${employeeData.supervisorEmployeeNumber}" no encontrado` });
+            continue;
+          }
+          supervisorId = supervisor.id;
+        }
+
         // Create employee
         await this.prisma.employee.create({
           data: {
@@ -387,6 +404,7 @@ export class BulkUploadService {
             bankId,
             bankAccount: employeeData.bankAccount,
             clabe: employeeData.clabe,
+            supervisorId,
           },
         });
 
