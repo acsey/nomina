@@ -170,6 +170,11 @@ export const vacationsApi = {
     api.get(`/vacations/schedule/${employeeId}`),
   previewVacationDays: (employeeId: string, startDate: string, endDate: string) =>
     api.get('/vacations/preview', { params: { employeeId, startDate, endDate } }),
+  // Approvers based on hierarchy
+  getApprovers: (employeeId: string) =>
+    api.get(`/vacations/approvers/${employeeId}`),
+  canApprove: (approverId: string, employeeId: string) =>
+    api.get('/vacations/can-approve', { params: { approverId, employeeId } }),
 };
 
 export const benefitsApi = {

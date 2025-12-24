@@ -99,4 +99,19 @@ export class VacationsController {
       new Date(endDate),
     );
   }
+
+  @Get('approvers/:employeeId')
+  @ApiOperation({ summary: 'Obtener autorizadores para un empleado' })
+  getApproversForEmployee(@Param('employeeId') employeeId: string) {
+    return this.vacationsService.getApproversForEmployee(employeeId);
+  }
+
+  @Get('can-approve')
+  @ApiOperation({ summary: 'Verificar si puede aprobar solicitud' })
+  canApproveRequest(
+    @Query('approverId') approverId: string,
+    @Query('employeeId') employeeId: string,
+  ) {
+    return this.vacationsService.canApproveRequest(approverId, employeeId);
+  }
 }

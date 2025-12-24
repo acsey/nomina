@@ -7,6 +7,7 @@ import {
   CalendarDaysIcon,
   DocumentTextIcon,
   ClockIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { vacationsApi, catalogsApi, employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,6 +46,128 @@ interface RequestFormData {
   startDate: string;
   endDate: string;
   reason: string;
+}
+
+// Component for pending request card with approvers info
+function PendingRequestCard({
+  request,
+  onApprove,
+  onReject,
+  isApproving,
+  isRejecting,
+}: {
+  request: any;
+  onApprove: () => void;
+  onReject: () => void;
+  isApproving: boolean;
+  isRejecting: boolean;
+}) {
+  const { data: approversData } = useQuery({
+    queryKey: ['vacation-approvers', request.employee.id],
+    queryFn: () => vacationsApi.getApprovers(request.employee.id),
+  });
+  const approvers = approversData?.data || [];
+
+  return (
+    <div className="card">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900">
+            {request.employee.firstName} {request.employee.lastName}
+          </h3>
+          <p className="text-sm text-gray-500">
+            {request.employee.employeeNumber} •{' '}
+            {request.employee.department?.name}
+          </p>
+        </div>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            statusLabels[request.status]?.color
+          }`}
+        >
+          {statusLabels[request.status]?.label}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <p className="text-sm text-gray-500">Tipo</p>
+          <p className="font-medium">{typeLabels[request.type] || request.type}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Fecha inicio</p>
+          <p className="font-medium">
+            {dayjs(request.startDate).format('DD/MM/YYYY')}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Fecha fin</p>
+          <p className="font-medium">
+            {dayjs(request.endDate).format('DD/MM/YYYY')}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Total dias</p>
+          <p className="font-medium">{request.totalDays}</p>
+        </div>
+      </div>
+
+      {request.reason && (
+        <div className="mt-4">
+          <p className="text-sm text-gray-500">Motivo</p>
+          <p className="text-gray-700">{request.reason}</p>
+        </div>
+      )}
+
+      {/* Approvers info */}
+      {approvers.length > 0 && (
+        <div className="mt-4 pt-3 border-t">
+          <div className="flex items-center gap-2 mb-2">
+            <UserGroupIcon className="h-4 w-4 text-gray-400" />
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Autorizadores
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {approvers.map((approver: any, index: number) => (
+              <span
+                key={approver.id}
+                className={`inline-flex items-center px-2 py-0.5 text-xs rounded ${
+                  index === 0
+                    ? 'bg-primary-100 text-primary-700'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+                title={approver.reason}
+              >
+                {approver.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {request.status === 'PENDING' && (
+        <div className="mt-4 pt-4 border-t flex gap-2">
+          <button
+            onClick={onApprove}
+            disabled={isApproving}
+            className="btn btn-success"
+          >
+            <CheckIcon className="h-5 w-5 mr-1" />
+            Aprobar
+          </button>
+          <button
+            onClick={onReject}
+            disabled={isRejecting}
+            className="btn btn-danger"
+          >
+            <XMarkIcon className="h-5 w-5 mr-1" />
+            Rechazar
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function VacationsPage() {
@@ -118,6 +241,14 @@ export default function VacationsPage() {
     enabled: !!selectedEmployeeId,
   });
   const employeeRequests = employeeRequestsData?.data || [];
+
+  // Get approvers for selected employee
+  const { data: approversData } = useQuery({
+    queryKey: ['vacation-approvers', selectedEmployeeId],
+    queryFn: () => vacationsApi.getApprovers(selectedEmployeeId),
+    enabled: !!selectedEmployeeId,
+  });
+  const approvers = approversData?.data || [];
 
   const createMutation = useMutation({
     mutationFn: (data: RequestFormData) => vacationsApi.createRequest({
@@ -294,6 +425,32 @@ export default function VacationsPage() {
             </div>
           </div>
         )}
+
+        {/* Approvers Display */}
+        {selectedEmployeeId && approvers.length > 0 && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2 mb-2">
+              <UserGroupIcon className="h-5 w-5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">Autorizadores:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {approvers.map((approver: any, index: number) => (
+                <div
+                  key={approver.id}
+                  className={`px-3 py-1.5 text-xs rounded-full ${
+                    index === 0
+                      ? 'bg-primary-100 text-primary-800 border border-primary-200'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                  title={approver.reason}
+                >
+                  {approver.name}
+                  <span className="ml-1 text-gray-500">({approver.reason})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -338,77 +495,14 @@ export default function VacationsPage() {
         ) : (
           <div className="space-y-4">
             {pendingRequests.map((request: any) => (
-              <div key={request.id} className="card">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">
-                      {request.employee.firstName} {request.employee.lastName}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {request.employee.employeeNumber} •{' '}
-                      {request.employee.department?.name}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      statusLabels[request.status]?.color
-                    }`}
-                  >
-                    {statusLabels[request.status]?.label}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Tipo</p>
-                    <p className="font-medium">{typeLabels[request.type] || request.type}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Fecha inicio</p>
-                    <p className="font-medium">
-                      {dayjs(request.startDate).format('DD/MM/YYYY')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Fecha fin</p>
-                    <p className="font-medium">
-                      {dayjs(request.endDate).format('DD/MM/YYYY')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total dias</p>
-                    <p className="font-medium">{request.totalDays}</p>
-                  </div>
-                </div>
-
-                {request.reason && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-500">Motivo</p>
-                    <p className="text-gray-700">{request.reason}</p>
-                  </div>
-                )}
-
-                {request.status === 'PENDING' && (
-                  <div className="mt-4 pt-4 border-t flex gap-2">
-                    <button
-                      onClick={() => approveMutation.mutate(request.id)}
-                      disabled={approveMutation.isPending}
-                      className="btn btn-success"
-                    >
-                      <CheckIcon className="h-5 w-5 mr-1" />
-                      Aprobar
-                    </button>
-                    <button
-                      onClick={() => handleReject(request.id)}
-                      disabled={rejectMutation.isPending}
-                      className="btn btn-danger"
-                    >
-                      <XMarkIcon className="h-5 w-5 mr-1" />
-                      Rechazar
-                    </button>
-                  </div>
-                )}
-              </div>
+              <PendingRequestCard
+                key={request.id}
+                request={request}
+                onApprove={() => approveMutation.mutate(request.id)}
+                onReject={() => handleReject(request.id)}
+                isApproving={approveMutation.isPending}
+                isRejecting={rejectMutation.isPending}
+              />
             ))}
           </div>
         )
