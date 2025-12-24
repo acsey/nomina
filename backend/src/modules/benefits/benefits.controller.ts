@@ -6,13 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BenefitsService } from './benefits.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '@/common/decorators';
+import { Roles, CurrentUser } from '@/common/decorators';
 
 @ApiTags('benefits')
 @Controller('benefits')
@@ -24,14 +25,49 @@ export class BenefitsController {
   @Post()
   @Roles('admin', 'rh')
   @ApiOperation({ summary: 'Crear prestación' })
-  create(@Body() createBenefitDto: any) {
-    return this.benefitsService.createBenefit(createBenefitDto);
+  create(
+    @Body() createBenefitDto: any,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: string,
+  ) {
+    return this.benefitsService.createBenefit({
+      ...createBenefitDto,
+      createdById: userId,
+      isAdmin: role === 'admin',
+    });
   }
 
   @Get()
   @ApiOperation({ summary: 'Listar prestaciones' })
-  findAll() {
-    return this.benefitsService.findAllBenefits();
+  findAll(@Query('includeAll') includeAll?: string) {
+    return this.benefitsService.findAllBenefits(includeAll === 'true');
+  }
+
+  @Get('pending')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Listar prestaciones pendientes de aprobación' })
+  findPending() {
+    return this.benefitsService.findPendingBenefits();
+  }
+
+  @Post(':id/approve')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Aprobar prestación' })
+  approve(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.benefitsService.approveBenefit(id, userId);
+  }
+
+  @Post(':id/reject')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Rechazar prestación' })
+  reject(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.benefitsService.rejectBenefit(id, reason);
   }
 
   @Get(':id')

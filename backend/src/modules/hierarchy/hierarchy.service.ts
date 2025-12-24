@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-interface HierarchyNode {
+export interface HierarchyNode {
   id: string;
   employeeNumber: string;
   firstName: string;
@@ -16,7 +16,7 @@ interface HierarchyNode {
   subordinates: HierarchyNode[];
 }
 
-interface ApprovalChainMember {
+export interface ApprovalChainMember {
   level: number;
   employeeId: string;
   employeeNumber: string;
