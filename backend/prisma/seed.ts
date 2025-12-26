@@ -6,75 +6,193 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Iniciando seed de datos...');
 
-  // Crear roles
+  // ============================================
+  // CREAR ROLES CON PERMISOS GRANULARES
+  // ============================================
+  // RBAC: Role-Based Access Control
+  // - admin (super_admin): Solo configuración del sistema, sin empresa asociada
+  // - company_admin: Administrador de empresa, aprueba nóminas/incidencias de SU empresa
+  // - rh: Procesa incidencias, vacaciones, nómina, gestión de empleados
+  // - manager: Registra incidencias de su equipo, aprueba vacaciones de subordinados
+  // - employee: Solicita vacaciones y permisos (con/sin goce de sueldo)
+
   const adminRole = await prisma.role.upsert({
     where: { name: 'admin' },
-    update: {},
+    update: {
+      description: 'Super Administrador del Sistema',
+      permissions: JSON.stringify([
+        // Full system access
+        '*',
+        // Explicit permissions for clarity
+        'system:config',
+        'companies:*',
+        'users:*',
+        'employees:*',
+        'payroll:*',
+        'incidents:*',
+        'vacations:*',
+        'benefits:*',
+        'reports:*',
+        'settings:*',
+      ]),
+    },
     create: {
       name: 'admin',
-      description: 'Administrador del sistema',
+      description: 'Super Administrador del Sistema',
       permissions: JSON.stringify([
-        'users:read', 'users:write', 'users:delete',
-        'employees:read', 'employees:write', 'employees:delete',
-        'payroll:read', 'payroll:write', 'payroll:approve',
-        'reports:read', 'reports:export',
-        'settings:read', 'settings:write',
+        '*',
+        'system:config',
+        'companies:*',
+        'users:*',
+        'employees:*',
+        'payroll:*',
+        'incidents:*',
+        'vacations:*',
+        'benefits:*',
+        'reports:*',
+        'settings:*',
       ]),
-    },
-  });
-
-  const rhRole = await prisma.role.upsert({
-    where: { name: 'rh' },
-    update: {},
-    create: {
-      name: 'rh',
-      description: 'Recursos Humanos',
-      permissions: JSON.stringify([
-        'employees:read', 'employees:write',
-        'payroll:read', 'payroll:write',
-        'reports:read', 'reports:export',
-      ]),
-    },
-  });
-
-  const managerRole = await prisma.role.upsert({
-    where: { name: 'manager' },
-    update: {},
-    create: {
-      name: 'manager',
-      description: 'Gerente de departamento',
-      permissions: JSON.stringify(['employees:read', 'payroll:read', 'reports:read']),
-    },
-  });
-
-  const employeeRole = await prisma.role.upsert({
-    where: { name: 'employee' },
-    update: {},
-    create: {
-      name: 'employee',
-      description: 'Empleado',
-      permissions: JSON.stringify(['profile:read', 'payroll:read:own']),
     },
   });
 
   // Rol de Administrador por Empresa (puede aprobar nóminas de su empresa)
   const companyAdminRole = await prisma.role.upsert({
     where: { name: 'company_admin' },
-    update: {},
+    update: {
+      description: 'Administrador de Empresa - Aprueba nóminas, incidencias y gestiona su empresa',
+      permissions: JSON.stringify([
+        // Company-scoped access
+        'users:read:company', 'users:write:company',
+        'employees:*:company',
+        'payroll:*:company', 'payroll:approve',
+        'incidents:*:company', 'incidents:approve',
+        'vacations:*:company', 'vacations:approve',
+        'benefits:*:company', 'benefits:approve',
+        'reports:*:company',
+        'settings:read:company', 'settings:write:company',
+      ]),
+    },
     create: {
       name: 'company_admin',
-      description: 'Administrador de Empresa',
+      description: 'Administrador de Empresa - Aprueba nóminas, incidencias y gestiona su empresa',
       permissions: JSON.stringify([
-        'users:read', 'users:write',
-        'employees:read', 'employees:write', 'employees:delete',
-        'payroll:read', 'payroll:write', 'payroll:approve',
-        'reports:read', 'reports:export',
-        'settings:read', 'settings:write:company',
+        'users:read:company', 'users:write:company',
+        'employees:*:company',
+        'payroll:*:company', 'payroll:approve',
+        'incidents:*:company', 'incidents:approve',
+        'vacations:*:company', 'vacations:approve',
+        'benefits:*:company', 'benefits:approve',
+        'reports:*:company',
+        'settings:read:company', 'settings:write:company',
       ]),
     },
   });
 
-  console.log('✅ Roles creados (incluyendo company_admin)');
+  const rhRole = await prisma.role.upsert({
+    where: { name: 'rh' },
+    update: {
+      description: 'Recursos Humanos - Procesa incidencias, vacaciones, nómina y empleados',
+      permissions: JSON.stringify([
+        // Employee management
+        'employees:read:company', 'employees:write:company',
+        // Payroll processing (no approval)
+        'payroll:read:company', 'payroll:write:company', 'payroll:preview:company',
+        // Incident management
+        'incidents:*:company',
+        // Vacation/Leave management
+        'vacations:*:company',
+        // Benefits management
+        'benefits:read:company', 'benefits:write:company', 'benefits:assign:company',
+        // Reports
+        'reports:read:company', 'reports:export:company',
+      ]),
+    },
+    create: {
+      name: 'rh',
+      description: 'Recursos Humanos - Procesa incidencias, vacaciones, nómina y empleados',
+      permissions: JSON.stringify([
+        'employees:read:company', 'employees:write:company',
+        'payroll:read:company', 'payroll:write:company', 'payroll:preview:company',
+        'incidents:*:company',
+        'vacations:*:company',
+        'benefits:read:company', 'benefits:write:company', 'benefits:assign:company',
+        'reports:read:company', 'reports:export:company',
+      ]),
+    },
+  });
+
+  const managerRole = await prisma.role.upsert({
+    where: { name: 'manager' },
+    update: {
+      description: 'Gerente/Jefe - Registra incidencias y aprueba vacaciones de su equipo',
+      permissions: JSON.stringify([
+        // Read employees in their scope
+        'employees:read:subordinates',
+        // Create incidents for subordinates
+        'incidents:read:subordinates', 'incidents:create:subordinates',
+        // Approve vacations for subordinates
+        'vacations:read:subordinates', 'vacations:approve:subordinates',
+        // View payroll for their team (read-only)
+        'payroll:read:subordinates',
+        // View reports for their team
+        'reports:read:subordinates',
+        // Own profile
+        'profile:read:own', 'profile:write:own',
+        // Own vacation requests
+        'vacations:create:own', 'vacations:read:own',
+      ]),
+    },
+    create: {
+      name: 'manager',
+      description: 'Gerente/Jefe - Registra incidencias y aprueba vacaciones de su equipo',
+      permissions: JSON.stringify([
+        'employees:read:subordinates',
+        'incidents:read:subordinates', 'incidents:create:subordinates',
+        'vacations:read:subordinates', 'vacations:approve:subordinates',
+        'payroll:read:subordinates',
+        'reports:read:subordinates',
+        'profile:read:own', 'profile:write:own',
+        'vacations:create:own', 'vacations:read:own',
+      ]),
+    },
+  });
+
+  const employeeRole = await prisma.role.upsert({
+    where: { name: 'employee' },
+    update: {
+      description: 'Empleado - Solicita vacaciones y permisos',
+      permissions: JSON.stringify([
+        // Own profile
+        'profile:read:own', 'profile:write:own',
+        // Own payroll (view receipts)
+        'payroll:read:own',
+        // Request vacations and leave permissions
+        'vacations:create:own', 'vacations:read:own',
+        // View own incidents
+        'incidents:read:own',
+        // View own benefits
+        'benefits:read:own',
+      ]),
+    },
+    create: {
+      name: 'employee',
+      description: 'Empleado - Solicita vacaciones y permisos',
+      permissions: JSON.stringify([
+        'profile:read:own', 'profile:write:own',
+        'payroll:read:own',
+        'vacations:create:own', 'vacations:read:own',
+        'incidents:read:own',
+        'benefits:read:own',
+      ]),
+    },
+  });
+
+  console.log('✅ Roles creados con permisos RBAC granulares:');
+  console.log('   - admin: Super Admin (sin empresa, acceso total al sistema)');
+  console.log('   - company_admin: Admin de Empresa (aprueba nóminas/incidencias)');
+  console.log('   - rh: Recursos Humanos (procesa nóminas/incidencias/vacaciones)');
+  console.log('   - manager: Gerente (registra incidencias, aprueba vacaciones de su equipo)');
+  console.log('   - employee: Empleado (solicita vacaciones/permisos)');
 
   const hashedPassword = await bcrypt.hash('admin123', 10);
 

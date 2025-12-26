@@ -1,8 +1,7 @@
 import { Controller, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { SuperAdminGuard } from '../auth/guards/super-admin.guard';
 import { SystemConfigService } from './system-config.service';
 import { IsString, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -22,6 +21,14 @@ class UpdateMultipleConfigsDto {
   configs: UpdateConfigDto[];
 }
 
+/**
+ * System Configuration Controller
+ *
+ * IMPORTANT: All endpoints (except /public) require Super Admin access.
+ * Super Admin = admin role WITHOUT companyId (admin@sistema.com)
+ *
+ * Company admins cannot access system-wide configuration.
+ */
 @ApiTags('system-config')
 @Controller('system-config')
 export class SystemConfigController {
@@ -35,37 +42,33 @@ export class SystemConfigController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener todas las configuraciones (solo admin)' })
+  @ApiOperation({ summary: 'Obtener todas las configuraciones (solo super admin)' })
   async getAllConfigs() {
     return this.systemConfigService.getAll();
   }
 
   @Get(':key')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener configuración por clave' })
+  @ApiOperation({ summary: 'Obtener configuración por clave (solo super admin)' })
   async getConfigByKey(@Param('key') key: string) {
     return this.systemConfigService.getByKey(key);
   }
 
   @Patch(':key')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualizar configuración' })
+  @ApiOperation({ summary: 'Actualizar configuración (solo super admin)' })
   async updateConfig(@Param('key') key: string, @Body() body: { value: string }) {
     return this.systemConfigService.update(key, body.value);
   }
 
   @Patch()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualizar múltiples configuraciones' })
+  @ApiOperation({ summary: 'Actualizar múltiples configuraciones (solo super admin)' })
   async updateMultipleConfigs(@Body() body: UpdateMultipleConfigsDto) {
     return this.systemConfigService.updateMultiple(body.configs);
   }
