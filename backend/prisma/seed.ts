@@ -649,10 +649,17 @@ async function main() {
     prisma.payrollConcept.upsert({ where: { code: 'P004' }, update: {}, create: { code: 'P004', name: 'Aguinaldo', type: 'PERCEPTION', satCode: '002', isTaxable: true }}),
     prisma.payrollConcept.upsert({ where: { code: 'P005' }, update: {}, create: { code: 'P005', name: 'Fondo Ahorro Empresa', type: 'PERCEPTION', satCode: '005', isTaxable: false }}),
     prisma.payrollConcept.upsert({ where: { code: 'P006' }, update: {}, create: { code: 'P006', name: 'Vales de Despensa', type: 'PERCEPTION', satCode: '029', isTaxable: false }}),
+    // Conceptos para incidencias - percepciones
+    prisma.payrollConcept.upsert({ where: { code: 'P010' }, update: {}, create: { code: 'P010', name: 'Bono por Incidencia', type: 'PERCEPTION', satCode: '038', isTaxable: true }}),
+    prisma.payrollConcept.upsert({ where: { code: 'P011' }, update: {}, create: { code: 'P011', name: 'Ajuste Período Anterior (Percepción)', type: 'PERCEPTION', satCode: '038', isTaxable: true }}),
     prisma.payrollConcept.upsert({ where: { code: 'D001' }, update: {}, create: { code: 'D001', name: 'ISR', type: 'DEDUCTION', satCode: '002' }}),
     prisma.payrollConcept.upsert({ where: { code: 'D002' }, update: {}, create: { code: 'D002', name: 'IMSS Trabajador', type: 'DEDUCTION', satCode: '001' }}),
     prisma.payrollConcept.upsert({ where: { code: 'D003' }, update: {}, create: { code: 'D003', name: 'Fondo Ahorro Empleado', type: 'DEDUCTION', satCode: '004' }}),
     prisma.payrollConcept.upsert({ where: { code: 'D004' }, update: {}, create: { code: 'D004', name: 'INFONAVIT', type: 'DEDUCTION', satCode: '010' }}),
+    // Conceptos para incidencias - deducciones
+    prisma.payrollConcept.upsert({ where: { code: 'D010' }, update: {}, create: { code: 'D010', name: 'Descuento por Falta', type: 'DEDUCTION', satCode: '004' }}),
+    prisma.payrollConcept.upsert({ where: { code: 'D011' }, update: {}, create: { code: 'D011', name: 'Descuento por Retardo', type: 'DEDUCTION', satCode: '004' }}),
+    prisma.payrollConcept.upsert({ where: { code: 'D012' }, update: {}, create: { code: 'D012', name: 'Ajuste Período Anterior (Deducción)', type: 'DEDUCTION', satCode: '004' }}),
   ]);
 
   console.log('✅ Conceptos de nómina creados');

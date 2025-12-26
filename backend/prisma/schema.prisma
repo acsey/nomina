@@ -362,7 +362,10 @@ model EmployeeIncident {
   approvedById    String?  @map("approved_by_id")
   approvedAt      DateTime? @map("approved_at")
   payrollPeriodId String?  @map("payroll_period_id") // Periodo en que se aplico
+  payrollPeriod   PayrollPeriod? @relation(fields: [payrollPeriodId], references: [id])
   appliedAt       DateTime? @map("applied_at") // Fecha en que se aplico a nomina
+  isRetroactive   Boolean  @default(false) @map("is_retroactive") // Si es ajuste de período anterior
+  retroactiveNote String?  @map("retroactive_note") // Nota explicativa para ajustes retroactivos
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -590,6 +593,7 @@ model PayrollPeriod {
   startDate       DateTime @map("start_date") @db.Date
   endDate         DateTime @map("end_date") @db.Date
   paymentDate     DateTime @map("payment_date") @db.Date
+  incidentDeadline DateTime? @map("incident_deadline") @db.Date // Fecha límite para cargar incidencias
   status          PayrollStatus @default(DRAFT)
   totalPerceptions Decimal @default(0) @map("total_perceptions") @db.Decimal(14, 2)
   totalDeductions  Decimal @default(0) @map("total_deductions") @db.Decimal(14, 2)
@@ -600,6 +604,7 @@ model PayrollPeriod {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   payrollDetails PayrollDetail[]
+  appliedIncidents EmployeeIncident[] // Incidencias aplicadas en este período
 
   @@unique([companyId, periodType, periodNumber, year])
   @@map("payroll_periods")
