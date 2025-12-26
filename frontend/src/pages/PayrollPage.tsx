@@ -664,7 +664,7 @@ export default function PayrollPage() {
                     )}
 
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-5 gap-4 mb-6">
                       <div className="bg-gray-50 rounded-lg p-4">
                         <p className="text-sm text-gray-500">Empleados</p>
                         <p className="text-2xl font-bold text-gray-900">{previewData.employeeCount}</p>
@@ -680,6 +680,32 @@ export default function PayrollPage() {
                       <div className="bg-blue-50 rounded-lg p-4">
                         <p className="text-sm text-blue-600">Total Neto a Pagar</p>
                         <p className="text-2xl font-bold text-blue-700">{formatCurrency(previewData.totals.netPay)}</p>
+                      </div>
+                      <div className={`rounded-lg p-4 ${
+                        previewData.totals?.totalRetroactiveIncidents > 0
+                          ? 'bg-orange-50'
+                          : 'bg-yellow-50'
+                      }`}>
+                        <p className={`text-sm ${
+                          previewData.totals?.totalRetroactiveIncidents > 0
+                            ? 'text-orange-600'
+                            : 'text-yellow-600'
+                        }`}>
+                          Incidencias
+                          {previewData.totals?.totalRetroactiveIncidents > 0 && ' (con retro)'}
+                        </p>
+                        <p className={`text-2xl font-bold ${
+                          previewData.totals?.totalRetroactiveIncidents > 0
+                            ? 'text-orange-700'
+                            : 'text-yellow-700'
+                        }`}>
+                          {previewData.totals?.totalIncidents || 0}
+                        </p>
+                        {previewData.totals?.totalRetroactiveIncidents > 0 && (
+                          <p className="text-xs text-orange-500 mt-1">
+                            ⚠️ {previewData.totals.totalRetroactiveIncidents} retroactivas
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -735,9 +761,45 @@ export default function PayrollPage() {
                               </td>
                               <td className="px-4 py-3 text-center">
                                 {emp.incidents && emp.incidents.length > 0 ? (
-                                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                                    {emp.incidents.length}
-                                  </span>
+                                  <div className="relative group">
+                                    <span className={`px-2 py-1 text-xs rounded-full cursor-help ${
+                                      emp.incidentSummary?.retroactive > 0
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                      {emp.incidents.length}
+                                      {emp.incidentSummary?.retroactive > 0 && (
+                                        <span className="ml-1">⚠️</span>
+                                      )}
+                                    </span>
+                                    {/* Tooltip con detalles de incidencias */}
+                                    <div className="absolute right-0 mt-1 w-64 bg-white rounded-lg shadow-lg border p-3 hidden group-hover:block z-50 text-left">
+                                      <p className="font-medium text-gray-900 mb-2">Incidencias aplicadas:</p>
+                                      {emp.incidentSummary?.retroactive > 0 && (
+                                        <p className="text-xs text-orange-600 mb-2">
+                                          ⚠️ {emp.incidentSummary.retroactive} retroactiva(s)
+                                        </p>
+                                      )}
+                                      {emp.incidentSummary?.absenceDays > 0 && (
+                                        <p className="text-xs text-red-600 mb-2">
+                                          📅 {emp.incidentSummary.absenceDays} día(s) de falta
+                                        </p>
+                                      )}
+                                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                                        {emp.incidents.map((inc: any, i: number) => (
+                                          <div key={i} className={`text-xs p-1 rounded ${inc.isRetroactive ? 'bg-orange-50' : 'bg-gray-50'}`}>
+                                            <span className={inc.isDeduction ? 'text-red-600' : 'text-green-600'}>
+                                              {inc.isDeduction ? '−' : '+'}
+                                            </span>
+                                            <span className="ml-1">{inc.type}</span>
+                                            {inc.isRetroactive && (
+                                              <span className="text-orange-500 ml-1">(Retro)</span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
                                 ) : (
                                   <span className="text-gray-400 text-xs">-</span>
                                 )}

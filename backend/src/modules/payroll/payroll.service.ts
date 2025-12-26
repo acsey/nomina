@@ -24,6 +24,7 @@ export class PayrollService {
     startDate: string | Date;
     endDate: string | Date;
     paymentDate: string | Date;
+    incidentDeadline?: string | Date;
   }) {
     const existing = await this.prisma.payrollPeriod.findUnique({
       where: {
@@ -45,6 +46,18 @@ export class PayrollService {
     const endDate = typeof data.endDate === 'string' ? new Date(data.endDate) : data.endDate;
     const paymentDate = typeof data.paymentDate === 'string' ? new Date(data.paymentDate) : data.paymentDate;
 
+    // Fecha límite de incidencias: por defecto 2 días antes del fin del período
+    let incidentDeadline: Date | null = null;
+    if (data.incidentDeadline) {
+      incidentDeadline = typeof data.incidentDeadline === 'string'
+        ? new Date(data.incidentDeadline)
+        : data.incidentDeadline;
+    } else {
+      // Default: 2 días antes del fin del período
+      incidentDeadline = new Date(endDate);
+      incidentDeadline.setDate(incidentDeadline.getDate() - 2);
+    }
+
     return this.prisma.payrollPeriod.create({
       data: {
         companyId: data.companyId,
@@ -56,6 +69,7 @@ export class PayrollService {
         startDate,
         endDate,
         paymentDate,
+        incidentDeadline,
         status: PayrollStatus.DRAFT,
       },
     });
@@ -145,6 +159,8 @@ export class PayrollService {
     let totalPerceptions = 0;
     let totalDeductions = 0;
     let totalNetPay = 0;
+    let totalIncidents = 0;
+    let totalRetroactiveIncidents = 0;
 
     for (const employee of employees) {
       const preview = await this.calculator.previewForEmployee(period, employee);
@@ -152,6 +168,12 @@ export class PayrollService {
       totalPerceptions += preview.totalPerceptions;
       totalDeductions += preview.totalDeductions;
       totalNetPay += preview.netPay;
+
+      // Contar incidencias
+      if (preview.incidents) {
+        totalIncidents += preview.incidents.length;
+        totalRetroactiveIncidents += preview.incidents.filter((i: any) => i.isRetroactive).length;
+      }
     }
 
     return {
@@ -165,12 +187,15 @@ export class PayrollService {
         startDate: period.startDate,
         endDate: period.endDate,
         paymentDate: period.paymentDate,
+        incidentDeadline: period.incidentDeadline,
       },
       employeeCount: employees.length,
       totals: {
         perceptions: totalPerceptions,
         deductions: totalDeductions,
         netPay: totalNetPay,
+        totalIncidents,
+        totalRetroactiveIncidents,
       },
       employees: employeeDetails,
     };

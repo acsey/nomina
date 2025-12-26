@@ -3,6 +3,25 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { IsrCalculatorService } from './isr-calculator.service';
 import { ImssCalculatorService } from './imss-calculator.service';
 
+interface ApplicableIncident {
+  id: string;
+  employeeId: string;
+  date: Date;
+  value: number;
+  description: string | null;
+  isRetroactive: boolean;
+  retroactiveNote: string | null;
+  incidentType: {
+    id: string;
+    code: string;
+    name: string;
+    category: string;
+    affectsPayroll: boolean;
+    isDeduction: boolean;
+    valueType: string;
+  };
+}
+
 @Injectable()
 export class PayrollCalculatorService {
   // UMA 2024 (valor diario)
@@ -14,6 +33,219 @@ export class PayrollCalculatorService {
     private readonly imssCalculator: ImssCalculatorService,
   ) {}
 
+  /**
+   * Obtiene todas las incidencias aplicables para un empleado en un período.
+   * Incluye:
+   * 1. Incidencias del período actual (dentro de fechas y aprobadas antes del deadline)
+   * 2. Incidencias retroactivas (de períodos anteriores que no se aplicaron o aprobadas después del deadline)
+   */
+  async getApplicableIncidents(period: any, employeeId: string): Promise<ApplicableIncident[]> {
+    const now = new Date();
+    const incidentDeadline = period.incidentDeadline || period.endDate;
+
+    // 1. Incidencias del período actual (aprobadas a tiempo)
+    const currentPeriodIncidents = await this.prisma.employeeIncident.findMany({
+      where: {
+        employeeId,
+        status: 'APPROVED',
+        payrollPeriodId: null, // No aplicadas aún
+        date: {
+          gte: period.startDate,
+          lte: period.endDate,
+        },
+        approvedAt: {
+          lte: incidentDeadline, // Aprobadas antes del deadline
+        },
+      },
+      include: {
+        incidentType: true,
+      },
+    });
+
+    // 2. Incidencias retroactivas (de períodos anteriores no aplicadas, o aprobadas después del deadline)
+    const retroactiveIncidents = await this.prisma.employeeIncident.findMany({
+      where: {
+        employeeId,
+        status: 'APPROVED',
+        payrollPeriodId: null, // No aplicadas aún
+        OR: [
+          // Incidencias de períodos anteriores nunca aplicadas
+          {
+            date: {
+              lt: period.startDate,
+            },
+          },
+          // Incidencias del período actual pero aprobadas después del deadline
+          {
+            date: {
+              gte: period.startDate,
+              lte: period.endDate,
+            },
+            approvedAt: {
+              gt: incidentDeadline,
+            },
+          },
+        ],
+      },
+      include: {
+        incidentType: true,
+      },
+    });
+
+    // Marcar retroactivas y agregar nota
+    const processedCurrent = currentPeriodIncidents.map(incident => ({
+      id: incident.id,
+      employeeId: incident.employeeId,
+      date: incident.date,
+      value: Number(incident.value),
+      description: incident.description,
+      isRetroactive: false,
+      retroactiveNote: null,
+      incidentType: {
+        id: incident.incidentType.id,
+        code: incident.incidentType.code,
+        name: incident.incidentType.name,
+        category: incident.incidentType.category,
+        affectsPayroll: incident.incidentType.affectsPayroll,
+        isDeduction: incident.incidentType.isDeduction,
+        valueType: incident.incidentType.valueType,
+      },
+    }));
+
+    const processedRetroactive = retroactiveIncidents.map(incident => ({
+      id: incident.id,
+      employeeId: incident.employeeId,
+      date: incident.date,
+      value: Number(incident.value),
+      description: incident.description,
+      isRetroactive: true,
+      retroactiveNote: `Ajuste período anterior - Incidencia del ${new Date(incident.date).toLocaleDateString('es-MX')}`,
+      incidentType: {
+        id: incident.incidentType.id,
+        code: incident.incidentType.code,
+        name: incident.incidentType.name,
+        category: incident.incidentType.category,
+        affectsPayroll: incident.incidentType.affectsPayroll,
+        isDeduction: incident.incidentType.isDeduction,
+        valueType: incident.incidentType.valueType,
+      },
+    }));
+
+    return [...processedCurrent, ...processedRetroactive];
+  }
+
+  /**
+   * Aplica las incidencias al cálculo y las marca como aplicadas
+   */
+  async applyIncidentsToPayroll(
+    period: any,
+    employeeId: string,
+    incidents: ApplicableIncident[],
+    employee: any,
+    concepts: any[],
+  ) {
+    const monthlySalary = Number(employee.baseSalary);
+    const dailySalary = monthlySalary / 30;
+    const hourlyRate = dailySalary / 8;
+
+    const incidentPerceptions: any[] = [];
+    const incidentDeductions: any[] = [];
+    let absenceDays = 0;
+
+    for (const incident of incidents) {
+      if (!incident.incidentType.affectsPayroll) continue;
+
+      const value = incident.value;
+      let amount = 0;
+
+      // Calcular monto según tipo de valor
+      switch (incident.incidentType.valueType) {
+        case 'DAYS':
+          amount = dailySalary * value;
+          if (incident.incidentType.category === 'ABSENCE' || incident.incidentType.category === 'DISABILITY') {
+            absenceDays += value;
+          }
+          break;
+        case 'HOURS':
+          amount = hourlyRate * value;
+          // Horas extra: pagar doble o triple según aplique
+          if (incident.incidentType.category === 'OVERTIME') {
+            amount = hourlyRate * value * 2; // Tiempo doble por default
+          }
+          break;
+        case 'AMOUNT':
+          amount = value;
+          break;
+        case 'PERCENTAGE':
+          amount = monthlySalary * (value / 100);
+          break;
+      }
+
+      amount = Math.round(amount * 100) / 100;
+
+      if (incident.incidentType.isDeduction) {
+        // Es una deducción (falta, retardo, etc.)
+        let conceptCode = 'D010'; // Descuento por falta por default
+        if (incident.incidentType.category === 'TARDINESS') conceptCode = 'D011';
+        if (incident.isRetroactive) conceptCode = 'D012'; // Ajuste retroactivo
+
+        const concept = concepts.find(c => c.code === conceptCode);
+        if (concept && amount > 0) {
+          incidentDeductions.push({
+            conceptId: concept.id,
+            amount,
+            description: incident.isRetroactive
+              ? `${incident.incidentType.name} - ${incident.retroactiveNote}`
+              : incident.incidentType.name,
+            incidentId: incident.id,
+          });
+        }
+      } else {
+        // Es una percepción (bono, horas extra, etc.)
+        let conceptCode = 'P010'; // Bono por incidencia por default
+        if (incident.incidentType.category === 'OVERTIME') conceptCode = 'P002';
+        if (incident.isRetroactive) conceptCode = 'P011'; // Ajuste retroactivo
+
+        const concept = concepts.find(c => c.code === conceptCode);
+        if (concept && amount > 0) {
+          incidentPerceptions.push({
+            conceptId: concept.id,
+            amount,
+            taxableAmount: amount, // Gravable por default
+            exemptAmount: 0,
+            description: incident.isRetroactive
+              ? `${incident.incidentType.name} - ${incident.retroactiveNote}`
+              : incident.incidentType.name,
+            incidentId: incident.id,
+          });
+        }
+      }
+    }
+
+    return {
+      perceptions: incidentPerceptions,
+      deductions: incidentDeductions,
+      absenceDays,
+    };
+  }
+
+  /**
+   * Marca las incidencias como aplicadas al período
+   */
+  async markIncidentsAsApplied(incidentIds: string[], periodId: string) {
+    const now = new Date();
+    await this.prisma.employeeIncident.updateMany({
+      where: {
+        id: { in: incidentIds },
+      },
+      data: {
+        status: 'APPLIED',
+        payrollPeriodId: periodId,
+        appliedAt: now,
+      },
+    });
+  }
+
   // Preview calculation without saving to database
   async previewForEmployee(period: any, employee: any) {
     const concepts = await this.prisma.payrollConcept.findMany({
@@ -23,11 +255,21 @@ export class PayrollCalculatorService {
     const perceptionConcepts = concepts.filter((c) => c.type === 'PERCEPTION');
     const deductionConcepts = concepts.filter((c) => c.type === 'DEDUCTION');
 
-    // Calcular dias trabajados
-    const workedDays = await this.calculateWorkedDays(period, employee);
+    // Obtener incidencias aplicables (incluyendo retroactivas)
+    const applicableIncidents = await this.getApplicableIncidents(period, employee.id);
 
-    // Verificar incidencias del empleado
-    const incidents = await this.getEmployeeIncidents(period, employee.id);
+    // Aplicar incidencias y calcular efectos
+    const incidentEffects = await this.applyIncidentsToPayroll(
+      period,
+      employee.id,
+      applicableIncidents,
+      employee,
+      concepts,
+    );
+
+    // Calcular dias trabajados (restando faltas)
+    let workedDays = await this.calculateWorkedDays(period, employee);
+    workedDays = Math.max(0, workedDays - incidentEffects.absenceDays);
 
     // Verificar si es periodo extraordinario
     const isExtraordinary = period.periodType === 'EXTRAORDINARY';
@@ -49,20 +291,26 @@ export class PayrollCalculatorService {
       );
     }
 
+    // Agregar percepciones de incidencias
+    perceptions = [...perceptions, ...incidentEffects.perceptions];
+
     // Calcular base gravable
     const taxableIncome = perceptions.reduce(
       (sum, p) => sum + Number(p.taxableAmount),
       0,
     );
 
-    // Calcular deducciones
-    const deductions = await this.calculateDeductions(
+    // Calcular deducciones base
+    let deductions = await this.calculateDeductions(
       employee,
       deductionConcepts,
       taxableIncome,
       period,
       isExtraordinary,
     );
+
+    // Agregar deducciones de incidencias
+    deductions = [...deductions, ...incidentEffects.deductions];
 
     const totalPerceptions = perceptions.reduce(
       (sum, p) => sum + Number(p.amount),
@@ -73,6 +321,18 @@ export class PayrollCalculatorService {
       0,
     );
     const netPay = totalPerceptions - totalDeductions;
+
+    // Formatear incidencias para mostrar
+    const incidentsDisplay = applicableIncidents.map(i => ({
+      type: i.incidentType.name,
+      date: i.date,
+      value: i.value,
+      description: i.description,
+      isRetroactive: i.isRetroactive,
+      retroactiveNote: i.retroactiveNote,
+      category: i.incidentType.category,
+      isDeduction: i.incidentType.isDeduction,
+    }));
 
     // Return preview data with concept names
     return {
@@ -85,7 +345,12 @@ export class PayrollCalculatorService {
         baseSalary: Number(employee.baseSalary),
       },
       workedDays,
-      incidents,
+      incidents: incidentsDisplay,
+      incidentSummary: {
+        total: applicableIncidents.length,
+        retroactive: applicableIncidents.filter(i => i.isRetroactive).length,
+        absenceDays: incidentEffects.absenceDays,
+      },
       perceptions: perceptions.map(p => {
         const concept = concepts.find(c => c.id === p.conceptId);
         return {
@@ -139,8 +404,21 @@ export class PayrollCalculatorService {
     const perceptionConcepts = concepts.filter((c) => c.type === 'PERCEPTION');
     const deductionConcepts = concepts.filter((c) => c.type === 'DEDUCTION');
 
-    // Calcular dias trabajados
-    const workedDays = await this.calculateWorkedDays(period, employee);
+    // Obtener incidencias aplicables (incluyendo retroactivas)
+    const applicableIncidents = await this.getApplicableIncidents(period, employee.id);
+
+    // Aplicar incidencias y calcular efectos
+    const incidentEffects = await this.applyIncidentsToPayroll(
+      period,
+      employee.id,
+      applicableIncidents,
+      employee,
+      concepts,
+    );
+
+    // Calcular dias trabajados (restando faltas)
+    let workedDays = await this.calculateWorkedDays(period, employee);
+    workedDays = Math.max(0, workedDays - incidentEffects.absenceDays);
 
     // Verificar si es periodo extraordinario
     const isExtraordinary = period.periodType === 'EXTRAORDINARY';
@@ -162,20 +440,26 @@ export class PayrollCalculatorService {
       );
     }
 
+    // Agregar percepciones de incidencias
+    perceptions = [...perceptions, ...incidentEffects.perceptions];
+
     // Calcular base gravable
     const taxableIncome = perceptions.reduce(
       (sum, p) => sum + Number(p.taxableAmount),
       0,
     );
 
-    // Calcular deducciones
-    const deductions = await this.calculateDeductions(
+    // Calcular deducciones base
+    let deductions = await this.calculateDeductions(
       employee,
       deductionConcepts,
       taxableIncome,
       period,
       isExtraordinary,
     );
+
+    // Agregar deducciones de incidencias
+    deductions = [...deductions, ...incidentEffects.deductions];
 
     const totalPerceptions = perceptions.reduce(
       (sum, p) => sum + Number(p.amount),
@@ -186,6 +470,14 @@ export class PayrollCalculatorService {
       0,
     );
     const netPay = totalPerceptions - totalDeductions;
+
+    // Marcar incidencias como aplicadas
+    if (applicableIncidents.length > 0) {
+      await this.markIncidentsAsApplied(
+        applicableIncidents.map(i => i.id),
+        period.id,
+      );
+    }
 
     // Crear o actualizar detalle de nomina
     const payrollDetail = await this.prisma.payrollDetail.upsert({
