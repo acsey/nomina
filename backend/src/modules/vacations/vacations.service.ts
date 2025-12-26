@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { LeaveType } from '@prisma/client';
 import * as dayjs from 'dayjs';
 
 // Type alias for schedule detail
@@ -252,7 +253,7 @@ export class VacationsService {
     return this.prisma.vacationRequest.create({
       data: {
         employeeId,
-        type,
+        type: type as LeaveType,
         startDate,
         endDate,
         totalDays,
