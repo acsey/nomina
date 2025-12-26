@@ -8,6 +8,10 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
+import { CompanyGuard } from './guards/company.guard';
+import { SubordinatesGuard } from './guards/subordinates.guard';
+import { SuperAdminGuard } from './guards/super-admin.guard';
 import { SystemConfigModule } from '../system-config/system-config.module';
 
 @Module({
@@ -25,7 +29,26 @@ import { SystemConfigModule } from '../system-config/system-config.module';
     SystemConfigModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, MicrosoftAuthService, JwtStrategy, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, MicrosoftAuthService, JwtAuthGuard, RolesGuard],
+  providers: [
+    AuthService,
+    MicrosoftAuthService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RolesGuard,
+    PermissionsGuard,
+    CompanyGuard,
+    SubordinatesGuard,
+    SuperAdminGuard,
+  ],
+  exports: [
+    AuthService,
+    MicrosoftAuthService,
+    JwtAuthGuard,
+    RolesGuard,
+    PermissionsGuard,
+    CompanyGuard,
+    SubordinatesGuard,
+    SuperAdminGuard,
+  ],
 })
 export class AuthModule {}

@@ -1,7 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { LeaveType, RequestStatus } from '@prisma/client';
 import * as dayjs from 'dayjs';
+
+// Type alias for schedule detail
+type ScheduleDetailType = {
+  id: string;
+  dayOfWeek: number;
+  isWorkDay: boolean;
+  startTime: string;
+  endTime: string;
+  breakStart?: string | null;
+  breakEnd?: string | null;
+};
 
 @Injectable()
 export class VacationsService {
@@ -22,9 +32,186 @@ export class VacationsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  // ===== Helper methods for RBAC =====
+
+  /**
+   * Get employee by email
+   */
+  async getEmployeeByEmail(email: string) {
+    return this.prisma.employee.findFirst({
+      where: { email },
+      select: { id: true, companyId: true, supervisorId: true },
+    });
+  }
+
+  /**
+   * Check if employee belongs to a company
+   */
+  async employeeBelongsToCompany(employeeId: string, companyId: string): Promise<boolean> {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, companyId },
+    });
+    return !!employee;
+  }
+
+  /**
+   * Check if targetEmployeeId is a subordinate of managerEmployeeId
+   */
+  async isSubordinate(targetEmployeeId: string, managerEmployeeId: string): Promise<boolean> {
+    // Check if manager heads a department containing the target
+    const managedDepartments = await this.prisma.department.findMany({
+      where: { managerId: managerEmployeeId },
+      select: { id: true },
+    });
+
+    if (managedDepartments.length > 0) {
+      const departmentIds = managedDepartments.map((d: { id: string }) => d.id);
+      const inDepartment = await this.prisma.employee.findFirst({
+        where: {
+          id: targetEmployeeId,
+          departmentId: { in: departmentIds },
+        },
+      });
+      if (inDepartment) return true;
+    }
+
+    // Direct subordinate check
+    const directSub = await this.prisma.employee.findFirst({
+      where: {
+        id: targetEmployeeId,
+        supervisorId: managerEmployeeId,
+      },
+    });
+    if (directSub) return true;
+
+    // Check indirect subordinates (up to 5 levels)
+    return this.checkIndirectSubordinate(targetEmployeeId, managerEmployeeId, 5);
+  }
+
+  private async checkIndirectSubordinate(
+    targetEmployeeId: string,
+    managerEmployeeId: string,
+    maxDepth: number
+  ): Promise<boolean> {
+    if (maxDepth <= 0) return false;
+
+    const directSubordinates = await this.prisma.employee.findMany({
+      where: { supervisorId: managerEmployeeId },
+      select: { id: true },
+    });
+
+    for (const sub of directSubordinates) {
+      if (sub.id === targetEmployeeId) return true;
+      const isIndirect = await this.checkIndirectSubordinate(targetEmployeeId, sub.id, maxDepth - 1);
+      if (isIndirect) return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get request by ID
+   */
+  async getRequestById(id: string) {
+    const request = await this.prisma.vacationRequest.findUnique({
+      where: { id },
+    });
+    if (!request) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+    return request;
+  }
+
+  /**
+   * Get pending requests for a manager (only subordinates)
+   */
+  async getPendingRequestsForManager(managerEmployeeId: string, companyId: string) {
+    // Get subordinate IDs
+    const subordinateIds = await this.getManagerSubordinateIds(managerEmployeeId);
+
+    if (subordinateIds.length === 0) {
+      return [];
+    }
+
+    return this.prisma.vacationRequest.findMany({
+      where: {
+        status: 'PENDING',
+        employeeId: { in: subordinateIds },
+        employee: {
+          companyId,
+        },
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            employeeNumber: true,
+            firstName: true,
+            lastName: true,
+            department: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Get all subordinate IDs for a manager
+   */
+  private async getManagerSubordinateIds(managerEmployeeId: string): Promise<string[]> {
+    const subordinateIds: string[] = [];
+
+    // Get employees from managed departments
+    const managedDepartments = await this.prisma.department.findMany({
+      where: { managerId: managerEmployeeId },
+      select: { id: true },
+    });
+
+    if (managedDepartments.length > 0) {
+      const departmentIds = managedDepartments.map((d: { id: string }) => d.id);
+      const departmentEmployees = await this.prisma.employee.findMany({
+        where: {
+          departmentId: { in: departmentIds },
+          id: { not: managerEmployeeId },
+        },
+        select: { id: true },
+      });
+      subordinateIds.push(...departmentEmployees.map((e: { id: string }) => e.id));
+    }
+
+    // Get direct subordinates
+    const directSubs = await this.prisma.employee.findMany({
+      where: { supervisorId: managerEmployeeId },
+      select: { id: true },
+    });
+
+    for (const sub of directSubs) {
+      if (!subordinateIds.includes(sub.id)) {
+        subordinateIds.push(sub.id);
+      }
+    }
+
+    return subordinateIds;
+  }
+
+  /**
+   * Get leave types that employees can request themselves
+   */
+  async getRequestableLeaveTypes() {
+    return [
+      { code: 'VACATION', name: 'Vacaciones', isPaid: true, requiresApproval: true },
+      { code: 'PERSONAL', name: 'Permiso Personal (con goce)', isPaid: true, requiresApproval: true },
+      { code: 'UNPAID', name: 'Permiso Personal (sin goce)', isPaid: false, requiresApproval: true },
+      { code: 'MEDICAL_APPOINTMENT', name: 'Cita Médica', isPaid: true, requiresApproval: true },
+      { code: 'GOVERNMENT_PROCEDURE', name: 'Trámite Gubernamental', isPaid: true, requiresApproval: true },
+      { code: 'STUDY_PERMIT', name: 'Permiso de Estudios', isPaid: true, requiresApproval: true },
+    ];
+  }
+
   async createRequest(data: {
     employeeId: string;
-    type: LeaveType;
+    type: string;
     startDate: Date | string;
     endDate: Date | string;
     reason?: string;
@@ -450,8 +637,8 @@ export class VacationsService {
     let workDays: number[];
     if (schedule && schedule.scheduleDetails.length > 0) {
       workDays = schedule.scheduleDetails
-        .filter(d => d.isWorkDay)
-        .map(d => d.dayOfWeek);
+        .filter((d: ScheduleDetailType) => d.isWorkDay)
+        .map((d: ScheduleDetailType) => d.dayOfWeek);
     } else {
       // Default: Monday (1) to Friday (5)
       workDays = [1, 2, 3, 4, 5];
@@ -484,8 +671,8 @@ export class VacationsService {
         id: schedule.id,
         name: schedule.name,
         description: schedule.description,
-        workDaysPerWeek: schedule.scheduleDetails.filter(d => d.isWorkDay).length,
-        details: schedule.scheduleDetails.map(d => ({
+        workDaysPerWeek: schedule.scheduleDetails.filter((d: ScheduleDetailType) => d.isWorkDay).length,
+        details: schedule.scheduleDetails.map((d: ScheduleDetailType) => ({
           dayOfWeek: d.dayOfWeek,
           dayName: this.getDayName(d.dayOfWeek),
           isWorkDay: d.isWorkDay,
