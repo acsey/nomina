@@ -101,7 +101,7 @@ export class NotificationsProcessor extends WorkerHost {
       const admins = await this.prisma.user.findMany({
         where: {
           companyId: data.companyId,
-          role: { in: ['ADMIN', 'HR_MANAGER', 'PAYROLL_ADMIN'] },
+          role: { name: { in: ['ADMIN', 'HR_MANAGER', 'PAYROLL_ADMIN'] } },
           isActive: true,
         },
         select: { id: true },

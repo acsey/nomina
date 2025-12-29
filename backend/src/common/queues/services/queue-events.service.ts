@@ -170,18 +170,21 @@ export class QueueEventsService implements OnModuleInit {
     const period = await this.prisma.payrollPeriod.findUnique({
       where: { id: payload.periodId },
       select: {
-        name: true,
+        periodType: true,
+        periodNumber: true,
+        year: true,
         companyId: true,
       },
     });
 
     if (period) {
+      const periodName = `${period.periodType} ${period.periodNumber}/${period.year}`;
       await this.queueNotification({
         type: NotificationType.PAYROLL_CALCULATION_STARTED,
         userId: payload.userId,
         companyId: period.companyId,
         title: 'Cálculo de Nómina Iniciado',
-        message: `Se ha iniciado el cálculo de nómina para el período: ${period.name}`,
+        message: `Se ha iniciado el cálculo de nómina para el período: ${periodName}`,
         metadata: {
           periodId: payload.periodId,
         },
@@ -212,12 +215,15 @@ export class QueueEventsService implements OnModuleInit {
     const period = await this.prisma.payrollPeriod.findUnique({
       where: { id: payload.periodId },
       select: {
-        name: true,
+        periodType: true,
+        periodNumber: true,
+        year: true,
         companyId: true,
       },
     });
 
     if (period) {
+      const periodName = `${period.periodType} ${period.periodNumber}/${period.year}`;
       const statusMessage = payload.success
         ? `completado exitosamente`
         : `completado con ${payload.employeesFailed} errores`;
@@ -227,7 +233,7 @@ export class QueueEventsService implements OnModuleInit {
         userId: payload.userId,
         companyId: period.companyId,
         title: 'Cálculo de Nómina Completado',
-        message: `Período "${period.name}" ${statusMessage}. ${payload.employeesProcessed} empleados procesados. Neto total: $${payload.totals.netPay.toLocaleString()}`,
+        message: `Período "${periodName}" ${statusMessage}. ${payload.employeesProcessed} empleados procesados. Neto total: $${payload.totals.netPay.toLocaleString()}`,
         metadata: {
           periodId: payload.periodId,
           employeesProcessed: payload.employeesProcessed,
@@ -252,18 +258,21 @@ export class QueueEventsService implements OnModuleInit {
     const period = await this.prisma.payrollPeriod.findUnique({
       where: { id: payload.periodId },
       select: {
-        name: true,
+        periodType: true,
+        periodNumber: true,
+        year: true,
         companyId: true,
       },
     });
 
     if (period) {
+      const periodName = `${period.periodType} ${period.periodNumber}/${period.year}`;
       await this.queueNotification({
         type: NotificationType.PAYROLL_CALCULATION_FAILED,
         userId: payload.userId,
         companyId: period.companyId,
         title: 'Error en Cálculo de Nómina',
-        message: `Error al calcular período "${period.name}": ${payload.error}`,
+        message: `Error al calcular período "${periodName}": ${payload.error}`,
         metadata: {
           periodId: payload.periodId,
           error: payload.error,

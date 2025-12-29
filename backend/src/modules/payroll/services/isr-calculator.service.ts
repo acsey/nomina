@@ -10,6 +10,18 @@ export class IsrCalculatorService {
     periodType: string,
     year: number,
   ): Promise<number> {
+    const result = await this.calculateWithSubsidy(taxableIncome, periodType, year);
+    return result.netIsr;
+  }
+
+  /**
+   * Calcula ISR con desglose de subsidio al empleo
+   */
+  async calculateWithSubsidy(
+    taxableIncome: number,
+    periodType: string,
+    year: number,
+  ): Promise<{ grossIsr: number; subsidio: number; netIsr: number }> {
     // Obtener tabla de ISR
     const isrTable = await this.prisma.isrTable.findMany({
       where: {
@@ -19,31 +31,32 @@ export class IsrCalculatorService {
       orderBy: { lowerLimit: 'asc' },
     });
 
+    let grossIsr = 0;
+
     if (isrTable.length === 0) {
       // Usar tabla por defecto si no hay configurada
-      return this.calculateWithDefaultTable(taxableIncome, periodType);
+      grossIsr = this.calculateWithDefaultTable(taxableIncome, periodType);
+    } else {
+      // Encontrar el rango aplicable
+      const range = isrTable.find(
+        (r) =>
+          taxableIncome >= Number(r.lowerLimit) &&
+          taxableIncome <= Number(r.upperLimit),
+      );
+
+      if (range) {
+        // Calcular ISR
+        const excedent = taxableIncome - Number(range.lowerLimit);
+        const marginalTax = excedent * Number(range.rateOnExcess);
+        grossIsr = Number(range.fixedFee) + marginalTax;
+      }
     }
-
-    // Encontrar el rango aplicable
-    const range = isrTable.find(
-      (r) =>
-        taxableIncome >= Number(r.lowerLimit) &&
-        taxableIncome <= Number(r.upperLimit),
-    );
-
-    if (!range) {
-      return 0;
-    }
-
-    // Calcular ISR
-    const excedent = taxableIncome - Number(range.lowerLimit);
-    const marginalTax = excedent * Number(range.rateOnExcess);
-    const isr = Number(range.fixedFee) + marginalTax;
 
     // Obtener subsidio al empleo
-    const subsidy = await this.getSubsidy(taxableIncome, periodType, year);
+    const subsidio = await this.getSubsidy(taxableIncome, periodType, year);
+    const netIsr = Math.max(0, grossIsr - subsidio);
 
-    return Math.max(0, isr - subsidy);
+    return { grossIsr, subsidio, netIsr };
   }
 
   private async getSubsidy(

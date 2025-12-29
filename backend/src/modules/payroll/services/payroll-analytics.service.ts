@@ -184,11 +184,11 @@ export class PayrollAnalyticsService {
     ]);
 
     // Crear sets de empleados para comparar
-    const period1Employees = new Set(period1Data.details.map(d => d.employeeId));
-    const period2Employees = new Set(period2Data.details.map(d => d.employeeId));
+    const period1Employees = new Set(period1Data.payrollDetails.map(d => d.employeeId));
+    const period2Employees = new Set(period2Data.payrollDetails.map(d => d.employeeId));
 
     // Identificar cambios de empleados
-    const newEmployees = period2Data.details
+    const newEmployees = period2Data.payrollDetails
       .filter(d => !period1Employees.has(d.employeeId))
       .map(d => ({
         id: d.employeeId,
@@ -196,7 +196,7 @@ export class PayrollAnalyticsService {
         netPay: Number(d.netPay),
       }));
 
-    const terminatedEmployees = period1Data.details
+    const terminatedEmployees = period1Data.payrollDetails
       .filter(d => !period2Employees.has(d.employeeId))
       .map(d => ({
         id: d.employeeId,
@@ -206,8 +206,8 @@ export class PayrollAnalyticsService {
 
     // Calcular cambios de salario para empleados que están en ambos períodos
     const salaryChanges: PeriodComparison['employeeChanges']['salaryChanges'] = [];
-    for (const detail2 of period2Data.details) {
-      const detail1 = period1Data.details.find(d => d.employeeId === detail2.employeeId);
+    for (const detail2 of period2Data.payrollDetails) {
+      const detail1 = period1Data.payrollDetails.find(d => d.employeeId === detail2.employeeId);
       if (detail1) {
         const previousNet = Number(detail1.netPay);
         const currentNet = Number(detail2.netPay);
