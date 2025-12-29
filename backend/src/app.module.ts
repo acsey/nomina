@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { SecurityModule } from './common/security/security.module';
+import { UtilsModule } from './common/utils/utils.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
@@ -32,6 +33,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     }),
     PrismaModule,
     SecurityModule, // Módulo de seguridad global (cifrado, secretos, auditoría)
+    UtilsModule,    // Módulo de utilidades global (redondeo centralizado)
     AuthModule,
     UsersModule,
     EmployeesModule,
