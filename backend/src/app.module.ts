@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { SecurityModule } from './common/security/security.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
@@ -30,6 +31,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
       envFilePath: '.env',
     }),
     PrismaModule,
+    SecurityModule, // Módulo de seguridad global (cifrado, secretos, auditoría)
     AuthModule,
     UsersModule,
     EmployeesModule,

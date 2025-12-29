@@ -636,6 +636,7 @@ model PayrollDetail {
   deductions      PayrollDeduction[]
   cfdiNomina      CfdiNomina?
   calculationAudits PayrollCalculationAudit[]
+  versions        PayrollDetailVersion[] // Historial de versiones para auditoría
 
   @@unique([payrollPeriodId, employeeId])
   @@map("payroll_details")
@@ -1541,4 +1542,59 @@ model CompanyCalculationFormula {
 
   @@unique([companyId, conceptCode])
   @@map("company_calculation_formulas")
+}
+
+// ============================================
+// MÓDULO: SEGURIDAD Y AUDITORÍA AVANZADA
+// ============================================
+
+// Registro de accesos a secretos cifrados
+model SecretAccessLog {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  companyId   String   @map("company_id")
+  secretType  String   @map("secret_type") // CERTIFICATE, PAC_CREDENTIALS
+  purpose     String   // STAMP_CFDI, CANCEL_CFDI, MIGRATION
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId, companyId])
+  @@index([createdAt])
+  @@index([secretType])
+  @@map("secret_access_logs")
+}
+
+// Versiones históricas de detalles de nómina
+// Cumple con: Sección 4 - Versionar recibos: ningún recálculo debe sobrescribir información previa
+model PayrollDetailVersion {
+  id              String   @id @default(uuid())
+  payrollDetailId String   @map("payroll_detail_id")
+  payrollDetail   PayrollDetail @relation(fields: [payrollDetailId], references: [id], onDelete: Restrict)
+  version         Int      @default(1)
+
+  // Snapshot de datos al momento del versionado
+  workedDays        Decimal  @map("worked_days") @db.Decimal(5, 2)
+  totalPerceptions  Decimal  @map("total_perceptions") @db.Decimal(12, 2)
+  totalDeductions   Decimal  @map("total_deductions") @db.Decimal(12, 2)
+  netPay            Decimal  @map("net_pay") @db.Decimal(12, 2)
+  status            String
+
+  // Detalle completo en JSON
+  perceptionsSnapshot Json   @map("perceptions_snapshot")
+  deductionsSnapshot  Json   @map("deductions_snapshot")
+  calculationConfig   Json?  @map("calculation_config")
+
+  // Metadata
+  createdBy     String?  @map("created_by")
+  createdReason String?  @map("created_reason") @db.Text // INITIAL, RECALCULATION, CORRECTION
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Referencia al CFDI si existe
+  cfdiUuid    String?  @map("cfdi_uuid")
+  cfdiStatus  String?  @map("cfdi_status")
+
+  @@unique([payrollDetailId, version])
+  @@index([payrollDetailId])
+  @@map("payroll_detail_versions")
 }

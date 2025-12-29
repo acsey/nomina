@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { XmlBuilderService } from './services/xml-builder.service';
 import { StampingService } from './services/stamping.service';
+import { SecretsService } from '@/common/security/secrets.service';
+import { AuditService } from '@/common/security/audit.service';
 import { CfdiStatus } from '@prisma/client';
 
 @Injectable()
@@ -10,6 +12,8 @@ export class CfdiService {
     private readonly prisma: PrismaService,
     private readonly xmlBuilder: XmlBuilderService,
     private readonly stampingService: StampingService,
+    private readonly secretsService: SecretsService,
+    private readonly auditService: AuditService,
   ) {}
 
   async generateCfdi(payrollDetailId: string) {
@@ -58,7 +62,7 @@ export class CfdiService {
     return cfdi;
   }
 
-  async stampCfdi(cfdiId: string) {
+  async stampCfdi(cfdiId: string, userId?: string) {
     const cfdi = await this.prisma.cfdiNomina.findUnique({
       where: { id: cfdiId },
       include: {
@@ -82,17 +86,23 @@ export class CfdiService {
       throw new BadRequestException('El CFDI no tiene XML original');
     }
 
-    // Obtener configuración PAC de la empresa
-    const company = cfdi.employee.company;
+    const companyId = cfdi.employee.company.id;
+
+    // Obtener secretos descifrados de forma segura
+    const [certificates, pacCredentials] = await Promise.all([
+      this.secretsService.getCompanyCertificates(companyId),
+      this.secretsService.getPacCredentials(companyId),
+    ]);
+
     const companyConfig = {
-      pacProvider: company.pacProvider || undefined,
-      pacUser: company.pacUser || undefined,
-      pacPassword: company.pacPassword || undefined,
-      pacMode: company.pacMode || undefined,
-      certificadoCer: company.certificadoCer || undefined,
-      certificadoKey: company.certificadoKey || undefined,
-      certificadoPassword: company.certificadoPassword || undefined,
-      noCertificado: company.noCertificado || undefined,
+      pacProvider: pacCredentials.pacProvider || undefined,
+      pacUser: pacCredentials.pacUser || undefined,
+      pacPassword: pacCredentials.pacPassword || undefined,
+      pacMode: pacCredentials.pacMode || undefined,
+      certificadoCer: certificates.certificadoCer || undefined,
+      certificadoKey: certificates.certificadoKey || undefined,
+      certificadoPassword: certificates.certificadoPassword || undefined,
+      noCertificado: certificates.noCertificado || undefined,
     };
 
     try {
@@ -100,7 +110,7 @@ export class CfdiService {
       const stampingResult = await this.stampingService.stamp(cfdi.xmlOriginal, companyConfig);
 
       // Actualizar con datos del timbrado
-      return this.prisma.cfdiNomina.update({
+      const updatedCfdi = await this.prisma.cfdiNomina.update({
         where: { id: cfdiId },
         data: {
           uuid: stampingResult.uuid,
@@ -113,6 +123,16 @@ export class CfdiService {
           pacResponse: stampingResult.pacResponse,
         },
       });
+
+      // Registrar en auditoría
+      await this.auditService.logCfdiStamp(
+        userId || 'SYSTEM',
+        cfdiId,
+        stampingResult.uuid,
+        cfdi.employeeId,
+      );
+
+      return updatedCfdi;
     } catch (error) {
       await this.prisma.cfdiNomina.update({
         where: { id: cfdiId },
@@ -125,7 +145,7 @@ export class CfdiService {
     }
   }
 
-  async cancelCfdi(cfdiId: string, reason: string) {
+  async cancelCfdi(cfdiId: string, reason: string, userId?: string) {
     const cfdi = await this.prisma.cfdiNomina.findUnique({
       where: { id: cfdiId },
       include: {
@@ -145,20 +165,23 @@ export class CfdiService {
       throw new BadRequestException('Solo se pueden cancelar CFDIs timbrados');
     }
 
-    // Obtener configuración PAC de la empresa
-    const company = cfdi.employee.company;
+    const companyId = cfdi.employee.company.id;
+
+    // Obtener credenciales PAC descifradas
+    const pacCredentials = await this.secretsService.getPacCredentials(companyId);
+
     const companyConfig = {
-      pacProvider: company.pacProvider || undefined,
-      pacUser: company.pacUser || undefined,
-      pacPassword: company.pacPassword || undefined,
-      pacMode: company.pacMode || undefined,
+      pacProvider: pacCredentials.pacProvider || undefined,
+      pacUser: pacCredentials.pacUser || undefined,
+      pacPassword: pacCredentials.pacPassword || undefined,
+      pacMode: pacCredentials.pacMode || undefined,
     };
 
     try {
       // Cancelar en el PAC
       await this.stampingService.cancel(cfdi.uuid!, reason, companyConfig);
 
-      return this.prisma.cfdiNomina.update({
+      const updatedCfdi = await this.prisma.cfdiNomina.update({
         where: { id: cfdiId },
         data: {
           status: 'CANCELLED',
@@ -166,6 +189,16 @@ export class CfdiService {
           cancellationReason: reason,
         },
       });
+
+      // Registrar en auditoría
+      await this.auditService.logCfdiCancel(
+        userId || 'SYSTEM',
+        cfdiId,
+        cfdi.uuid!,
+        reason,
+      );
+
+      return updatedCfdi;
     } catch (error) {
       throw new BadRequestException(`Error al cancelar CFDI: ${error.message}`);
     }
