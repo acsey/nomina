@@ -224,7 +224,7 @@ export class RoundingService {
     method?: RoundingMethod,
   ): number {
     // Sumar con máxima precisión
-    const sum = values.reduce((acc: number, val) => acc + Number(val), 0);
+    const sum: number = values.reduce<number>((acc, val) => acc + Number(val), 0);
     // Redondear solo el resultado final
     return this.round(sum, precision, method);
   }

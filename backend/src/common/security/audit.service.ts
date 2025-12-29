@@ -76,12 +76,14 @@ export class AuditService {
         action: entry.action,
         entity: entry.entity,
         entityId: entry.entityId,
-        oldValues: entry.oldValues || Prisma.JsonNull,
+        oldValues: entry.oldValues
+          ? (entry.oldValues as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         newValues: {
           ...entry.newValues,
           ...entry.details,
           timestamp: new Date().toISOString(),
-        },
+        } as Prisma.InputJsonValue,
         ipAddress: entry.ipAddress,
       },
     });
