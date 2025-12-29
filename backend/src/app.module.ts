@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { SecurityModule } from './common/security/security.module';
 import { UtilsModule } from './common/utils/utils.module';
+import { QueuesModule } from './common/queues/queues.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
@@ -31,9 +33,16 @@ import { UploadsModule } from './modules/uploads/uploads.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    EventEmitterModule.forRoot({
+      wildcard: true,
+      delimiter: '.',
+      maxListeners: 20,
+      verboseMemoryLeak: true,
+    }),
     PrismaModule,
     SecurityModule, // Módulo de seguridad global (cifrado, secretos, auditoría)
     UtilsModule,    // Módulo de utilidades global (redondeo centralizado)
+    QueuesModule,   // Módulo de colas para procesamiento asíncrono
     AuthModule,
     UsersModule,
     EmployeesModule,
