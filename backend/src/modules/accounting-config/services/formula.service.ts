@@ -148,13 +148,13 @@ export class FormulaService {
       },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'CREATE',
       entity: 'CompanyCalculationFormula',
       entityId: formula.id,
       newValues: dto,
-      description: `Creación de fórmula ${dto.conceptCode}: ${dto.name}`,
+      details: { description: `Creación de fórmula ${dto.conceptCode}: ${dto.name}` },
     });
 
     return formula;
@@ -194,14 +194,14 @@ export class FormulaService {
       },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'UPDATE',
       entity: 'CompanyCalculationFormula',
       entityId: id,
       oldValues: existing,
       newValues: dto,
-      description: `Actualización de fórmula ${existing.conceptCode}`,
+      details: { description: `Actualización de fórmula ${existing.conceptCode}` },
     });
 
     return formula;
@@ -217,13 +217,13 @@ export class FormulaService {
       where: { id },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'DELETE',
       entity: 'CompanyCalculationFormula',
       entityId: id,
       oldValues: existing,
-      description: `Eliminación de fórmula ${existing.conceptCode}`,
+      details: { description: `Eliminación de fórmula ${existing.conceptCode}` },
     });
 
     return { message: 'Fórmula eliminada correctamente' };

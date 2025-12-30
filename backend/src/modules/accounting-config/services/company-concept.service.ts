@@ -88,13 +88,13 @@ export class CompanyConceptService {
       },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'CREATE',
       entity: 'PayrollConcept',
       entityId: concept.id,
       newValues: dto,
-      description: `Creación de concepto de nómina: ${dto.code} - ${dto.name}`,
+      details: { description: `Creación de concepto de nómina: ${dto.code} - ${dto.name}` },
     });
 
     return concept;
@@ -119,14 +119,14 @@ export class CompanyConceptService {
       },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'UPDATE',
       entity: 'PayrollConcept',
       entityId: id,
       oldValues: existing,
       newValues: dto,
-      description: `Actualización de concepto: ${existing.code}`,
+      details: { description: `Actualización de concepto: ${existing.code}` },
     });
 
     return concept;
@@ -248,13 +248,13 @@ export class CompanyConceptService {
       include: { concept: true },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'UPDATE',
       entity: 'CompanyPayrollConcept',
       entityId: config.id,
       newValues: dto,
-      description: `Configuración de concepto ${concept.code} para empresa ${company.name}`,
+      details: { description: `Configuración de concepto ${concept.code} para empresa ${company.name}` },
     });
 
     return config;
@@ -296,14 +296,14 @@ export class CompanyConceptService {
       include: { concept: true },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'UPDATE',
       entity: 'CompanyPayrollConcept',
       entityId: config.id,
       oldValues: existing,
       newValues: dto,
-      description: `Actualización de concepto ${existing.concept.code} para empresa ${existing.company.name}`,
+      details: { description: `Actualización de concepto ${existing.concept.code} para empresa ${existing.company.name}` },
     });
 
     return config;
@@ -332,13 +332,13 @@ export class CompanyConceptService {
       where: { id: existing.id },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'DELETE',
       entity: 'CompanyPayrollConcept',
       entityId: existing.id,
       oldValues: existing,
-      description: `Eliminación de configuración personalizada de ${existing.concept.code}`,
+      details: { description: `Eliminación de configuración personalizada de ${existing.concept.code}` },
     });
 
     return { message: 'Configuración eliminada, se usarán valores globales' };
@@ -414,13 +414,13 @@ export class CompanyConceptService {
       return { concept, config };
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'CREATE',
       entity: 'PayrollConcept',
       entityId: result.concept.id,
       newValues: dto,
-      description: `Creación de concepto personalizado ${code} para ${company.name}`,
+      details: { description: `Creación de concepto personalizado ${code} para ${company.name}` },
     });
 
     return {
@@ -512,13 +512,13 @@ export class CompanyConceptService {
       },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'CREATE',
       entity: 'IncidentConceptMapping',
       entityId: mapping.id,
       newValues: dto,
-      description: `Mapeo de incidencia ${incidentType.name} a concepto ${concept.code}`,
+      details: { description: `Mapeo de incidencia ${incidentType.name} a concepto ${concept.code}` },
     });
 
     return mapping;
@@ -564,14 +564,14 @@ export class CompanyConceptService {
       },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'UPDATE',
       entity: 'IncidentConceptMapping',
       entityId: mappingId,
       oldValues: existing,
       newValues: dto,
-      description: `Actualización de mapeo de incidencia`,
+      details: { description: `Actualización de mapeo de incidencia` },
     });
 
     return mapping;
@@ -594,13 +594,13 @@ export class CompanyConceptService {
       where: { id: mappingId },
     });
 
-    await this.audit.log({
+    await this.audit.logCriticalAction({
       userId,
       action: 'DELETE',
       entity: 'IncidentConceptMapping',
       entityId: mappingId,
       oldValues: existing,
-      description: `Eliminación de mapeo ${existing.incidentType.name} -> ${existing.concept.code}`,
+      details: { description: `Eliminación de mapeo ${existing.incidentType.name} -> ${existing.concept.code}` },
     });
 
     return { message: 'Mapeo eliminado correctamente' };
