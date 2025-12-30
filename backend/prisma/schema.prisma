@@ -179,6 +179,9 @@ model Company {
   // Mapeo de conceptos de incidencias
   incidentConceptMappings IncidentConceptMapping[]
 
+  // Configuraciones de PAC
+  pacConfigs CompanyPacConfig[]
+
   @@map("companies")
 }
 
@@ -1664,3 +1667,100 @@ model PayrollDetailVersion {
   @@index([payrollDetailId])
   @@map("payroll_detail_versions")
 }
+
+// ============================================
+// MÓDULO: CATÁLOGO DE PACs AUTORIZADOS
+// ============================================
+
+// Catálogo de Proveedores Autorizados de Certificación (PAC)
+// Lista oficial del SAT: https://www.sat.gob.mx/consultas/20585/conoce-los-servicios-gratuitos-de-factura-electronica-
+model PacProvider {
+  id              String   @id @default(uuid())
+
+  // Identificación
+  code            String   @unique // Código interno único (FINKOK, DIGIBOX, SW_SAPIEN, etc.)
+  name            String   // Nombre comercial
+  legalName       String   @map("legal_name") // Razón social oficial
+
+  // URLs de servicios
+  sandboxStampUrl    String?  @map("sandbox_stamp_url") @db.Text
+  sandboxCancelUrl   String?  @map("sandbox_cancel_url") @db.Text
+  productionStampUrl String?  @map("production_stamp_url") @db.Text
+  productionCancelUrl String? @map("production_cancel_url") @db.Text
+
+  // Tipo de integración
+  integrationType    String   @default("SOAP") @map("integration_type") // SOAP, REST, CUSTOM
+  documentationUrl   String?  @map("documentation_url") @db.Text
+
+  // Campos requeridos para autenticación (JSON schema)
+  // Ejemplo: ["user", "password"] o ["token"] o ["clientId", "clientSecret"]
+  requiredFields     Json     @default("[\"user\", \"password\"]") @map("required_fields")
+
+  // Soporte de servicios
+  supportsStamping      Boolean @default(true) @map("supports_stamping")
+  supportsCancellation  Boolean @default(true) @map("supports_cancellation")
+  supportsQueryStatus   Boolean @default(false) @map("supports_query_status")
+  supportsRecovery      Boolean @default(false) @map("supports_recovery")
+
+  // Estado
+  isOfficial         Boolean  @default(true) @map("is_official") // PAC oficial SAT vs custom
+  isActive           Boolean  @default(true) @map("is_active")
+  isImplemented      Boolean  @default(false) @map("is_implemented") // Si tiene implementación en código
+
+  // Información adicional
+  notes              String?  @db.Text
+  logoUrl            String?  @map("logo_url")
+  websiteUrl         String?  @map("website_url")
+  supportEmail       String?  @map("support_email")
+  supportPhone       String?  @map("support_phone")
+
+  // Ordenamiento y presentación
+  sortOrder          Int      @default(100) @map("sort_order")
+  isFeatured         Boolean  @default(false) @map("is_featured") // PACs recomendados/destacados
+
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  companyConfigs     CompanyPacConfig[]
+
+  @@map("pac_providers")
+}
+
+// Configuración de PAC por empresa
+model CompanyPacConfig {
+  id              String   @id @default(uuid())
+
+  companyId       String   @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  pacProviderId   String   @map("pac_provider_id")
+  pacProvider     PacProvider @relation(fields: [pacProviderId], references: [id])
+
+  // Credenciales (encriptadas)
+  credentials     Json     @default("{}") // Almacena los campos según requiredFields del PAC
+
+  // Modo de operación
+  mode            String   @default("sandbox") // sandbox | production
+
+  // Estado
+  isActive        Boolean  @default(true) @map("is_active")
+  isPrimary       Boolean  @default(false) @map("is_primary") // PAC principal de la empresa
+
+  // Última verificación
+  lastTestedAt    DateTime? @map("last_tested_at")
+  testStatus      String?   @map("test_status") // SUCCESS, FAILED, PENDING
+  testMessage     String?   @map("test_message") @db.Text
+
+  // Metadata
+  configuredBy    String?   @map("configured_by")
+  notes           String?   @db.Text
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, pacProviderId])
+  @@index([companyId])
+  @@map("company_pac_configs")
+}
+
