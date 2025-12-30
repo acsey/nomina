@@ -28,6 +28,7 @@ import { DevicesModule } from './modules/devices/devices.module';
 import { SystemConfigModule } from './modules/system-config/system-config.module';
 import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { PacModule } from './modules/pac/pac.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     SystemConfigModule,
     HierarchyModule,
     UploadsModule,
+    PacModule,      // Módulo de configuración de PACs
   ],
   controllers: [AppController],
   providers: [AppService],
