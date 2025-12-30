@@ -176,6 +176,9 @@ model Company {
   // Notificaciones
   notifications    Notification[]
 
+  // Mapeo de conceptos de incidencias
+  incidentConceptMappings IncidentConceptMapping[]
+
   @@map("companies")
 }
 
@@ -369,6 +372,7 @@ model IncidentType {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   incidents   EmployeeIncident[]
+  conceptMappings IncidentConceptMapping[]
 
   @@map("incident_types")
 }
@@ -710,6 +714,7 @@ model PayrollConcept {
   perceptions     PayrollPerception[]
   deductions      PayrollDeduction[]
   companyConfigs  CompanyPayrollConcept[]
+  incidentMappings IncidentConceptMapping[]
 
   @@map("payroll_concepts")
 }
@@ -1215,6 +1220,42 @@ model FiscalValues {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("fiscal_values")
+}
+
+// Tasas de riesgo de trabajo IMSS
+model WorkRiskRate {
+  id        String   @id @default(uuid())
+  year      Int
+  riskClass String   @map("risk_class") // CLASE_I, CLASE_II, etc.
+  rate      Decimal  @db.Decimal(10, 7) // Tasa de prima (ej: 0.0054355)
+  minRate   Decimal? @map("min_rate") @db.Decimal(10, 7) // Tasa mínima
+  maxRate   Decimal? @map("max_rate") @db.Decimal(10, 7) // Tasa máxima
+  description String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([year, riskClass])
+  @@map("work_risk_rates")
+}
+
+// Configuración de mapeo de conceptos de incidencias
+model IncidentConceptMapping {
+  id              String   @id @default(uuid())
+  companyId       String?  @map("company_id") // null = default global
+  company         Company? @relation(fields: [companyId], references: [id])
+  incidentTypeId  String   @map("incident_type_id")
+  incidentType    IncidentType @relation(fields: [incidentTypeId], references: [id])
+  conceptId       String   @map("concept_id")
+  concept         PayrollConcept @relation(fields: [conceptId], references: [id])
+  isRetroactive   Boolean  @default(false) @map("is_retroactive")
+  priority        Int      @default(0) // Para ordenar cuando hay múltiples mappings
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, incidentTypeId, isRetroactive])
+  @@map("incident_concept_mappings")
 }
 
 // Configuración de nómina por empresa

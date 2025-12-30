@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IsrCalculatorService } from './isr-calculator.service';
 import { ImssCalculatorService } from './imss-calculator.service';
+import { FiscalValuesService } from '@/common/fiscal/fiscal-values.service';
+import { FormulaEvaluatorService, FormulaContext } from '@/common/formulas/formula-evaluator.service';
 
 interface ApplicableIncident {
   id: string;
@@ -24,13 +26,12 @@ interface ApplicableIncident {
 
 @Injectable()
 export class PayrollCalculatorService {
-  // UMA 2024 (valor diario)
-  private readonly UMA_DAILY = 108.57;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly isrCalculator: IsrCalculatorService,
     private readonly imssCalculator: ImssCalculatorService,
+    private readonly fiscalValues: FiscalValuesService,
+    private readonly formulaEvaluator: FormulaEvaluatorService,
   ) {}
 
   /**
@@ -148,6 +149,9 @@ export class PayrollCalculatorService {
     const dailySalary = monthlySalary / 30;
     const hourlyRate = dailySalary / 8;
 
+    // Obtener configuración de tiempo extra de la empresa
+    const overtimeConfig = await this.fiscalValues.getOvertimeConfig(employee.companyId);
+
     const incidentPerceptions: any[] = [];
     const incidentDeductions: any[] = [];
     let absenceDays = 0;
@@ -168,9 +172,10 @@ export class PayrollCalculatorService {
           break;
         case 'HOURS':
           amount = hourlyRate * value;
-          // Horas extra: pagar doble o triple según aplique
+          // Horas extra: pagar doble o triple según configuración de empresa
           if (incident.incidentType.category === 'OVERTIME') {
-            amount = hourlyRate * value * 2; // Tiempo doble por default
+            // Usar multiplicador configurable (default: 2x para doble)
+            amount = hourlyRate * value * overtimeConfig.doubleMultiplier;
           }
           break;
         case 'AMOUNT':
@@ -294,9 +299,24 @@ export class PayrollCalculatorService {
     // Agregar percepciones de incidencias
     perceptions = [...perceptions, ...incidentEffects.perceptions];
 
+    // Agregar percepciones basadas en fórmulas personalizadas de la empresa
+    const formulaPerceptions = await this.calculateFormulaBasedPerceptions(
+      employee,
+      period,
+      workedDays,
+      perceptions,
+    );
+    perceptions = [...perceptions, ...formulaPerceptions];
+
     // Calcular base gravable
     const taxableIncome = perceptions.reduce(
       (sum, p) => sum + Number(p.taxableAmount),
+      0,
+    );
+
+    // Calcular total de percepciones
+    const totalPerceptionsForDeductions = perceptions.reduce(
+      (sum, p) => sum + Number(p.amount),
       0,
     );
 
@@ -311,6 +331,17 @@ export class PayrollCalculatorService {
 
     // Agregar deducciones de incidencias
     deductions = [...deductions, ...incidentEffects.deductions];
+
+    // Agregar deducciones basadas en fórmulas personalizadas de la empresa
+    const formulaDeductions = await this.calculateFormulaBasedDeductions(
+      employee,
+      period,
+      workedDays,
+      totalPerceptionsForDeductions,
+      taxableIncome,
+      deductions,
+    );
+    deductions = [...deductions, ...formulaDeductions];
 
     const totalPerceptions = perceptions.reduce(
       (sum, p) => sum + Number(p.amount),
@@ -443,9 +474,24 @@ export class PayrollCalculatorService {
     // Agregar percepciones de incidencias
     perceptions = [...perceptions, ...incidentEffects.perceptions];
 
+    // Agregar percepciones basadas en fórmulas personalizadas de la empresa
+    const formulaPerceptions = await this.calculateFormulaBasedPerceptions(
+      employee,
+      period,
+      workedDays,
+      perceptions,
+    );
+    perceptions = [...perceptions, ...formulaPerceptions];
+
     // Calcular base gravable
     const taxableIncome = perceptions.reduce(
       (sum, p) => sum + Number(p.taxableAmount),
+      0,
+    );
+
+    // Calcular total de percepciones (necesario para fórmulas de deducciones)
+    const totalPerceptionsForDeductions = perceptions.reduce(
+      (sum, p) => sum + Number(p.amount),
       0,
     );
 
@@ -460,6 +506,17 @@ export class PayrollCalculatorService {
 
     // Agregar deducciones de incidencias
     deductions = [...deductions, ...incidentEffects.deductions];
+
+    // Agregar deducciones basadas en fórmulas personalizadas de la empresa
+    const formulaDeductions = await this.calculateFormulaBasedDeductions(
+      employee,
+      period,
+      workedDays,
+      totalPerceptionsForDeductions,
+      taxableIncome,
+      deductions,
+    );
+    deductions = [...deductions, ...formulaDeductions];
 
     const totalPerceptions = perceptions.reduce(
       (sum, p) => sum + Number(p.amount),
@@ -589,6 +646,10 @@ export class PayrollCalculatorService {
     const monthlySalary = Number(employee.baseSalary);
     const dailySalary = monthlySalary / 30;
     const periodDays = this.getDaysInPeriod(period.periodType);
+    const year = period.year || new Date().getFullYear();
+
+    // Obtener UMA diaria del año correspondiente
+    const umaDaily = await this.fiscalValues.getUmaDaily(year);
 
     // Sueldo base
     const salaryConcept = concepts.find((c) => c.code === 'P001');
@@ -641,7 +702,8 @@ export class PayrollCalculatorService {
           let taxableAmount = amount;
 
           if (benefit.type === 'FOOD_VOUCHERS') {
-            const exemptLimit = this.UMA_DAILY * 30 * 0.4;
+            // Límite exento: 40% UMA mensual (configurable desde BD)
+            const exemptLimit = umaDaily * 30 * 0.4;
             exemptAmount = Math.min(amount, exemptLimit);
             taxableAmount = Math.max(0, amount - exemptAmount);
           }
@@ -667,6 +729,13 @@ export class PayrollCalculatorService {
     const perceptions: any[] = [];
     const monthlySalary = Number(employee.baseSalary);
     const dailySalary = monthlySalary / 30;
+    const year = period.year || new Date().getFullYear();
+
+    // Obtener valores fiscales del año
+    const fiscalData = await this.fiscalValues.getValuesForYear(year);
+    const umaDaily = fiscalData.umaDaily;
+    const aguinaldoDaysConfig = fiscalData.aguinaldoDays;
+    const vacationPremiumPercent = fiscalData.vacationPremiumPercent;
 
     // Calcular antiguedad del empleado
     const hireDate = new Date(employee.hireDate);
@@ -677,11 +746,11 @@ export class PayrollCalculatorService {
 
     switch (period.extraordinaryType) {
       case 'AGUINALDO': {
-        // Aguinaldo: minimo 15 dias de salario por ley
+        // Aguinaldo: usar días configurados (default 15 por ley)
         // Proporcional si no trabajo el ano completo
-        const aguinaldoDays = Math.max(15, yearsWorked >= 1 ? 15 : 0);
-        const yearStart = new Date(period.year, 0, 1);
-        const yearEnd = new Date(period.year, 11, 31);
+        const aguinaldoDays = Math.max(aguinaldoDaysConfig, yearsWorked >= 1 ? aguinaldoDaysConfig : 0);
+        const yearStart = new Date(year, 0, 1);
+        const yearEnd = new Date(year, 11, 31);
 
         let daysWorkedInYear = 365;
         if (hireDate > yearStart) {
@@ -693,8 +762,8 @@ export class PayrollCalculatorService {
         const proportionalDays = (aguinaldoDays * daysWorkedInYear) / 365;
         const amount = dailySalary * proportionalDays;
 
-        // Parte exenta: 30 UMA diarios
-        const exemptLimit = this.UMA_DAILY * 30;
+        // Parte exenta: 30 UMA diarios (configurable desde BD)
+        const exemptLimit = umaDaily * 30;
         const exemptAmount = Math.min(amount, exemptLimit);
         const taxableAmount = Math.max(0, amount - exemptAmount);
 
@@ -711,13 +780,13 @@ export class PayrollCalculatorService {
       }
 
       case 'VACATION_PREMIUM': {
-        // Prima vacacional: 25% sobre los dias de vacaciones
+        // Prima vacacional: usar porcentaje configurado (default 25%)
         const vacationDays = this.getVacationDaysByYears(yearsWorked);
         const vacationPay = dailySalary * vacationDays;
-        const amount = vacationPay * 0.25; // 25% prima vacacional
+        const amount = vacationPay * vacationPremiumPercent;
 
-        // Parte exenta: 15 UMA diarios
-        const exemptLimit = this.UMA_DAILY * 15;
+        // Parte exenta: 15 UMA diarios (configurable desde BD)
+        const exemptLimit = umaDaily * 15;
         const exemptAmount = Math.min(amount, exemptLimit);
         const taxableAmount = Math.max(0, amount - exemptAmount);
 
@@ -738,8 +807,8 @@ export class PayrollCalculatorService {
         // Por ahora usamos un valor por defecto o el proporcionado
         const ptuAmount = Number(period.description) || 0;
 
-        // Parte exenta: 15 UMA diarios
-        const exemptLimit = this.UMA_DAILY * 15;
+        // Parte exenta: 15 UMA diarios (configurable desde BD)
+        const exemptLimit = umaDaily * 15;
         const exemptAmount = Math.min(ptuAmount, exemptLimit);
         const taxableAmount = Math.max(0, ptuAmount - exemptAmount);
 
@@ -809,6 +878,7 @@ export class PayrollCalculatorService {
     isExtraordinary: boolean,
   ) {
     const deductions: any[] = [];
+    const year = period.year || new Date().getFullYear();
 
     // ISR
     const isrConcept = concepts.find((c) => c.code === 'D001');
@@ -816,7 +886,7 @@ export class PayrollCalculatorService {
       const isr = await this.isrCalculator.calculate(
         taxableIncome,
         isExtraordinary ? 'MONTHLY' : period.periodType,
-        period.year,
+        year,
       );
       if (isr > 0) {
         deductions.push({
@@ -853,9 +923,9 @@ export class PayrollCalculatorService {
         } else if (credit.discountType === 'FIXED_AMOUNT') {
           amount = Number(credit.discountValue);
         } else if (credit.discountType === 'VSM') {
-          // VSM = Veces Salario Minimo
-          const smg = this.UMA_DAILY; // Usando UMA como referencia
-          amount = smg * Number(credit.discountValue);
+          // VSM = Veces Salario Minimo (usando UMA como referencia desde BD)
+          const umaDaily = await this.fiscalValues.getUmaDaily(year);
+          amount = umaDaily * Number(credit.discountValue);
         }
         if (amount > 0) {
           deductions.push({
@@ -910,5 +980,287 @@ export class PayrollCalculatorService {
     }
 
     return deductions;
+  }
+
+  // ============================================
+  // INTEGRACIÓN CON MOTOR DE FÓRMULAS
+  // ============================================
+
+  /**
+   * Calcula percepciones adicionales usando fórmulas personalizadas de la empresa
+   */
+  async calculateFormulaBasedPerceptions(
+    employee: any,
+    period: any,
+    workedDays: number,
+    existingPerceptions: any[],
+  ) {
+    const companyId = employee.companyId;
+    if (!companyId) return [];
+
+    // Obtener fórmulas activas de la empresa para percepciones
+    const formulas = await this.prisma.companyCalculationFormula.findMany({
+      where: {
+        companyId,
+        conceptType: 'PERCEPTION',
+        isActive: true,
+      },
+    });
+
+    if (formulas.length === 0) return [];
+
+    const year = period.year || new Date().getFullYear();
+    const fiscalData = await this.fiscalValues.getValuesForYear(year);
+
+    // Calcular totales existentes para el contexto
+    const totalPerceptions = existingPerceptions.reduce(
+      (sum, p) => sum + Number(p.amount), 0
+    );
+    const taxableIncome = existingPerceptions.reduce(
+      (sum, p) => sum + Number(p.taxableAmount), 0
+    );
+
+    // Construir contexto de fórmula
+    const context = await this.buildFormulaContext(
+      employee,
+      period,
+      workedDays,
+      totalPerceptions,
+      taxableIncome,
+      fiscalData,
+    );
+
+    const formulaPerceptions: any[] = [];
+
+    for (const formula of formulas) {
+      try {
+        // Verificar si ya existe una percepción con este código de concepto
+        const conceptExists = existingPerceptions.some(p => {
+          // Si tenemos el conceptId, buscar el concepto
+          return false; // Por default no existe (se agregarán nuevos conceptos)
+        });
+
+        // Evaluar la fórmula
+        const result = this.formulaEvaluator.evaluateWithTax(
+          formula.formula,
+          context,
+          formula.isTaxable,
+          formula.exemptLimit ? Number(formula.exemptLimit) : undefined,
+          formula.exemptLimitType || undefined,
+        );
+
+        if (result.value > 0) {
+          // Buscar o crear concepto para esta fórmula
+          let concept = await this.prisma.payrollConcept.findFirst({
+            where: { code: formula.conceptCode },
+          });
+
+          if (!concept) {
+            // Crear concepto si no existe
+            concept = await this.prisma.payrollConcept.create({
+              data: {
+                code: formula.conceptCode,
+                name: formula.name,
+                type: 'PERCEPTION',
+                satCode: formula.satConceptKey,
+                isActive: true,
+                isTaxable: formula.isTaxable,
+              },
+            });
+          }
+
+          formulaPerceptions.push({
+            conceptId: concept.id,
+            amount: result.value,
+            taxableAmount: result.taxableAmount,
+            exemptAmount: result.exemptAmount,
+            formulaId: formula.id,
+            formulaName: formula.name,
+          });
+        }
+      } catch (error: any) {
+        console.error(`Error evaluando fórmula ${formula.conceptCode}: ${error.message}`);
+      }
+    }
+
+    return formulaPerceptions;
+  }
+
+  /**
+   * Calcula deducciones adicionales usando fórmulas personalizadas de la empresa
+   */
+  async calculateFormulaBasedDeductions(
+    employee: any,
+    period: any,
+    workedDays: number,
+    totalPerceptions: number,
+    taxableIncome: number,
+    existingDeductions: any[],
+  ) {
+    const companyId = employee.companyId;
+    if (!companyId) return [];
+
+    // Obtener fórmulas activas de la empresa para deducciones
+    const formulas = await this.prisma.companyCalculationFormula.findMany({
+      where: {
+        companyId,
+        conceptType: 'DEDUCTION',
+        isActive: true,
+      },
+    });
+
+    if (formulas.length === 0) return [];
+
+    const year = period.year || new Date().getFullYear();
+    const fiscalData = await this.fiscalValues.getValuesForYear(year);
+
+    // Calcular total de deducciones existentes
+    const totalDeductions = existingDeductions.reduce(
+      (sum, d) => sum + Number(d.amount), 0
+    );
+
+    // Construir contexto de fórmula
+    const context = await this.buildFormulaContext(
+      employee,
+      period,
+      workedDays,
+      totalPerceptions,
+      taxableIncome,
+      fiscalData,
+      totalDeductions,
+    );
+
+    const formulaDeductions: any[] = [];
+
+    for (const formula of formulas) {
+      try {
+        // Evaluar la fórmula
+        const result = this.formulaEvaluator.evaluate(formula.formula, context);
+
+        if (result > 0) {
+          // Buscar o crear concepto para esta fórmula
+          let concept = await this.prisma.payrollConcept.findFirst({
+            where: { code: formula.conceptCode },
+          });
+
+          if (!concept) {
+            // Crear concepto si no existe
+            concept = await this.prisma.payrollConcept.create({
+              data: {
+                code: formula.conceptCode,
+                name: formula.name,
+                type: 'DEDUCTION',
+                satCode: formula.satConceptKey,
+                isActive: true,
+                isTaxable: formula.isTaxable,
+              },
+            });
+          }
+
+          formulaDeductions.push({
+            conceptId: concept.id,
+            amount: Math.round(result * 100) / 100,
+            formulaId: formula.id,
+            formulaName: formula.name,
+          });
+        }
+      } catch (error: any) {
+        console.error(`Error evaluando fórmula ${formula.conceptCode}: ${error.message}`);
+      }
+    }
+
+    return formulaDeductions;
+  }
+
+  /**
+   * Construye el contexto completo para evaluación de fórmulas
+   */
+  private async buildFormulaContext(
+    employee: any,
+    period: any,
+    workedDays: number,
+    totalPerceptions: number,
+    taxableIncome: number,
+    fiscalData: any,
+    totalDeductions: number = 0,
+  ): Promise<FormulaContext> {
+    const baseSalary = Number(employee.baseSalary);
+    const dailySalary = baseSalary / 30;
+    const hourlyRate = dailySalary / 8;
+    const periodDays = this.getDaysInPeriod(period.periodType);
+
+    // Calcular antigüedad
+    const hireDate = new Date(employee.hireDate);
+    const now = new Date();
+    const seniorityMs = now.getTime() - hireDate.getTime();
+    const seniority = Math.floor(seniorityMs / (365.25 * 24 * 60 * 60 * 1000));
+    const seniorityDays = Math.floor(seniorityMs / (24 * 60 * 60 * 1000));
+
+    // Días de vacaciones según antigüedad
+    const vacationDays = this.getVacationDaysByYears(seniority);
+
+    // Factor de integración
+    const factorIntegracion = 1 +
+      (fiscalData.aguinaldoDays / 365) +
+      (vacationDays * fiscalData.vacationPremiumPercent / 365);
+    const integratedSalary = dailySalary * factorIntegracion;
+
+    // Obtener horas extra del período (de incidencias)
+    const overtimeIncidents = await this.prisma.employeeIncident.findMany({
+      where: {
+        employeeId: employee.id,
+        date: { gte: period.startDate, lte: period.endDate },
+        status: 'APPROVED',
+        incidentType: { category: 'OVERTIME' },
+      },
+      include: { incidentType: true },
+    });
+
+    let overtimeHours = 0;
+    let doubleOvertimeHours = 0;
+    let tripleOvertimeHours = 0;
+
+    for (const incident of overtimeIncidents) {
+      const hours = Number(incident.value);
+      if (incident.incidentType.code?.includes('TRIPLE')) {
+        tripleOvertimeHours += hours;
+      } else if (incident.incidentType.code?.includes('DOUBLE')) {
+        doubleOvertimeHours += hours;
+      } else {
+        overtimeHours += hours;
+      }
+    }
+
+    // Contar días de ausencia
+    const absenceIncidents = await this.prisma.employeeIncident.count({
+      where: {
+        employeeId: employee.id,
+        date: { gte: period.startDate, lte: period.endDate },
+        status: 'APPROVED',
+        incidentType: { category: 'ABSENCE' },
+      },
+    });
+
+    return {
+      baseSalary,
+      dailySalary: Math.round(dailySalary * 100) / 100,
+      hourlyRate: Math.round(hourlyRate * 100) / 100,
+      integratedSalary: Math.round(integratedSalary * 100) / 100,
+      workedDays,
+      periodDays,
+      absenceDays: absenceIncidents,
+      overtimeHours,
+      doubleOvertimeHours,
+      tripleOvertimeHours,
+      seniority,
+      seniorityDays,
+      vacationDays,
+      umaDaily: fiscalData.umaDaily,
+      umaMonthly: fiscalData.umaMonthly,
+      smgDaily: fiscalData.smgDaily,
+      totalPerceptions,
+      taxableIncome,
+      totalDeductions,
+    };
   }
 }
