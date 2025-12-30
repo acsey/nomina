@@ -153,7 +153,7 @@ export class FormulaService {
       action: 'CREATE',
       entity: 'CompanyCalculationFormula',
       entityId: formula.id,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Creación de fórmula ${dto.conceptCode}: ${dto.name}` },
     });
 
@@ -200,7 +200,7 @@ export class FormulaService {
       entity: 'CompanyCalculationFormula',
       entityId: id,
       oldValues: existing,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Actualización de fórmula ${existing.conceptCode}` },
     });
 

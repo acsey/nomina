@@ -93,7 +93,7 @@ export class CompanyConceptService {
       action: 'CREATE',
       entity: 'PayrollConcept',
       entityId: concept.id,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Creación de concepto de nómina: ${dto.code} - ${dto.name}` },
     });
 
@@ -125,7 +125,7 @@ export class CompanyConceptService {
       entity: 'PayrollConcept',
       entityId: id,
       oldValues: existing,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Actualización de concepto: ${existing.code}` },
     });
 
@@ -253,7 +253,7 @@ export class CompanyConceptService {
       action: 'UPDATE',
       entity: 'CompanyPayrollConcept',
       entityId: config.id,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Configuración de concepto ${concept.code} para empresa ${company.name}` },
     });
 
@@ -302,7 +302,7 @@ export class CompanyConceptService {
       entity: 'CompanyPayrollConcept',
       entityId: config.id,
       oldValues: existing,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Actualización de concepto ${existing.concept.code} para empresa ${existing.company.name}` },
     });
 
@@ -419,7 +419,7 @@ export class CompanyConceptService {
       action: 'CREATE',
       entity: 'PayrollConcept',
       entityId: result.concept.id,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Creación de concepto personalizado ${code} para ${company.name}` },
     });
 
@@ -517,7 +517,7 @@ export class CompanyConceptService {
       action: 'CREATE',
       entity: 'IncidentConceptMapping',
       entityId: mapping.id,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Mapeo de incidencia ${incidentType.name} a concepto ${concept.code}` },
     });
 
@@ -570,7 +570,7 @@ export class CompanyConceptService {
       entity: 'IncidentConceptMapping',
       entityId: mappingId,
       oldValues: existing,
-      newValues: dto,
+      newValues: { ...dto },
       details: { description: `Actualización de mapeo de incidencia` },
     });
 
