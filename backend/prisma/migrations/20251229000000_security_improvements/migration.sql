@@ -51,9 +51,9 @@ CREATE INDEX IF NOT EXISTS "idx_subsidio_empleo_year_period" ON "subsidio_empleo
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS "secret_access_logs" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "user_id" VARCHAR(255) NOT NULL,
-    "company_id" UUID NOT NULL,
+    "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    "user_id" TEXT NOT NULL,
+    "company_id" TEXT NOT NULL,
     "secret_type" VARCHAR(50) NOT NULL, -- 'CERTIFICATE', 'PAC_CREDENTIALS'
     "purpose" VARCHAR(255) NOT NULL, -- 'STAMP_CFDI', 'CANCEL_CFDI', 'MIGRATION'
     "ip_address" VARCHAR(45),
@@ -71,8 +71,8 @@ CREATE INDEX IF NOT EXISTS "idx_secret_access_logs_secret_type" ON "secret_acces
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS "payroll_detail_versions" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "payroll_detail_id" UUID NOT NULL,
+    "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    "payroll_detail_id" TEXT NOT NULL,
     "version" INTEGER NOT NULL DEFAULT 1,
 
     -- Snapshot de datos al momento del versionado
