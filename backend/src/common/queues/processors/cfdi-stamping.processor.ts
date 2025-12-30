@@ -5,7 +5,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { SecretsService } from '@/common/security/secrets.service';
 import { AuditService } from '@/common/security/audit.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { QUEUE_NAMES } from '../queues.module';
+import { QUEUE_NAMES } from '../queue.constants';
 
 /**
  * Datos del job de timbrado

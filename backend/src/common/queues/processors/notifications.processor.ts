@@ -2,7 +2,7 @@ import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Logger, Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { QUEUE_NAMES } from '../queues.module';
+import { QUEUE_NAMES } from '../queue.constants';
 import { NotificationData, NotificationType } from '../services/queue-events.service';
 
 /**
