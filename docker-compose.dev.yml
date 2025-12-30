@@ -93,13 +93,13 @@ services:
     networks:
       - nomina-network-dev
 
-  # Adminer (Database UI)
+  # Adminer (Database UI) - Puerto alto para evitar conflictos con Hyper-V
   adminer:
     image: adminer:latest
     container_name: nomina-adminer-dev
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "9090:8080"
     depends_on:
       - db
     networks:
