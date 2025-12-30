@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IsrCalculatorService } from './isr-calculator.service';
 import { ImssCalculatorService } from './imss-calculator.service';
+import { FiscalValuesService } from '@/common/fiscal/fiscal-values.service';
 
 interface ApplicableIncident {
   id: string;
@@ -24,13 +25,11 @@ interface ApplicableIncident {
 
 @Injectable()
 export class PayrollCalculatorService {
-  // UMA 2024 (valor diario)
-  private readonly UMA_DAILY = 108.57;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly isrCalculator: IsrCalculatorService,
     private readonly imssCalculator: ImssCalculatorService,
+    private readonly fiscalValues: FiscalValuesService,
   ) {}
 
   /**
@@ -148,6 +147,9 @@ export class PayrollCalculatorService {
     const dailySalary = monthlySalary / 30;
     const hourlyRate = dailySalary / 8;
 
+    // Obtener configuración de tiempo extra de la empresa
+    const overtimeConfig = await this.fiscalValues.getOvertimeConfig(employee.companyId);
+
     const incidentPerceptions: any[] = [];
     const incidentDeductions: any[] = [];
     let absenceDays = 0;
@@ -168,9 +170,10 @@ export class PayrollCalculatorService {
           break;
         case 'HOURS':
           amount = hourlyRate * value;
-          // Horas extra: pagar doble o triple según aplique
+          // Horas extra: pagar doble o triple según configuración de empresa
           if (incident.incidentType.category === 'OVERTIME') {
-            amount = hourlyRate * value * 2; // Tiempo doble por default
+            // Usar multiplicador configurable (default: 2x para doble)
+            amount = hourlyRate * value * overtimeConfig.doubleMultiplier;
           }
           break;
         case 'AMOUNT':
@@ -589,6 +592,10 @@ export class PayrollCalculatorService {
     const monthlySalary = Number(employee.baseSalary);
     const dailySalary = monthlySalary / 30;
     const periodDays = this.getDaysInPeriod(period.periodType);
+    const year = period.year || new Date().getFullYear();
+
+    // Obtener UMA diaria del año correspondiente
+    const umaDaily = await this.fiscalValues.getUmaDaily(year);
 
     // Sueldo base
     const salaryConcept = concepts.find((c) => c.code === 'P001');
@@ -641,7 +648,8 @@ export class PayrollCalculatorService {
           let taxableAmount = amount;
 
           if (benefit.type === 'FOOD_VOUCHERS') {
-            const exemptLimit = this.UMA_DAILY * 30 * 0.4;
+            // Límite exento: 40% UMA mensual (configurable desde BD)
+            const exemptLimit = umaDaily * 30 * 0.4;
             exemptAmount = Math.min(amount, exemptLimit);
             taxableAmount = Math.max(0, amount - exemptAmount);
           }
@@ -667,6 +675,13 @@ export class PayrollCalculatorService {
     const perceptions: any[] = [];
     const monthlySalary = Number(employee.baseSalary);
     const dailySalary = monthlySalary / 30;
+    const year = period.year || new Date().getFullYear();
+
+    // Obtener valores fiscales del año
+    const fiscalData = await this.fiscalValues.getValuesForYear(year);
+    const umaDaily = fiscalData.umaDaily;
+    const aguinaldoDaysConfig = fiscalData.aguinaldoDays;
+    const vacationPremiumPercent = fiscalData.vacationPremiumPercent;
 
     // Calcular antiguedad del empleado
     const hireDate = new Date(employee.hireDate);
@@ -677,11 +692,11 @@ export class PayrollCalculatorService {
 
     switch (period.extraordinaryType) {
       case 'AGUINALDO': {
-        // Aguinaldo: minimo 15 dias de salario por ley
+        // Aguinaldo: usar días configurados (default 15 por ley)
         // Proporcional si no trabajo el ano completo
-        const aguinaldoDays = Math.max(15, yearsWorked >= 1 ? 15 : 0);
-        const yearStart = new Date(period.year, 0, 1);
-        const yearEnd = new Date(period.year, 11, 31);
+        const aguinaldoDays = Math.max(aguinaldoDaysConfig, yearsWorked >= 1 ? aguinaldoDaysConfig : 0);
+        const yearStart = new Date(year, 0, 1);
+        const yearEnd = new Date(year, 11, 31);
 
         let daysWorkedInYear = 365;
         if (hireDate > yearStart) {
@@ -693,8 +708,8 @@ export class PayrollCalculatorService {
         const proportionalDays = (aguinaldoDays * daysWorkedInYear) / 365;
         const amount = dailySalary * proportionalDays;
 
-        // Parte exenta: 30 UMA diarios
-        const exemptLimit = this.UMA_DAILY * 30;
+        // Parte exenta: 30 UMA diarios (configurable desde BD)
+        const exemptLimit = umaDaily * 30;
         const exemptAmount = Math.min(amount, exemptLimit);
         const taxableAmount = Math.max(0, amount - exemptAmount);
 
@@ -711,13 +726,13 @@ export class PayrollCalculatorService {
       }
 
       case 'VACATION_PREMIUM': {
-        // Prima vacacional: 25% sobre los dias de vacaciones
+        // Prima vacacional: usar porcentaje configurado (default 25%)
         const vacationDays = this.getVacationDaysByYears(yearsWorked);
         const vacationPay = dailySalary * vacationDays;
-        const amount = vacationPay * 0.25; // 25% prima vacacional
+        const amount = vacationPay * vacationPremiumPercent;
 
-        // Parte exenta: 15 UMA diarios
-        const exemptLimit = this.UMA_DAILY * 15;
+        // Parte exenta: 15 UMA diarios (configurable desde BD)
+        const exemptLimit = umaDaily * 15;
         const exemptAmount = Math.min(amount, exemptLimit);
         const taxableAmount = Math.max(0, amount - exemptAmount);
 
@@ -738,8 +753,8 @@ export class PayrollCalculatorService {
         // Por ahora usamos un valor por defecto o el proporcionado
         const ptuAmount = Number(period.description) || 0;
 
-        // Parte exenta: 15 UMA diarios
-        const exemptLimit = this.UMA_DAILY * 15;
+        // Parte exenta: 15 UMA diarios (configurable desde BD)
+        const exemptLimit = umaDaily * 15;
         const exemptAmount = Math.min(ptuAmount, exemptLimit);
         const taxableAmount = Math.max(0, ptuAmount - exemptAmount);
 
@@ -809,6 +824,7 @@ export class PayrollCalculatorService {
     isExtraordinary: boolean,
   ) {
     const deductions: any[] = [];
+    const year = period.year || new Date().getFullYear();
 
     // ISR
     const isrConcept = concepts.find((c) => c.code === 'D001');
@@ -816,7 +832,7 @@ export class PayrollCalculatorService {
       const isr = await this.isrCalculator.calculate(
         taxableIncome,
         isExtraordinary ? 'MONTHLY' : period.periodType,
-        period.year,
+        year,
       );
       if (isr > 0) {
         deductions.push({
@@ -853,9 +869,9 @@ export class PayrollCalculatorService {
         } else if (credit.discountType === 'FIXED_AMOUNT') {
           amount = Number(credit.discountValue);
         } else if (credit.discountType === 'VSM') {
-          // VSM = Veces Salario Minimo
-          const smg = this.UMA_DAILY; // Usando UMA como referencia
-          amount = smg * Number(credit.discountValue);
+          // VSM = Veces Salario Minimo (usando UMA como referencia desde BD)
+          const umaDaily = await this.fiscalValues.getUmaDaily(year);
+          amount = umaDaily * Number(credit.discountValue);
         }
         if (amount > 0) {
           deductions.push({
