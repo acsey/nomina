@@ -439,7 +439,7 @@ export class PacService {
     }
 
     // Si se envían credenciales, encriptarlas
-    let encryptedCreds = existing.credentials;
+    let encryptedCreds: Record<string, string> = (existing.credentials as Record<string, string>) || {};
     if (dto.credentials) {
       const requiredFields = existing.pacProvider.requiredFields as string[];
       for (const field of requiredFields) {
@@ -451,7 +451,7 @@ export class PacService {
       encryptedCreds = {};
       for (const [key, value] of Object.entries(dto.credentials)) {
         if (value) {
-          (encryptedCreds as Record<string, string>)[key] = this.encryption.encrypt(value);
+          encryptedCreds[key] = this.encryption.encrypt(value);
         }
       }
     }
