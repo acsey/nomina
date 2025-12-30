@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { RoundingService, PRECISION } from '@/common/utils/rounding.service';
+import { FiscalValuesService } from '@/common/fiscal/fiscal-values.service';
 import { IsrCalculatorService } from './isr-calculator.service';
 import { ImssCalculatorService } from './imss-calculator.service';
 
@@ -125,11 +126,10 @@ export interface PeriodSimulationResult {
  */
 @Injectable()
 export class PayrollSimulationService {
-  private readonly UMA_DAILY = 108.57;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly rounding: RoundingService,
+    private readonly fiscalValues: FiscalValuesService,
     private readonly isrCalculator: IsrCalculatorService,
     private readonly imssCalculator: ImssCalculatorService,
   ) {}
@@ -144,6 +144,9 @@ export class PayrollSimulationService {
     year: number = new Date().getFullYear(),
   ): Promise<SimulationResult> {
     const warnings: string[] = [];
+
+    // Obtener valores fiscales del año (UMA, SMG, etc.)
+    const umaDaily = await this.fiscalValues.getUmaDaily(year);
 
     // Cargar datos del empleado si se proporciona ID
     let employeeData: any = {
@@ -248,6 +251,7 @@ export class PayrollSimulationService {
         const { taxable, exempt } = this.calculateBenefitExemption(
           benefit.type,
           benefitAmount,
+          umaDaily,
         );
 
         perceptions.push({
@@ -317,6 +321,7 @@ export class PayrollSimulationService {
       const infonavitAmount = this.calculateInfonavitDeduction(
         credit,
         taxableIncome,
+        umaDaily,
       );
       if (infonavitAmount > 0) {
         deductions.push({
@@ -587,10 +592,11 @@ export class PayrollSimulationService {
   private calculateBenefitExemption(
     benefitType: string,
     amount: number,
+    umaDaily: number,
   ): { taxable: number; exempt: number } {
     // Vales de despensa: exento hasta 40% UMA mensual
     if (benefitType === 'FOOD_VOUCHERS') {
-      const exemptLimit = this.rounding.roundCurrency(this.UMA_DAILY * 30 * 0.4);
+      const exemptLimit = this.rounding.roundCurrency(umaDaily * 30 * 0.4);
       const exempt = Math.min(amount, exemptLimit);
       return {
         taxable: this.rounding.roundCurrency(amount - exempt),
@@ -600,7 +606,7 @@ export class PayrollSimulationService {
 
     // Fondo de ahorro: exento hasta 13% del salario
     if (benefitType === 'SAVINGS_FUND') {
-      const exemptLimit = this.rounding.roundCurrency(this.UMA_DAILY * 30 * 1.3);
+      const exemptLimit = this.rounding.roundCurrency(umaDaily * 30 * 1.3);
       const exempt = Math.min(amount, exemptLimit);
       return {
         taxable: this.rounding.roundCurrency(amount - exempt),
@@ -628,7 +634,7 @@ export class PayrollSimulationService {
     return this.rounding.roundDailySalary(dailySalary * factorIntegracion);
   }
 
-  private calculateInfonavitDeduction(credit: any, taxableIncome: number): number {
+  private calculateInfonavitDeduction(credit: any, taxableIncome: number, umaDaily: number): number {
     let amount = 0;
     switch (credit.discountType) {
       case 'PERCENTAGE':
@@ -638,7 +644,8 @@ export class PayrollSimulationService {
         amount = Number(credit.discountValue);
         break;
       case 'VSM':
-        amount = this.UMA_DAILY * Number(credit.discountValue);
+        // VSM = Veces Salario Minimo (usando UMA desde BD)
+        amount = umaDaily * Number(credit.discountValue);
         break;
     }
     return this.rounding.roundCurrency(amount);
