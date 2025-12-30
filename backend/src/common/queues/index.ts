@@ -1,3 +1,6 @@
+// Constants
+export * from './queue.constants';
+
 // Module
 export * from './queues.module';
 

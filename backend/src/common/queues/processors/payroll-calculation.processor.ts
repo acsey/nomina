@@ -3,7 +3,7 @@ import { Logger, Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { QUEUE_NAMES } from '../queues.module';
+import { QUEUE_NAMES } from '../queue.constants';
 
 /**
  * Datos del job de cálculo de nómina
