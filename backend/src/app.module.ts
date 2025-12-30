@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { SecurityModule } from './common/security/security.module';
 import { FiscalModule } from './common/fiscal/fiscal.module';
+import { FormulaModule } from './common/formulas/formula.module';
 import { UtilsModule } from './common/utils/utils.module';
 import { QueuesModule } from './common/queues/queues.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -43,6 +44,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     PrismaModule,
     SecurityModule, // Módulo de seguridad global (cifrado, secretos, auditoría)
     FiscalModule,   // Módulo fiscal global (UMA, SMG, tasas de riesgo)
+    FormulaModule,  // Módulo de fórmulas global (evaluador seguro de expresiones)
     UtilsModule,    // Módulo de utilidades global (redondeo centralizado)
     QueuesModule,   // Módulo de colas para procesamiento asíncrono
     AuthModule,
