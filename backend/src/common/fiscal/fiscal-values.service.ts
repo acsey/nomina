@@ -229,7 +229,7 @@ export class FiscalValuesService implements OnModuleInit {
           umaMonthly: Number(dbValues.umaMonthly),
           umaYearly: Number(dbValues.umaYearly),
           smgDaily: Number(dbValues.smgDaily),
-          smgZfnDaily: Number(dbValues.smgZfnDaily || dbValues.smgDaily * 1.5),
+          smgZfnDaily: Number(dbValues.smgZfnDaily || Number(dbValues.smgDaily) * 1.5),
           aguinaldoDays: dbValues.aguinaldoDays,
           vacationPremiumPercent: Number(dbValues.vacationPremiumPercent),
         };
