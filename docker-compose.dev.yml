@@ -142,7 +142,7 @@ services:
       PAC_PASSWORD: ${PAC_PASSWORD:-}
       # Modo worker = solo procesa colas, no levanta HTTP
       QUEUE_MODE: worker
-    command: npm run start:worker
+    command: npm run start:worker:dev
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
