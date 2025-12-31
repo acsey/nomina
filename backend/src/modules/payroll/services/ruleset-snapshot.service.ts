@@ -30,7 +30,7 @@ export class RulesetSnapshotService {
       where: { id: payrollDetailId },
       include: {
         payrollPeriod: true,
-        receiptRulesetSnapshots: {
+        rulesetSnapshots: {
           orderBy: { version: 'desc' },
           take: 1,
         },
@@ -41,8 +41,8 @@ export class RulesetSnapshotService {
       throw new NotFoundException(`PayrollDetail ${payrollDetailId} no encontrado`);
     }
 
-    const nextVersion = detail.receiptRulesetSnapshots.length > 0
-      ? detail.receiptRulesetSnapshots[0].version + 1
+    const nextVersion = detail.rulesetSnapshots.length > 0
+      ? detail.rulesetSnapshots[0].version + 1
       : 1;
 
     const snapshot = await this.prisma.receiptRulesetSnapshot.create({
