@@ -60,7 +60,7 @@ export class DocumentStorageService {
           select: { companyId: true, year: true, periodNumber: true },
         },
         cfdiNomina: true,
-        receiptDocuments: {
+        documents: {
           where: { type, isActive: true },
           orderBy: { version: 'desc' },
           take: 1,
@@ -90,8 +90,8 @@ export class DocumentStorageService {
     }
 
     // Determinar versión
-    const nextVersion = detail.receiptDocuments.length > 0
-      ? detail.receiptDocuments[0].version + 1
+    const nextVersion = detail.documents.length > 0
+      ? detail.documents[0].version + 1
       : 1;
 
     // Generar ruta de almacenamiento estructurada
@@ -130,9 +130,9 @@ export class DocumentStorageService {
     });
 
     // Si hay versión anterior, marcarla como inactiva
-    if (detail.receiptDocuments.length > 0) {
+    if (detail.documents.length > 0) {
       await this.prisma.receiptDocument.update({
-        where: { id: detail.receiptDocuments[0].id },
+        where: { id: detail.documents[0].id },
         data: { isActive: false },
       });
     }
@@ -294,7 +294,7 @@ export class DocumentStorageService {
       include: {
         payrollDetails: {
           include: {
-            receiptDocuments: {
+            documents: {
               where: { isActive: true },
             },
           },
@@ -306,7 +306,7 @@ export class DocumentStorageService {
       throw new NotFoundException(`Período ${periodId} no encontrado`);
     }
 
-    const allDocuments = period.payrollDetails.flatMap((d: any) => d.receiptDocuments);
+    const allDocuments = period.payrollDetails.flatMap((d: any) => d.documents);
     const results: IntegrityCheckResult[] = [];
 
     for (const doc of allDocuments) {
