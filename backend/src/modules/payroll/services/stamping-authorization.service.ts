@@ -36,7 +36,7 @@ export class StampingAuthorizationService {
     const period = await this.prisma.payrollPeriod.findUnique({
       where: { id: periodId },
       include: {
-        details: {
+        payrollDetails: {
           include: {
             cfdiNomina: true,
           },
@@ -45,7 +45,7 @@ export class StampingAuthorizationService {
           where: { isActive: true },
         },
       },
-    });
+    }) as any;
 
     if (!period) {
       throw new NotFoundException(`Período ${periodId} no encontrado`);
@@ -66,8 +66,8 @@ export class StampingAuthorizationService {
     }
 
     // Validar que todos los recibos estén calculados
-    const uncalculatedReceipts = period.details.filter(
-      (d) => d.status !== 'CALCULATED' && d.status !== 'PENDING',
+    const uncalculatedReceipts = period.payrollDetails.filter(
+      (d: any) => d.status !== 'CALCULATED' && d.status !== 'PENDING',
     );
 
     if (uncalculatedReceipts.length > 0) {
@@ -77,8 +77,8 @@ export class StampingAuthorizationService {
     }
 
     // Validar que no haya recibos ya timbrados
-    const alreadyStamped = period.details.filter(
-      (d) => d.cfdiNomina?.status === 'STAMPED',
+    const alreadyStamped = period.payrollDetails.filter(
+      (d: any) => d.cfdiNomina?.status === 'STAMPED',
     );
 
     if (alreadyStamped.length > 0) {
@@ -88,12 +88,12 @@ export class StampingAuthorizationService {
     }
 
     // Crear autorización y actualizar período en transacción
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx: any) => {
       const authorization = await tx.stampingAuthorization.create({
         data: {
           periodId,
           authorizedBy: userId,
-          details: details || {},
+          details: (details || {}) as any,
         },
       });
 
@@ -117,9 +117,9 @@ export class StampingAuthorizationService {
       entityId: periodId,
       details: {
         authorizationId: result.id,
-        receiptsCount: period.details.length,
-        totalNetPay: period.details.reduce(
-          (sum, d) => sum + parseFloat(d.netPay?.toString() || '0'),
+        receiptsCount: period.payrollDetails.length,
+        totalNetPay: period.payrollDetails.reduce(
+          (sum: number, d: any) => sum + parseFloat(d.netPay?.toString() || '0'),
           0,
         ),
         ...details,
@@ -135,7 +135,7 @@ export class StampingAuthorizationService {
       periodId,
       authorizedBy: userId,
       authorizedAt: result.authorizedAt,
-      receiptsCount: period.details.length,
+      receiptsCount: period.payrollDetails.length,
       canStartStamping: true,
     };
   }
@@ -151,7 +151,7 @@ export class StampingAuthorizationService {
     const period = await this.prisma.payrollPeriod.findUnique({
       where: { id: periodId },
       include: {
-        details: {
+        payrollDetails: {
           include: {
             cfdiNomina: true,
           },
@@ -160,7 +160,7 @@ export class StampingAuthorizationService {
           where: { isActive: true },
         },
       },
-    });
+    }) as any;
 
     if (!period) {
       throw new NotFoundException(`Período ${periodId} no encontrado`);
@@ -174,8 +174,8 @@ export class StampingAuthorizationService {
     }
 
     // Verificar si hay recibos ya timbrados
-    const stampedReceipts = period.details.filter(
-      (d) => d.cfdiNomina?.status === 'STAMPED',
+    const stampedReceipts = period.payrollDetails.filter(
+      (d: any) => d.cfdiNomina?.status === 'STAMPED',
     );
 
     if (stampedReceipts.length > 0) {
@@ -185,7 +185,7 @@ export class StampingAuthorizationService {
     }
 
     // Revocar autorización
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx: any) => {
       await tx.stampingAuthorization.update({
         where: { id: activeAuth.id },
         data: {
@@ -248,13 +248,13 @@ export class StampingAuthorizationService {
         stampingAuthorizations: {
           where: { isActive: true },
         },
-        details: {
+        payrollDetails: {
           include: {
             cfdiNomina: true,
           },
         },
       },
-    });
+    }) as any;
 
     if (!period) {
       throw new NotFoundException(`Período ${periodId} no encontrado`);
@@ -306,16 +306,16 @@ export class StampingAuthorizationService {
     }
 
     // Contar recibos pendientes de timbrado
-    const pendingReceipts = period.details.filter(
-      (d) => !d.cfdiNomina || d.cfdiNomina.status === 'PENDING',
+    const pendingReceipts = period.payrollDetails.filter(
+      (d: any) => !d.cfdiNomina || d.cfdiNomina.status === 'PENDING',
     );
 
-    const stampedReceipts = period.details.filter(
-      (d) => d.cfdiNomina?.status === 'STAMPED',
+    const stampedReceipts = period.payrollDetails.filter(
+      (d: any) => d.cfdiNomina?.status === 'STAMPED',
     );
 
-    const failedReceipts = period.details.filter(
-      (d) => d.cfdiNomina?.status === 'ERROR',
+    const failedReceipts = period.payrollDetails.filter(
+      (d: any) => d.cfdiNomina?.status === 'ERROR',
     );
 
     return {
@@ -330,7 +330,7 @@ export class StampingAuthorizationService {
           }
         : null,
       receiptsStatus: {
-        total: period.details.length,
+        total: period.payrollDetails.length,
         pending: pendingReceipts.length,
         stamped: stampedReceipts.length,
         failed: failedReceipts.length,
@@ -354,7 +354,7 @@ export class StampingAuthorizationService {
       orderBy: { authorizedAt: 'desc' },
     });
 
-    return authorizations.map((auth) => ({
+    return authorizations.map((auth: any) => ({
       id: auth.id,
       periodId: auth.periodId,
       authorizedBy: auth.authorizedBy,
