@@ -10,6 +10,7 @@ import { PayrollReceiptService } from './services/payroll-receipt.service';
 import { LiquidationCalculatorService } from './services/liquidation-calculator.service';
 import { PayrollSimulationService } from './services/payroll-simulation.service';
 import { PayrollAnalyticsService } from './services/payroll-analytics.service';
+import { PayrollVersioningService } from './services/payroll-versioning.service';
 import { CfdiModule } from '../cfdi/cfdi.module';
 import { AccountingConfigModule } from '../accounting-config/accounting-config.module';
 
@@ -25,6 +26,7 @@ import { AccountingConfigModule } from '../accounting-config/accounting-config.m
     LiquidationCalculatorService,
     PayrollSimulationService,
     PayrollAnalyticsService,
+    PayrollVersioningService,
   ],
   exports: [
     PayrollService,
@@ -32,6 +34,7 @@ import { AccountingConfigModule } from '../accounting-config/accounting-config.m
     LiquidationCalculatorService,
     PayrollSimulationService,
     PayrollAnalyticsService,
+    PayrollVersioningService,
   ],
 })
 export class PayrollModule {}
