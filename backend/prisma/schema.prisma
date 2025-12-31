@@ -82,6 +82,15 @@ model AuditLog {
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
+  // MEJORA GOB: Campos de justificación y doble control
+  justification       String?   @db.Text // Motivo obligatorio para acciones críticas
+  requiresConfirmation Boolean  @default(false) @map("requires_confirmation")
+  confirmedAt         DateTime? @map("confirmed_at")
+  confirmedBy         String?   @map("confirmed_by")
+  isCriticalAction    Boolean   @default(false) @map("is_critical_action")
+  legalBasis          String?   @map("legal_basis") @db.Text
+
+  @@index([isCriticalAction])
   @@map("audit_logs")
 }
 
@@ -1654,6 +1663,7 @@ model CompanyCalculationFormula {
 
 // Auditoría de cálculos fiscales por concepto
 // Cumple: Registrar cada cálculo fiscal con base y regla aplicada
+// MEJORA GOB: Incluye referencia legal obligatoria
 model FiscalCalculationAudit {
   id                String   @id @default(uuid())
   payrollDetailId   String   @map("payroll_detail_id")
@@ -1677,6 +1687,13 @@ model FiscalCalculationAudit {
   impuestoMarginal  Decimal? @map("impuesto_marginal") @db.Decimal(14, 2)
   cuotaFija         Decimal? @map("cuota_fija") @db.Decimal(14, 2)
   resultAmount      Decimal  @map("result_amount") @db.Decimal(14, 2)
+
+  // MEJORA GOB: Referencia legal obligatoria
+  legalReference    Json?    @map("legal_reference") // {law, article, source, publishedAt, notes}
+  legalLaw          String?  @map("legal_law") // Ley aplicada (LISR, LIMSS, etc.)
+  legalArticle      String?  @map("legal_article") // Artículo específico
+  legalSource       String?  @map("legal_source") // Fuente (DOF, etc.)
+  legalPublishedAt  DateTime? @map("legal_published_at") @db.Date
 
   // Metadata
   fiscalYear        Int      @map("fiscal_year")
@@ -1751,6 +1768,7 @@ model PayrollDetailVersion {
 
 // Snapshot de todas las reglas y valores fiscales usados en un cálculo
 // Garantiza reproducibilidad aunque cambien reglas futuras
+// MEJORA GOB: Incluye hash SHA256 para verificación de integridad
 model ReceiptRulesetSnapshot {
   id                String   @id @default(uuid())
   payrollDetailId   String   @map("payroll_detail_id")
@@ -1780,12 +1798,20 @@ model ReceiptRulesetSnapshot {
   periodType        String   @map("period_type")
   calculationParams Json     @default("{}") @map("calculation_params")
 
+  // MEJORA GOB: Hash SHA256 para verificación de integridad
+  snapshotHash      String?  @map("snapshot_hash") @db.VarChar(64)
+  integrityStatus   String   @default("PENDING") @map("integrity_status") // PENDING, VERIFIED, CORRUPTED
+  hashVerifiedAt    DateTime? @map("hash_verified_at")
+  hashVerifiedBy    String?  @map("hash_verified_by")
+
   // Metadata
   createdAt         DateTime @default(now()) @map("created_at")
   createdBy         String?  @map("created_by")
 
   @@unique([payrollDetailId, version])
   @@index([payrollDetailId])
+  @@index([snapshotHash], map: "idx_snapshot_hash")
+  @@index([integrityStatus], map: "idx_snapshot_integrity")
   @@map("receipt_ruleset_snapshot")
 }
 
@@ -1964,5 +1990,149 @@ model CompanyPacConfig {
   @@unique([companyId, pacProviderId])
   @@index([companyId])
   @@map("company_pac_configs")
+}
+
+// ============================================
+// MÓDULO: ENDURECIMIENTOS GUBERNAMENTALES
+// Cumplimiento de normativas de gobierno MX
+// ============================================
+
+// Reglas de transición de estado válidas
+model StateTransitionRule {
+  id                  String   @id @default(uuid())
+  entityType          String   @map("entity_type") // PAYROLL_PERIOD, PAYROLL_DETAIL, CFDI_NOMINA
+  fromState           String   @map("from_state")
+  toState             String   @map("to_state")
+  action              String
+  allowedRoles        Json     @default("[]") @map("allowed_roles")
+  requiresJustification Boolean @default(false) @map("requires_justification")
+  requiresDualControl Boolean  @default(false) @map("requires_dual_control")
+  isCritical          Boolean  @default(false) @map("is_critical")
+  description         String?  @db.Text
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  transitionLogs      StateTransitionLog[]
+
+  @@unique([entityType, fromState, toState, action])
+  @@map("state_transition_rules")
+}
+
+// Log de transiciones de estado
+model StateTransitionLog {
+  id                String   @id @default(uuid())
+  entityType        String   @map("entity_type")
+  entityId          String   @map("entity_id")
+  fromState         String   @map("from_state")
+  toState           String   @map("to_state")
+  action            String
+  transitionRuleId  String?  @map("transition_rule_id")
+  transitionRule    StateTransitionRule? @relation(fields: [transitionRuleId], references: [id])
+  userId            String   @map("user_id")
+  userEmail         String?  @map("user_email")
+  userRole          String?  @map("user_role")
+  justification     String?  @db.Text
+  isValid           Boolean  @map("is_valid")
+  rejectionReason   String?  @map("rejection_reason") @db.Text
+  ipAddress         String?  @map("ip_address") @db.VarChar(45)
+  userAgent         String?  @map("user_agent") @db.Text
+  metadata          Json     @default("{}")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([isValid])
+  @@index([createdAt])
+  @@map("state_transition_log")
+}
+
+// Acciones críticas pendientes de confirmación (doble control)
+model PendingCriticalAction {
+  id              String    @id @default(uuid())
+  actionType      String    @map("action_type")
+  entityType      String    @map("entity_type")
+  entityId        String    @map("entity_id")
+  requestedBy     String    @map("requested_by")
+  requestedAt     DateTime  @default(now()) @map("requested_at")
+  justification   String    @db.Text
+  actionData      Json      @map("action_data")
+  status          String    @default("PENDING") // PENDING, CONFIRMED, REJECTED, EXPIRED
+  confirmedBy     String?   @map("confirmed_by")
+  confirmedAt     DateTime? @map("confirmed_at")
+  rejectedBy      String?   @map("rejected_by")
+  rejectedAt      DateTime? @map("rejected_at")
+  rejectionReason String?   @map("rejection_reason") @db.Text
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([entityType, entityId])
+  @@map("pending_critical_actions")
+}
+
+// Políticas de retención de documentos
+model RetentionPolicy {
+  id              String   @id @default(uuid())
+  documentType    String   @unique @map("document_type")
+  retentionYears  Int      @map("retention_years")
+  legalBasis      String?  @map("legal_basis") @db.Text
+  description     String?  @db.Text
+  canDelete       Boolean  @default(false) @map("can_delete")
+  requiresApproval Boolean @default(true) @map("requires_approval")
+  approvedRoles   Json     @default("[\"ADMIN\"]") @map("approved_roles")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("retention_policies")
+}
+
+// Solicitudes de eliminación con auditoría
+model DeletionRequest {
+  id                    String    @id @default(uuid())
+  documentType          String    @map("document_type")
+  entityType            String    @map("entity_type")
+  entityId              String    @map("entity_id")
+  requestedBy           String    @map("requested_by")
+  requestedAt           DateTime  @default(now()) @map("requested_at")
+  justification         String    @db.Text
+  legalBasis            String?   @map("legal_basis") @db.Text
+  status                String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  approvedBy            String?   @map("approved_by")
+  approvedAt            DateTime? @map("approved_at")
+  rejectedBy            String?   @map("rejected_by")
+  rejectedAt            DateTime? @map("rejected_at")
+  rejectionReason       String?   @map("rejection_reason") @db.Text
+  deletedAt             DateTime? @map("deleted_at")
+  retentionCheckPassed  Boolean   @default(false) @map("retention_check_passed")
+  metadata              Json      @default("{}")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("deletion_requests")
+}
+
+// Alertas de integridad de datos
+model IntegrityAlert {
+  id              String    @id @default(uuid())
+  alertType       String    @map("alert_type") // HASH_MISMATCH, MISSING_DATA, CORRUPTION
+  severity        String    // CRITICAL, HIGH, MEDIUM, LOW
+  entityType      String    @map("entity_type")
+  entityId        String    @map("entity_id")
+  description     String    @db.Text
+  expectedValue   String?   @map("expected_value") @db.Text
+  actualValue     String?   @map("actual_value") @db.Text
+  detectedAt      DateTime  @default(now()) @map("detected_at")
+  detectedBy      String?   @map("detected_by")
+  acknowledgedAt  DateTime? @map("acknowledged_at")
+  acknowledgedBy  String?   @map("acknowledged_by")
+  resolutionNotes String?   @map("resolution_notes") @db.Text
+  isResolved      Boolean   @default(false) @map("is_resolved")
+  resolvedAt      DateTime? @map("resolved_at")
+
+  @@index([severity, isResolved])
+  @@index([entityType, entityId])
+  @@map("integrity_alerts")
 }
 
