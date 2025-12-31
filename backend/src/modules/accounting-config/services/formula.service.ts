@@ -744,7 +744,7 @@ export class FormulaService {
           name: dto.name ?? existing.name,
           description: dto.description ?? existing.description,
           formula: dto.formula ?? existing.formula,
-          availableVariables: existing.availableVariables,
+          availableVariables: existing.availableVariables as any,
           fiscalYear: dto.fiscalYear ?? existing.fiscalYear,
           validFrom: dto.validFrom ?? existing.validFrom,
           validTo: dto.validTo ?? existing.validTo,
