@@ -88,18 +88,16 @@ FOREIGN KEY ("period_id") REFERENCES "payroll_periods"("id") ON DELETE RESTRICT;
 -- MEJORA 3: Permisos Granulares RBAC
 -- ============================================
 
--- Agregar nuevos permisos al catálogo
-INSERT INTO "permissions" ("id", "name", "description", "module", "created_at")
-VALUES
-    (gen_random_uuid(), 'PAYROLL_CALCULATE', 'Calcular nómina', 'PAYROLL', NOW()),
-    (gen_random_uuid(), 'PAYROLL_RECALCULATE', 'Recalcular nómina existente', 'PAYROLL', NOW()),
-    (gen_random_uuid(), 'PAYROLL_AUTHORIZE_STAMPING', 'Autorizar timbrado de nómina', 'PAYROLL', NOW()),
-    (gen_random_uuid(), 'PAYROLL_STAMP_ENQUEUE', 'Encolar CFDIs para timbrado', 'PAYROLL', NOW()),
-    (gen_random_uuid(), 'PAYROLL_STAMP_RETRY', 'Reintentar timbrado fallido', 'PAYROLL', NOW()),
-    (gen_random_uuid(), 'RULESET_MANAGE', 'Gestionar reglas de cálculo', 'CONFIG', NOW()),
-    (gen_random_uuid(), 'AUDIT_VIEW', 'Ver auditoría del sistema', 'AUDIT', NOW()),
-    (gen_random_uuid(), 'REPORT_EXPORT', 'Exportar reportes', 'REPORTS', NOW())
-ON CONFLICT (name) DO NOTHING;
+-- Nota: Los permisos se almacenan como JSON en la tabla roles.
+-- Los nuevos permisos se gestionan desde la aplicación:
+-- - PAYROLL_CALCULATE
+-- - PAYROLL_RECALCULATE
+-- - PAYROLL_AUTHORIZE_STAMPING
+-- - PAYROLL_STAMP_ENQUEUE
+-- - PAYROLL_STAMP_RETRY
+-- - RULESET_MANAGE
+-- - AUDIT_VIEW
+-- - REPORT_EXPORT
 
 -- ============================================
 -- MEJORA 4: Idempotencia de Timbrado
