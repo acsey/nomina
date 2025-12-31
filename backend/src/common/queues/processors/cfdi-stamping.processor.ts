@@ -25,9 +25,58 @@ export interface CfdiStampingJobResult {
   cfdiId: string;
   uuid?: string;
   error?: string;
+  errorType?: PacErrorType;
   attemptNumber: number;
   processingTime: number;
+  nextRetryAt?: Date;
 }
+
+/**
+ * MEJORA: Clasificación de errores PAC
+ * - TEMPORARY: Errores de red, timeouts, PAC no disponible
+ * - PERMANENT: XML inválido, certificado vencido, RFC incorrecto
+ * - VALIDATION: Errores de validación del SAT
+ */
+export enum PacErrorType {
+  TEMPORARY = 'TEMPORARY',
+  PERMANENT = 'PERMANENT',
+  VALIDATION = 'VALIDATION',
+}
+
+/**
+ * MEJORA: Patrones de errores conocidos para clasificación
+ */
+const ERROR_PATTERNS = {
+  TEMPORARY: [
+    /timeout/i,
+    /ECONNREFUSED/i,
+    /ECONNRESET/i,
+    /ETIMEDOUT/i,
+    /network/i,
+    /temporarily unavailable/i,
+    /service unavailable/i,
+    /503/,
+    /502/,
+    /504/,
+    /429/, // Rate limit
+  ],
+  PERMANENT: [
+    /certificado.*vencido/i,
+    /certificado.*inválido/i,
+    /RFC.*inválido/i,
+    /sello.*inválido/i,
+    /xml.*inválido/i,
+    /firma.*inválida/i,
+    /401/, // Auth error
+    /403/, // Forbidden
+  ],
+  VALIDATION: [
+    /CCE\d+/i, // Códigos de error SAT
+    /CFDI\d+/i,
+    /validación/i,
+    /estructura.*inválida/i,
+  ],
+};
 
 /**
  * Eventos emitidos por el procesador
@@ -46,6 +95,8 @@ export const CFDI_EVENTS = {
  * - Colas de timbrado
  * - Workers independientes
  * - Reintentos automáticos controlados
+ *
+ * MEJORA: Backoff exponencial y clasificación de errores
  */
 @Processor(QUEUE_NAMES.CFDI_STAMPING, {
   concurrency: 5, // Procesar hasta 5 CFDIs en paralelo
@@ -54,6 +105,15 @@ export const CFDI_EVENTS = {
 export class CfdiStampingProcessor extends WorkerHost {
   private readonly logger = new Logger(CfdiStampingProcessor.name);
 
+  // MEJORA: Configuración de reintentos con backoff exponencial
+  private readonly BACKOFF_CONFIG = {
+    baseDelayMs: 2000,      // 2 segundos base
+    maxDelayMs: 300000,     // 5 minutos máximo
+    multiplier: 2,          // Duplicar cada intento
+    jitterPercent: 0.2,     // 20% de variación aleatoria
+    maxAttempts: 5,
+  };
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly secretsService: SecretsService,
@@ -61,6 +121,66 @@ export class CfdiStampingProcessor extends WorkerHost {
     private readonly eventEmitter: EventEmitter2,
   ) {
     super();
+  }
+
+  /**
+   * MEJORA: Clasifica el tipo de error para decidir si reintentar
+   */
+  private classifyError(errorMessage: string): PacErrorType {
+    // Verificar errores permanentes primero (no reintentar)
+    for (const pattern of ERROR_PATTERNS.PERMANENT) {
+      if (pattern.test(errorMessage)) {
+        return PacErrorType.PERMANENT;
+      }
+    }
+
+    // Verificar errores de validación (no reintentar)
+    for (const pattern of ERROR_PATTERNS.VALIDATION) {
+      if (pattern.test(errorMessage)) {
+        return PacErrorType.VALIDATION;
+      }
+    }
+
+    // Verificar errores temporales (reintentar)
+    for (const pattern of ERROR_PATTERNS.TEMPORARY) {
+      if (pattern.test(errorMessage)) {
+        return PacErrorType.TEMPORARY;
+      }
+    }
+
+    // Por defecto, tratar como temporal y reintentar
+    return PacErrorType.TEMPORARY;
+  }
+
+  /**
+   * MEJORA: Calcula el delay con backoff exponencial y jitter
+   */
+  private calculateBackoffDelay(attemptNumber: number): number {
+    const { baseDelayMs, maxDelayMs, multiplier, jitterPercent } = this.BACKOFF_CONFIG;
+
+    // Backoff exponencial: base * (multiplier ^ attempt)
+    let delay = baseDelayMs * Math.pow(multiplier, attemptNumber - 1);
+
+    // Aplicar límite máximo
+    delay = Math.min(delay, maxDelayMs);
+
+    // Agregar jitter para evitar thundering herd
+    const jitter = delay * jitterPercent * (Math.random() * 2 - 1);
+    delay = Math.floor(delay + jitter);
+
+    return Math.max(delay, baseDelayMs);
+  }
+
+  /**
+   * MEJORA: Determina si se debe reintentar basado en tipo de error
+   */
+  private shouldRetry(errorType: PacErrorType, attemptNumber: number): boolean {
+    if (attemptNumber >= this.BACKOFF_CONFIG.maxAttempts) {
+      return false;
+    }
+
+    // Solo reintentar errores temporales
+    return errorType === PacErrorType.TEMPORARY;
   }
 
   async process(job: Job<CfdiStampingJobData>): Promise<CfdiStampingJobResult> {
@@ -177,44 +297,95 @@ export class CfdiStampingProcessor extends WorkerHost {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      const attemptNumber = job.attemptsMade + 1;
 
-      this.logger.error(
-        `Error al timbrar CFDI ${cfdiId} (intento ${job.attemptsMade + 1}): ${errorMessage}`
-      );
+      // MEJORA: Clasificar el error
+      const errorType = this.classifyError(errorMessage);
+      const canRetry = this.shouldRetry(errorType, attemptNumber);
+      const backoffDelay = this.calculateBackoffDelay(attemptNumber);
+      const nextRetryAt = canRetry ? new Date(Date.now() + backoffDelay) : undefined;
 
-      // Actualizar CFDI con error si es el último intento
-      if (job.attemptsMade + 1 >= (job.opts.attempts || 5)) {
+      // MEJORA: Logging estructurado
+      this.logger.error({
+        message: `Error al timbrar CFDI`,
+        cfdiId,
+        attempt: attemptNumber,
+        errorType,
+        errorMessage,
+        canRetry,
+        backoffDelay: canRetry ? backoffDelay : null,
+        nextRetryAt: nextRetryAt?.toISOString(),
+      });
+
+      // MEJORA: Actualizar CFDI con clasificación de error
+      const updateData: any = {
+        retryCount: attemptNumber,
+        lastRetryAt: new Date(),
+        errorCode: errorType,
+        errorType,
+        pacResponse: {
+          error: errorMessage,
+          errorType,
+          lastAttempt: new Date().toISOString(),
+          attempts: attemptNumber,
+          canRetry,
+        },
+      };
+
+      // Si es error permanente o último intento, marcar como ERROR
+      if (!canRetry || attemptNumber >= this.BACKOFF_CONFIG.maxAttempts) {
+        updateData.status = 'ERROR';
+        updateData.nextRetryAt = null;
+
         await this.prisma.cfdiNomina.update({
           where: { id: cfdiId },
-          data: {
-            status: 'ERROR',
-            pacResponse: {
-              error: errorMessage,
-              lastAttempt: new Date().toISOString(),
-              attempts: job.attemptsMade + 1,
-            },
-          },
+          data: updateData,
         });
 
-        // Emitir evento de fallo
+        // Emitir evento de fallo permanente
         this.eventEmitter.emit(CFDI_EVENTS.STAMP_FAILED, {
           cfdiId,
           error: errorMessage,
-          attempts: job.attemptsMade + 1,
+          errorType,
+          attempts: attemptNumber,
+          permanent: errorType !== PacErrorType.TEMPORARY,
           batchId,
         });
+
+        // No relanzar para errores permanentes
+        if (errorType !== PacErrorType.TEMPORARY) {
+          return {
+            success: false,
+            cfdiId,
+            error: errorMessage,
+            errorType,
+            attemptNumber,
+            processingTime: Date.now() - startTime,
+          };
+        }
       } else {
-        // Emitir evento de reintento
+        // Programar siguiente intento
+        updateData.nextRetryAt = nextRetryAt;
+
+        await this.prisma.cfdiNomina.update({
+          where: { id: cfdiId },
+          data: updateData,
+        });
+
+        // Emitir evento de reintento programado
         this.eventEmitter.emit(CFDI_EVENTS.STAMP_RETRY, {
           cfdiId,
           error: errorMessage,
-          attempt: job.attemptsMade + 1,
-          nextAttempt: job.attemptsMade + 2,
+          errorType,
+          attempt: attemptNumber,
+          nextAttempt: attemptNumber + 1,
+          nextRetryAt: nextRetryAt?.toISOString(),
+          backoffDelay,
           batchId,
         });
       }
 
-      throw error; // Re-lanzar para que BullMQ maneje el reintento
+      throw error; // Re-lanzar para que BullMQ maneje el reintento con backoff
     }
   }
 
