@@ -56,17 +56,17 @@ export class DocumentStorageService {
     const detail = await this.prisma.payrollDetail.findUnique({
       where: { id: payrollDetailId },
       include: {
-        period: {
+        payrollPeriod: {
           select: { companyId: true, year: true, periodNumber: true },
         },
         cfdiNomina: true,
-        documents: {
+        receiptDocuments: {
           where: { type, isActive: true },
           orderBy: { version: 'desc' },
           take: 1,
         },
       },
-    });
+    }) as any;
 
     if (!detail) {
       throw new NotFoundException(`PayrollDetail ${payrollDetailId} no encontrado`);
@@ -90,15 +90,15 @@ export class DocumentStorageService {
     }
 
     // Determinar versión
-    const nextVersion = detail.documents.length > 0
-      ? detail.documents[0].version + 1
+    const nextVersion = detail.receiptDocuments.length > 0
+      ? detail.receiptDocuments[0].version + 1
       : 1;
 
     // Generar ruta de almacenamiento estructurada
     const storagePath = this.generateStoragePath(
-      detail.period.companyId,
-      detail.period.year,
-      detail.period.periodNumber,
+      detail.payrollPeriod.companyId,
+      detail.payrollPeriod.year,
+      detail.payrollPeriod.periodNumber,
       payrollDetailId,
       type,
       nextVersion,
@@ -130,9 +130,9 @@ export class DocumentStorageService {
     });
 
     // Si hay versión anterior, marcarla como inactiva
-    if (detail.documents.length > 0) {
+    if (detail.receiptDocuments.length > 0) {
       await this.prisma.receiptDocument.update({
-        where: { id: detail.documents[0].id },
+        where: { id: detail.receiptDocuments[0].id },
         data: { isActive: false },
       });
     }
@@ -234,7 +234,7 @@ export class DocumentStorageService {
       orderBy: [{ type: 'asc' }, { version: 'desc' }],
     });
 
-    return documents.map((doc) => ({
+    return documents.map((doc: any) => ({
       id: doc.id,
       type: doc.type as FiscalDocumentType,
       fileName: doc.fileName,
@@ -292,21 +292,21 @@ export class DocumentStorageService {
     const period = await this.prisma.payrollPeriod.findUnique({
       where: { id: periodId },
       include: {
-        details: {
+        payrollDetails: {
           include: {
-            documents: {
+            receiptDocuments: {
               where: { isActive: true },
             },
           },
         },
       },
-    });
+    }) as any;
 
     if (!period) {
       throw new NotFoundException(`Período ${periodId} no encontrado`);
     }
 
-    const allDocuments = period.details.flatMap((d) => d.documents);
+    const allDocuments = period.payrollDetails.flatMap((d: any) => d.receiptDocuments);
     const results: IntegrityCheckResult[] = [];
 
     for (const doc of allDocuments) {

@@ -244,11 +244,11 @@ export class StampingIdempotencyService {
         },
         payrollDetail: {
           include: {
-            period: true,
+            payrollPeriod: true,
           },
         },
       },
-    });
+    }) as any;
 
     if (!cfdi) {
       throw new NotFoundException(`CFDI ${cfdiId} no encontrado`);
@@ -274,7 +274,7 @@ export class StampingIdempotencyService {
     }
 
     // Verificar autorización del período
-    if (!cfdi.payrollDetail.period.authorizedForStamping) {
+    if (!cfdi.payrollDetail?.payrollPeriod?.authorizedForStamping) {
       issues.push('El período no está autorizado para timbrado');
     }
 
