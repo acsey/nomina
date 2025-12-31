@@ -638,6 +638,12 @@ model PayrollPeriod {
   payrollDetails PayrollDetail[]
   appliedIncidents EmployeeIncident[] // Incidencias aplicadas en este período
 
+  // Autorización de timbrado
+  authorizedForStamping Boolean   @default(false) @map("authorized_for_stamping")
+  authorizedAt          DateTime? @map("authorized_at")
+  authorizedBy          String?   @map("authorized_by")
+  stampingAuthorizations StampingAuthorization[]
+
   @@unique([companyId, periodType, periodNumber, year])
   @@map("payroll_periods")
 }
@@ -670,6 +676,8 @@ model PayrollDetail {
   calculationAudits PayrollCalculationAudit[]
   fiscalAudits    FiscalCalculationAudit[] // MEJORA: Auditoría fiscal por concepto
   versions        PayrollDetailVersion[] // Historial de versiones para auditoría
+  rulesetSnapshots ReceiptRulesetSnapshot[] // Snapshots de reglas usadas
+  documents       ReceiptDocument[] // Evidencias fiscales (XML, PDF)
 
   @@unique([payrollPeriodId, employeeId])
   @@map("payroll_details")
@@ -823,8 +831,16 @@ model CfdiNomina {
   // PAC
   pacResponse     Json?    @map("pac_response")
 
+  // Idempotencia y lock
+  stampLockId     String?  @map("stamp_lock_id")
+  stampLockAt     DateTime? @map("stamp_lock_at")
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  stampingAttempts StampingAttempt[]
+  documents        ReceiptDocument[]
 
   @@map("cfdi_nominas")
 }
@@ -1727,6 +1743,131 @@ model PayrollDetailVersion {
   @@unique([payrollDetailId, version])
   @@index([payrollDetailId])
   @@map("payroll_detail_versions")
+}
+
+// ============================================
+// MÓDULO: SNAPSHOT DE REGLAS POR RECIBO
+// ============================================
+
+// Snapshot de todas las reglas y valores fiscales usados en un cálculo
+// Garantiza reproducibilidad aunque cambien reglas futuras
+model ReceiptRulesetSnapshot {
+  id                String   @id @default(uuid())
+  payrollDetailId   String   @map("payroll_detail_id")
+  payrollDetail     PayrollDetail @relation(fields: [payrollDetailId], references: [id], onDelete: Restrict)
+  version           Int      @default(1)
+
+  // Fórmulas usadas en el cálculo
+  formulasUsed      Json     @default("[]") @map("formulas_used")
+
+  // Valores fiscales vigentes al momento del cálculo
+  umaDaily          Decimal  @map("uma_daily") @db.Decimal(14, 4)
+  umaMonthly        Decimal  @map("uma_monthly") @db.Decimal(14, 4)
+  smgDaily          Decimal  @map("smg_daily") @db.Decimal(14, 4)
+  smgZfnDaily       Decimal? @map("smg_zfn_daily") @db.Decimal(14, 4)
+
+  // Configuración de cálculo
+  roundingMode      String   @default("HALF_UP") @map("rounding_mode")
+  decimalScale      Int      @default(2) @map("decimal_scale")
+
+  // Tablas fiscales usadas
+  isrTableVersion     String?  @map("isr_table_version")
+  subsidioTableVersion String? @map("subsidio_table_version")
+  imssRatesVersion    String?  @map("imss_rates_version")
+
+  // Parámetros adicionales
+  fiscalYear        Int      @map("fiscal_year")
+  periodType        String   @map("period_type")
+  calculationParams Json     @default("{}") @map("calculation_params")
+
+  // Metadata
+  createdAt         DateTime @default(now()) @map("created_at")
+  createdBy         String?  @map("created_by")
+
+  @@unique([payrollDetailId, version])
+  @@index([payrollDetailId])
+  @@map("receipt_ruleset_snapshot")
+}
+
+// ============================================
+// MÓDULO: AUTORIZACIÓN DE TIMBRADO
+// ============================================
+
+// Registro de autorizaciones de timbrado por período
+model StampingAuthorization {
+  id              String    @id @default(uuid())
+  periodId        String    @map("period_id")
+  period          PayrollPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+
+  authorizedBy    String    @map("authorized_by")
+  authorizedAt    DateTime  @default(now()) @map("authorized_at")
+
+  revokedAt       DateTime? @map("revoked_at")
+  revokedBy       String?   @map("revoked_by")
+  revokeReason    String?   @map("revoke_reason")
+
+  isActive        Boolean   @default(true) @map("is_active")
+  details         Json?
+
+  @@index([periodId, isActive])
+  @@map("stamping_authorization")
+}
+
+// ============================================
+// MÓDULO: IDEMPOTENCIA DE TIMBRADO
+// ============================================
+
+// Registro de intentos de timbrado para garantizar idempotencia
+model StampingAttempt {
+  id              String    @id @default(uuid())
+  cfdiId          String    @map("cfdi_id")
+  cfdi            CfdiNomina @relation(fields: [cfdiId], references: [id], onDelete: Restrict)
+  receiptVersion  Int       @map("receipt_version")
+  idempotencyKey  String    @unique @map("idempotency_key")
+
+  status          String    @default("PENDING") // PENDING, IN_PROGRESS, SUCCESS, FAILED
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  workerId        String?   @map("worker_id")
+  errorMessage    String?   @map("error_message")
+  errorType       String?   @map("error_type")
+  pacResponse     Json?     @map("pac_response")
+
+  @@index([cfdiId, status])
+  @@map("stamping_attempt")
+}
+
+// ============================================
+// MÓDULO: EVIDENCIAS FISCALES
+// ============================================
+
+// Documentos asociados a recibos de nómina (XML, PDF, acuses)
+model ReceiptDocument {
+  id                String    @id @default(uuid())
+  payrollDetailId   String    @map("payroll_detail_id")
+  payrollDetail     PayrollDetail @relation(fields: [payrollDetailId], references: [id], onDelete: Restrict)
+  cfdiId            String?   @map("cfdi_id")
+  cfdi              CfdiNomina? @relation(fields: [cfdiId], references: [id], onDelete: SetNull)
+
+  type              String    // XML_ORIGINAL, XML_TIMBRADO, PDF, CANCEL_ACK, CANCEL_REQUEST
+  storagePath       String    @unique @map("storage_path")
+  fileName          String    @map("file_name")
+  mimeType          String    @map("mime_type")
+  fileSize          Int       @map("file_size")
+  sha256            String
+
+  version           Int       @default(1)
+  isActive          Boolean   @default(true) @map("is_active")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  createdBy         String?   @map("created_by")
+  deletedAt         DateTime? @map("deleted_at")
+  deletedBy         String?   @map("deleted_by")
+  deleteReason      String?   @map("delete_reason")
+
+  @@index([payrollDetailId, type, isActive])
+  @@index([cfdiId])
+  @@map("receipt_document")
 }
 
 // ============================================

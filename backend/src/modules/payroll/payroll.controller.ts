@@ -9,26 +9,35 @@ import {
   Query,
   UseGuards,
   Res,
+  Req,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PayrollService } from './payroll.service';
 import { PayrollReceiptService } from './services/payroll-receipt.service';
 import { PayrollVersioningService } from './services/payroll-versioning.service';
+import { RulesetSnapshotService } from './services/ruleset-snapshot.service';
+import { StampingAuthorizationService, AuthorizationDetails } from './services/stamping-authorization.service';
+import { DocumentStorageService, FiscalDocumentType } from './services/document-storage.service';
 import { FiscalAuditService } from '@/common/fiscal/fiscal-audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '@/common/decorators';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Roles, Permissions } from '@/common/decorators';
+import { PAYROLL_PERMISSIONS, FISCAL_DOCUMENT_PERMISSIONS } from '@/common/constants/permissions';
 
 @ApiTags('payroll')
 @Controller('payroll')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class PayrollController {
   constructor(
     private readonly payrollService: PayrollService,
     private readonly receiptService: PayrollReceiptService,
     private readonly versioningService: PayrollVersioningService,
+    private readonly snapshotService: RulesetSnapshotService,
+    private readonly authorizationService: StampingAuthorizationService,
+    private readonly documentService: DocumentStorageService,
     private readonly fiscalAuditService: FiscalAuditService,
   ) {}
 
@@ -223,5 +232,174 @@ export class PayrollController {
   @ApiOperation({ summary: 'Verificar si el período tiene recibos timbrados' })
   async getPeriodStampedStatus(@Param('id') id: string) {
     return this.versioningService.periodHasStampedReceipts(id);
+  }
+
+  // ============================================
+  // ENTERPRISE: SNAPSHOTS DE REGLAS DE CÁLCULO
+  // ============================================
+
+  @Get('receipts/:detailId/ruleset-snapshot')
+  @Permissions(PAYROLL_PERMISSIONS.VIEW_VERSIONS)
+  @ApiOperation({ summary: 'Obtener snapshot de reglas de cálculo del recibo' })
+  async getReceiptRulesetSnapshot(@Param('detailId') detailId: string) {
+    return this.snapshotService.getLatestSnapshot(detailId);
+  }
+
+  @Get('receipts/:detailId/ruleset-snapshot/:version')
+  @Permissions(PAYROLL_PERMISSIONS.VIEW_VERSIONS)
+  @ApiOperation({ summary: 'Obtener snapshot específico por versión' })
+  async getReceiptRulesetSnapshotVersion(
+    @Param('detailId') detailId: string,
+    @Param('version') version: string,
+  ) {
+    return this.snapshotService.getSnapshotByVersion(detailId, parseInt(version, 10));
+  }
+
+  @Get('receipts/:detailId/ruleset-snapshots')
+  @Permissions(PAYROLL_PERMISSIONS.VIEW_VERSIONS)
+  @ApiOperation({ summary: 'Listar todos los snapshots de reglas del recibo' })
+  async getAllRulesetSnapshots(@Param('detailId') detailId: string) {
+    return this.snapshotService.getAllSnapshots(detailId);
+  }
+
+  @Get('receipts/:detailId/ruleset-snapshot/compare')
+  @Permissions(PAYROLL_PERMISSIONS.COMPARE_VERSIONS)
+  @ApiOperation({ summary: 'Comparar dos snapshots de reglas' })
+  async compareRulesetSnapshots(
+    @Param('detailId') detailId: string,
+    @Query('versionA') versionA: string,
+    @Query('versionB') versionB: string,
+  ) {
+    return this.snapshotService.compareSnapshots(
+      detailId,
+      parseInt(versionA, 10),
+      parseInt(versionB, 10),
+    );
+  }
+
+  @Get('receipts/:detailId/calculation-context')
+  @Permissions(PAYROLL_PERMISSIONS.VIEW_FISCAL_AUDIT)
+  @ApiOperation({ summary: 'Obtener contexto de cálculo para reproducir recibo' })
+  async getCalculationContext(@Param('detailId') detailId: string) {
+    return this.snapshotService.getCalculationContext(detailId);
+  }
+
+  @Get('receipts/:detailId/snapshot-integrity')
+  @Permissions(PAYROLL_PERMISSIONS.VIEW_FISCAL_AUDIT)
+  @ApiOperation({ summary: 'Verificar integridad del snapshot vs valores actuales' })
+  async verifySnapshotIntegrity(@Param('detailId') detailId: string) {
+    return this.snapshotService.verifySnapshotIntegrity(detailId);
+  }
+
+  // ============================================
+  // ENTERPRISE: AUTORIZACIÓN DE TIMBRADO
+  // ============================================
+
+  @Post('periods/:id/authorize-stamping')
+  @Permissions(PAYROLL_PERMISSIONS.AUTHORIZE_STAMPING)
+  @ApiOperation({ summary: 'Autorizar período para timbrado' })
+  async authorizeStamping(
+    @Param('id') id: string,
+    @Body() details: AuthorizationDetails,
+    @Req() req: Request,
+  ) {
+    const userId = (req as any).user?.id;
+    return this.authorizationService.authorizePeriod(id, userId, details);
+  }
+
+  @Post('periods/:id/revoke-stamping-auth')
+  @Permissions(PAYROLL_PERMISSIONS.REVOKE_STAMPING_AUTH)
+  @ApiOperation({ summary: 'Revocar autorización de timbrado' })
+  async revokeStampingAuth(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Req() req: Request,
+  ) {
+    const userId = (req as any).user?.id;
+    return this.authorizationService.revokeAuthorization(id, userId, reason);
+  }
+
+  @Get('periods/:id/stamping-eligibility')
+  @Permissions(PAYROLL_PERMISSIONS.READ)
+  @ApiOperation({ summary: 'Verificar si el período puede ser timbrado' })
+  async checkStampingEligibility(@Param('id') id: string) {
+    return this.authorizationService.canStamp(id);
+  }
+
+  @Get('periods/:id/authorization-history')
+  @Permissions(PAYROLL_PERMISSIONS.VIEW_VERSIONS)
+  @ApiOperation({ summary: 'Obtener historial de autorizaciones del período' })
+  async getAuthorizationHistory(@Param('id') id: string) {
+    return this.authorizationService.getAuthorizationHistory(id);
+  }
+
+  // ============================================
+  // ENTERPRISE: DOCUMENTOS FISCALES
+  // ============================================
+
+  @Get('receipts/:detailId/documents')
+  @Permissions(FISCAL_DOCUMENT_PERMISSIONS.READ)
+  @ApiOperation({ summary: 'Listar documentos fiscales del recibo' })
+  async getReceiptDocuments(
+    @Param('detailId') detailId: string,
+    @Query('type') type?: FiscalDocumentType,
+  ) {
+    return this.documentService.getDocumentsForReceipt(detailId, { type });
+  }
+
+  @Get('documents/:documentId')
+  @Permissions(FISCAL_DOCUMENT_PERMISSIONS.READ)
+  @ApiOperation({ summary: 'Obtener metadatos de documento' })
+  async getDocumentMetadata(@Param('documentId') documentId: string) {
+    const doc = await this.documentService.getDocument(documentId, { verifyIntegrity: false });
+    // No devolver el contenido, solo metadatos
+    const { content, ...metadata } = doc;
+    return metadata;
+  }
+
+  @Get('documents/:documentId/download')
+  @Permissions(FISCAL_DOCUMENT_PERMISSIONS.DOWNLOAD)
+  @ApiOperation({ summary: 'Descargar documento fiscal' })
+  async downloadDocument(
+    @Param('documentId') documentId: string,
+    @Res() res: Response,
+  ) {
+    const doc = await this.documentService.getDocument(documentId);
+
+    res.set({
+      'Content-Type': doc.mimeType,
+      'Content-Disposition': `attachment; filename=${doc.fileName}`,
+      'Content-Length': doc.fileSize,
+      'X-Document-SHA256': doc.sha256,
+      'X-Integrity-Valid': doc.integrityValid.toString(),
+    });
+
+    res.send(doc.content);
+  }
+
+  @Get('documents/:documentId/verify')
+  @Permissions(FISCAL_DOCUMENT_PERMISSIONS.VERIFY_INTEGRITY)
+  @ApiOperation({ summary: 'Verificar integridad de documento' })
+  async verifyDocumentIntegrity(@Param('documentId') documentId: string) {
+    return this.documentService.verifyIntegrity(documentId);
+  }
+
+  @Get('periods/:id/documents-integrity')
+  @Permissions(FISCAL_DOCUMENT_PERMISSIONS.VERIFY_INTEGRITY)
+  @ApiOperation({ summary: 'Verificar integridad de todos los documentos del período' })
+  async verifyPeriodDocumentsIntegrity(@Param('id') id: string) {
+    return this.documentService.verifyPeriodIntegrity(id);
+  }
+
+  @Delete('documents/:documentId')
+  @Permissions(FISCAL_DOCUMENT_PERMISSIONS.DELETE)
+  @ApiOperation({ summary: 'Eliminar documento fiscal (soft delete)' })
+  async deleteDocument(
+    @Param('documentId') documentId: string,
+    @Body('reason') reason: string,
+    @Req() req: Request,
+  ) {
+    const userId = (req as any).user?.id;
+    return this.documentService.deleteDocument(documentId, userId, reason);
   }
 }
