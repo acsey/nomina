@@ -668,6 +668,7 @@ model PayrollDetail {
   deductions      PayrollDeduction[]
   cfdiNomina      CfdiNomina?
   calculationAudits PayrollCalculationAudit[]
+  fiscalAudits    FiscalCalculationAudit[] // MEJORA: Auditoría fiscal por concepto
   versions        PayrollDetailVersion[] // Historial de versiones para auditoría
 
   @@unique([payrollPeriodId, employeeId])
@@ -685,6 +686,11 @@ model PayrollPerception {
   exemptAmount     Decimal  @map("exempt_amount") @db.Decimal(12, 2)
   createdAt        DateTime @default(now()) @map("created_at")
 
+  // MEJORA: Referencia a fórmula usada para auditoría
+  formulaId        String?  @map("formula_id")
+  formula          CompanyCalculationFormula? @relation(fields: [formulaId], references: [id])
+  formulaVersion   Int?     @map("formula_version")
+
   @@map("payroll_perceptions")
 }
 
@@ -696,6 +702,11 @@ model PayrollDeduction {
   concept          PayrollConcept @relation(fields: [conceptId], references: [id])
   amount           Decimal  @db.Decimal(12, 2)
   createdAt        DateTime @default(now()) @map("created_at")
+
+  // MEJORA: Referencia a fórmula usada para auditoría
+  formulaId        String?  @map("formula_id")
+  formula          CompanyCalculationFormula? @relation(fields: [formulaId], references: [id])
+  formulaVersion   Int?     @map("formula_version")
 
   @@map("payroll_deductions")
 }
@@ -1578,6 +1589,7 @@ model SpecialPayrollHistory {
 // ============================================
 
 // Fórmulas personalizadas de cálculo por empresa
+// Mejora: Versionado por ejercicio fiscal
 model CompanyCalculationFormula {
   id              String   @id @default(uuid())
   companyId       String   @map("company_id")
@@ -1595,6 +1607,12 @@ model CompanyCalculationFormula {
   // Variables disponibles para la fórmula
   availableVariables Json  @default("[]") @map("available_variables")
 
+  // MEJORA: Versionado por ejercicio fiscal
+  fiscalYear      Int?     @map("fiscal_year") // Año fiscal de aplicación
+  validFrom       DateTime? @map("valid_from") @db.Date // Inicio de vigencia
+  validTo         DateTime? @map("valid_to") @db.Date // Fin de vigencia (null = indefinido)
+  version         Int      @default(1) // Versión de la fórmula
+
   // Configuración fiscal
   isTaxable       Boolean  @default(true) @map("is_taxable")
   isExempt        Boolean  @default(false) @map("is_exempt")
@@ -1609,8 +1627,51 @@ model CompanyCalculationFormula {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
+  // Relaciones de uso
+  perceptions     PayrollPerception[]
+  deductions      PayrollDeduction[]
+
   @@unique([companyId, conceptCode])
+  @@index([companyId, fiscalYear, isActive], name: "idx_formulas_fiscal_year_active")
   @@map("company_calculation_formulas")
+}
+
+// Auditoría de cálculos fiscales por concepto
+// Cumple: Registrar cada cálculo fiscal con base y regla aplicada
+model FiscalCalculationAudit {
+  id                String   @id @default(uuid())
+  payrollDetailId   String   @map("payroll_detail_id")
+  payrollDetail     PayrollDetail @relation(fields: [payrollDetailId], references: [id], onDelete: Restrict)
+
+  conceptType       String   @map("concept_type") // ISR, IMSS_EMPLOYEE, IMSS_EMPLOYER, SUBSIDIO
+  conceptCode       String   @map("concept_code")
+
+  // Valores de entrada
+  inputValues       Json     @map("input_values")
+
+  // Regla/tabla aplicada
+  ruleApplied       String?  @map("rule_applied")
+  ruleVersion       String?  @map("rule_version")
+  tableUsed         String?  @map("table_used")
+
+  // Base de cálculo desglosada
+  calculationBase   Decimal  @map("calculation_base") @db.Decimal(14, 2)
+  limitInferior     Decimal? @map("limit_inferior") @db.Decimal(14, 2)
+  excedente         Decimal? @db.Decimal(14, 2)
+  impuestoMarginal  Decimal? @map("impuesto_marginal") @db.Decimal(14, 2)
+  cuotaFija         Decimal? @map("cuota_fija") @db.Decimal(14, 2)
+  resultAmount      Decimal  @map("result_amount") @db.Decimal(14, 2)
+
+  // Metadata
+  fiscalYear        Int      @map("fiscal_year")
+  periodType        String   @map("period_type")
+  calculatedAt      DateTime @default(now()) @map("calculated_at")
+  calculatedBy      String?  @map("calculated_by")
+
+  @@index([payrollDetailId])
+  @@index([conceptType, conceptCode])
+  @@index([fiscalYear])
+  @@map("fiscal_calculation_audit")
 }
 
 // ============================================

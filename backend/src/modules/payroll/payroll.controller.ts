@@ -14,6 +14,8 @@ import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PayrollService } from './payroll.service';
 import { PayrollReceiptService } from './services/payroll-receipt.service';
+import { PayrollVersioningService } from './services/payroll-versioning.service';
+import { FiscalAuditService } from '@/common/fiscal/fiscal-audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '@/common/decorators';
@@ -26,6 +28,8 @@ export class PayrollController {
   constructor(
     private readonly payrollService: PayrollService,
     private readonly receiptService: PayrollReceiptService,
+    private readonly versioningService: PayrollVersioningService,
+    private readonly fiscalAuditService: FiscalAuditService,
   ) {}
 
   @Post('periods')
@@ -144,5 +148,80 @@ export class PayrollController {
     });
 
     res.send(pdf);
+  }
+
+  // ============================================
+  // MEJORA: ENDPOINTS DE AUDITORÍA FISCAL
+  // ============================================
+
+  @Get('receipts/:detailId/fiscal-audit')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener auditoría fiscal de un recibo' })
+  async getReceiptFiscalAudit(@Param('detailId') detailId: string) {
+    return this.fiscalAuditService.getReceiptFiscalAudit(detailId);
+  }
+
+  @Get('periods/:id/fiscal-audit')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener auditoría fiscal de un período completo' })
+  async getPeriodFiscalAudit(@Param('id') id: string) {
+    return this.fiscalAuditService.getPeriodFiscalAudit(id);
+  }
+
+  @Get('periods/:id/fiscal-audit/summary')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener resumen de auditoría fiscal por concepto' })
+  async getPeriodFiscalAuditSummary(@Param('id') id: string) {
+    return this.fiscalAuditService.getAuditSummaryByPeriod(id);
+  }
+
+  // ============================================
+  // MEJORA: ENDPOINTS DE VERSIONADO DE RECIBOS
+  // ============================================
+
+  @Get('receipts/:detailId/versions')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener historial de versiones de un recibo' })
+  async getReceiptVersions(@Param('detailId') detailId: string) {
+    return this.versioningService.getVersionHistory(detailId);
+  }
+
+  @Get('receipts/:detailId/versions/:version')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener una versión específica del recibo' })
+  async getReceiptVersion(
+    @Param('detailId') detailId: string,
+    @Param('version') version: string,
+  ) {
+    return this.versioningService.getVersion(detailId, parseInt(version, 10));
+  }
+
+  @Get('receipts/:detailId/versions/compare')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Comparar dos versiones de un recibo' })
+  async compareVersions(
+    @Param('detailId') detailId: string,
+    @Query('versionA') versionA: string,
+    @Query('versionB') versionB: string,
+  ) {
+    return this.versioningService.compareVersions(
+      detailId,
+      parseInt(versionA, 10),
+      parseInt(versionB, 10),
+    );
+  }
+
+  @Get('receipts/:detailId/can-modify')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Verificar si un recibo puede ser modificado' })
+  async canModifyReceipt(@Param('detailId') detailId: string) {
+    return this.versioningService.canModify(detailId);
+  }
+
+  @Get('periods/:id/stamped-status')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Verificar si el período tiene recibos timbrados' })
+  async getPeriodStampedStatus(@Param('id') id: string) {
+    return this.versioningService.periodHasStampedReceipts(id);
   }
 }
