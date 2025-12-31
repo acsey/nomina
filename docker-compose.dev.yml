@@ -68,8 +68,8 @@ services:
       PAC_URL: ${PAC_URL:-https://demo-facturacion.finkok.com}
       PAC_USER: ${PAC_USER:-}
       PAC_PASSWORD: ${PAC_PASSWORD:-}
-      # Modo de cola
-      QUEUE_MODE: sync
+      # Modo de cola (api = solo encola, worker procesa por separado)
+      QUEUE_MODE: ${QUEUE_MODE:-api}
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
@@ -113,6 +113,47 @@ services:
       - "9090:8080"
     depends_on:
       - db
+    networks:
+      - nomina-network-dev
+
+  # Worker para procesamiento asíncrono de colas (opcional en dev)
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: nomina-worker-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://nomina:nomina123@db:5432/nomina_db?schema=public
+      JWT_SECRET: dev-secret-key
+      # Redis para colas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      # Cifrado
+      ENCRYPTION_KEY: dev-encryption-key-min-32-chars!!
+      # Storage de evidencias fiscales
+      FISCAL_STORAGE_PATH: /app/storage/fiscal
+      # PAC (Proveedor de Timbrado)
+      PAC_URL: ${PAC_URL:-https://demo-facturacion.finkok.com}
+      PAC_USER: ${PAC_USER:-}
+      PAC_PASSWORD: ${PAC_PASSWORD:-}
+      # Modo worker = solo procesa colas, no levanta HTTP
+      QUEUE_MODE: worker
+    command: npm run start:worker
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - ./storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - worker
     networks:
       - nomina-network-dev
 
