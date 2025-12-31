@@ -82,7 +82,7 @@ export class StampingIdempotencyService {
   ): Promise<AcquireLockResult> {
     const idempotencyKey = this.generateIdempotencyKey(cfdiId, receiptVersion);
 
-    return await this.prisma.$transaction(async (tx: any) => {
+    return await this.prisma.$transaction(async (tx: any): Promise<AcquireLockResult> => {
       // Verificar si ya existe intento exitoso
       const existingSuccess = await tx.stampingAttempt.findFirst({
         where: {
@@ -402,7 +402,7 @@ export class StampingIdempotencyService {
   async getStampingStats(
     periodId?: string,
   ): Promise<StampingStats> {
-    const whereClause = periodId
+    const whereClause: any = periodId
       ? {
           cfdi: {
             payrollDetail: {
