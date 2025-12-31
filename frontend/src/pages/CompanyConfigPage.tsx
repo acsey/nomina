@@ -10,7 +10,7 @@ import {
   ExclamationTriangleIcon,
   BuildingOffice2Icon,
 } from '@heroicons/react/24/outline';
-import { catalogsApi, api } from '../services/api';
+import { catalogsApi, api, pacApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import toast from 'react-hot-toast';
@@ -39,14 +39,17 @@ const REGIMENES_FISCALES = [
   { value: '626', label: '626 - Regimen Simplificado de Confianza' },
 ];
 
-// Proveedores PAC disponibles
-const PAC_PROVIDERS = [
-  { value: '', label: 'Seleccionar...' },
-  { value: 'FINKOK', label: 'Finkok' },
-  { value: 'SW_SAPIEN', label: 'SW Sapien' },
-  { value: 'FACTURAMA', label: 'Facturama' },
-  { value: 'DIVERZA', label: 'Diverza' },
-];
+// PAC providers interface
+interface PacProvider {
+  id: string;
+  code: string;
+  name: string;
+  legalName: string;
+  isImplemented: boolean;
+  isFeatured: boolean;
+  isOfficial: boolean;
+  sortOrder: number;
+}
 
 interface ConfigFormData {
   logo: string;
@@ -99,6 +102,15 @@ export default function CompanyConfigPage() {
   });
 
   const companies = companiesData || [];
+
+  // Obtener proveedores PAC del catálogo
+  const { data: pacProvidersData } = useQuery({
+    queryKey: ['pac-providers'],
+    queryFn: () => pacApi.getAllProviders(),
+    select: (res) => res.data as PacProvider[],
+  });
+
+  const pacProviders = pacProvidersData || [];
 
   // Seleccionar empresa por defecto
   useEffect(() => {
@@ -602,12 +614,20 @@ export default function CompanyConfigPage() {
               onChange={handleChange}
               className="input"
             >
-              {PAC_PROVIDERS.map((pac) => (
-                <option key={pac.value} value={pac.value}>
-                  {pac.label}
-                </option>
-              ))}
+              <option value="">Seleccionar...</option>
+              {pacProviders
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((pac) => (
+                  <option key={pac.code} value={pac.code}>
+                    {pac.name}
+                    {pac.isImplemented && ' ✓'}
+                    {!pac.isOfficial && ' (Personalizado)'}
+                  </option>
+                ))}
             </select>
+            <p className="text-xs text-gray-500 mt-1">
+              ✓ indica proveedores con integración implementada
+            </p>
           </div>
 
           {/* Usuario */}

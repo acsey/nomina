@@ -500,3 +500,33 @@ export const hierarchyApi = {
   canApprove: (approverId: string, employeeId: string) =>
     api.get('/hierarchy/can-approve', { params: { approverId, employeeId } }),
 };
+
+// PAC API - Proveedores Autorizados de Certificación
+export const pacApi = {
+  // Get all PAC providers (for admin catalog view)
+  getAllProviders: () => api.get('/pac/providers'),
+
+  // Get only implemented PAC providers (for company configuration)
+  getImplementedProviders: () => api.get('/pac/providers/implemented'),
+
+  // Get provider by ID
+  getProviderById: (id: string) => api.get(`/pac/providers/${id}`),
+
+  // Create custom PAC provider (admin only)
+  createProvider: (data: any) => api.post('/pac/providers', data),
+
+  // Update PAC provider
+  updateProvider: (id: string, data: any) => api.patch(`/pac/providers/${id}`, data),
+
+  // Configure PAC for a company
+  configureForCompany: (companyId: string, data: any) =>
+    api.post(`/pac/config/company/${companyId}`, data),
+
+  // Get company PAC configurations
+  getCompanyConfigs: (companyId: string) =>
+    api.get(`/pac/config/company/${companyId}`),
+
+  // Test PAC connection
+  testConnection: (configId: string) =>
+    api.post(`/pac/config/${configId}/test`),
+};
