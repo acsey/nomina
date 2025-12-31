@@ -60,9 +60,20 @@ services:
       REDIS_DB: 0
       # Cifrado (generar clave segura en producción)
       ENCRYPTION_KEY: dev-encryption-key-min-32-chars!!
+      # Storage de evidencias fiscales
+      FISCAL_STORAGE_PATH: /app/storage/fiscal
+      # Frontend URL para CORS
+      FRONTEND_URL: http://localhost:5173
+      # PAC (Proveedor de Timbrado) - Modo sandbox para desarrollo
+      PAC_URL: ${PAC_URL:-https://demo-facturacion.finkok.com}
+      PAC_USER: ${PAC_USER:-}
+      PAC_PASSWORD: ${PAC_PASSWORD:-}
+      # Modo de cola
+      QUEUE_MODE: sync
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
+      - ./storage:/app/storage
     ports:
       - "3000:3000"
     depends_on:

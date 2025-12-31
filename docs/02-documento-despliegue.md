@@ -19,6 +19,7 @@
 | Docker Compose | 2.x |
 | Node.js (sin Docker) | 20.x |
 | PostgreSQL (sin Docker) | 15.x |
+| Redis (sin Docker) | 7.x |
 
 ### 1.3 Puertos Requeridos
 
@@ -27,6 +28,7 @@
 | 80 | HTTP (redirige a HTTPS) |
 | 443 | HTTPS |
 | 5432 | PostgreSQL |
+| 6379 | Redis |
 | 3000 | Backend API |
 | 5173 | Frontend (desarrollo) |
 
@@ -40,6 +42,9 @@
 nomina/
 ├── docker-compose.yml          # Producción
 ├── docker-compose.dev.yml      # Desarrollo
+├── .env.example                # Variables de entorno
+├── storage/                    # Evidencias fiscales (volumen)
+│   └── fiscal/
 ├── backend/
 │   └── Dockerfile
 └── frontend/
@@ -56,98 +61,84 @@ cd nomina
 
 #### Paso 2: Configurar variables de entorno
 ```bash
-# Backend
-cp backend/.env.example backend/.env
-# Editar backend/.env con tus configuraciones
-
-# Frontend
-cp frontend/.env.example frontend/.env
-# Editar frontend/.env
+cp .env.example .env
+# Editar .env con configuraciones de desarrollo
 ```
 
-#### Paso 3: Levantar servicios
+#### Paso 3: Crear directorio de storage
+```bash
+mkdir -p storage/fiscal
+chmod 755 storage
+```
+
+#### Paso 4: Levantar servicios
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-#### Paso 4: Ejecutar migraciones
+#### Paso 5: Ejecutar migraciones
 ```bash
 docker exec nomina-backend-dev npx prisma migrate dev
 ```
 
-#### Paso 5: Crear datos iniciales (seed)
+#### Paso 6: Crear datos iniciales (seed)
 ```bash
 docker exec nomina-backend-dev npx prisma db seed
 ```
 
 ### 2.3 Despliegue en Producción
 
-#### docker-compose.yml (Producción)
-```yaml
-version: '3.8'
+#### Paso 1: Preparar variables de entorno
+```bash
+cp .env.example .env
+# IMPORTANTE: Editar .env con valores seguros de producción
+# Ver sección "Variables de Entorno de Producción"
+```
 
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: nomina-db
-    environment:
-      POSTGRES_DB: nomina
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - nomina-network
-    restart: unless-stopped
+#### Paso 2: Generar claves seguras
+```bash
+# Generar JWT_SECRET
+openssl rand -base64 32
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: nomina-backend
-    environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/nomina
-      JWT_SECRET: ${JWT_SECRET}
-      NODE_ENV: production
-    depends_on:
-      - postgres
-    networks:
-      - nomina-network
-    restart: unless-stopped
+# Generar ENCRYPTION_KEY
+openssl rand -base64 32
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${API_URL}
-    container_name: nomina-frontend
-    networks:
-      - nomina-network
-    restart: unless-stopped
+# Generar REDIS_PASSWORD
+openssl rand -base64 24
+```
 
-  nginx:
-    image: nginx:alpine
-    container_name: nomina-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - backend
-      - frontend
-    networks:
-      - nomina-network
-    restart: unless-stopped
+#### Paso 3: Configurar storage de evidencias fiscales
+```bash
+# Crear directorio de storage
+mkdir -p storage/fiscal
 
-volumes:
-  postgres_data:
+# Asegurar permisos (el contenedor corre como node user, UID 1000)
+chown -R 1000:1000 storage
+chmod -R 755 storage
+```
 
-networks:
-  nomina-network:
-    driver: bridge
+#### Paso 4: Construir y levantar servicios
+```bash
+# Servicios básicos
+docker compose up -d --build
+
+# Con worker enterprise (alto volumen de timbrado)
+docker compose --profile enterprise up -d --build
+```
+
+#### Paso 5: Ejecutar migraciones de producción
+```bash
+# IMPORTANTE: Usar 'migrate deploy' en producción, NO 'migrate dev'
+docker exec nomina-backend npx prisma migrate deploy
+```
+
+#### Paso 6: Verificar despliegue
+```bash
+# Health check
+curl http://localhost:3000/api/health
+
+# Ver logs
+docker compose logs -f backend
 ```
 
 #### Comandos de Producción
@@ -166,13 +157,220 @@ docker compose restart
 
 # Detener servicios
 docker compose down
+
+# Backup de volúmenes
+docker run --rm -v nomina_fiscal_storage:/data -v $(pwd):/backup alpine tar czf /backup/fiscal-backup.tar.gz /data
 ```
 
 ---
 
-## 3. Despliegue Manual (Sin Docker)
+## 3. Servicios y Componentes
 
-### 3.1 Preparación del Servidor
+### 3.1 PostgreSQL (Base de Datos)
+
+Base de datos principal del sistema.
+
+```yaml
+# Verificar estado
+docker exec nomina-db pg_isready -U nomina -d nomina_db
+
+# Backup
+docker exec nomina-db pg_dump -U nomina nomina_db > backup.sql
+
+# Restore
+cat backup.sql | docker exec -i nomina-db psql -U nomina -d nomina_db
+```
+
+### 3.2 Redis (Colas de Procesamiento)
+
+Cola de procesamiento asíncrono para timbrado masivo y tareas en background.
+
+```yaml
+# Verificar estado
+docker exec nomina-redis redis-cli ping
+
+# Monitorear colas
+docker exec nomina-redis redis-cli monitor
+```
+
+### 3.3 Backend API (NestJS)
+
+API REST con endpoints para todas las operaciones del sistema.
+
+```yaml
+# Ver logs
+docker logs -f nomina-backend
+
+# Ejecutar comando dentro del contenedor
+docker exec -it nomina-backend sh
+```
+
+### 3.4 Worker (Enterprise)
+
+Procesador de colas para timbrado masivo y operaciones asíncronas.
+
+#### Modos de Operación (QUEUE_MODE)
+
+El sistema soporta 3 modos de operación para escalar horizontalmente:
+
+| Modo | Descripción | Uso |
+|------|-------------|-----|
+| `api` | Solo API (enqueue jobs, no procesa) | Backend en producción |
+| `worker` | Solo Worker (procesa jobs, no API) | Workers dedicados |
+| `both` | API + Worker en mismo proceso | Desarrollo o instancias pequeñas |
+
+**Arquitectura Recomendada para Producción:**
+
+```
+                    ┌─────────────┐
+                    │   Nginx     │
+                    │   (LB)      │
+                    └──────┬──────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
+    │  Backend    │ │  Backend    │ │  Backend    │
+    │ QUEUE_MODE  │ │ QUEUE_MODE  │ │ QUEUE_MODE  │
+    │   =api      │ │   =api      │ │   =api      │
+    └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
+           │               │               │
+           └───────────────┼───────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │    Redis    │
+                    │   (Colas)   │
+                    └──────┬──────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
+    │   Worker    │ │   Worker    │ │   Worker    │
+    │  (node      │ │  (node      │ │  (node      │
+    │ dist/worker)│ │ dist/worker)│ │ dist/worker)│
+    └─────────────┘ └─────────────┘ └─────────────┘
+```
+
+#### Comandos de Despliegue
+
+```bash
+# Levantar solo API (sin procesadores)
+docker compose up -d backend  # Ya usa QUEUE_MODE=api por defecto
+
+# Levantar worker separado (perfil enterprise)
+docker compose --profile enterprise up -d worker
+
+# Ver logs del worker
+docker logs -f nomina-worker
+
+# Escalar workers
+docker compose --profile enterprise up -d --scale worker=3
+```
+
+#### Configuración en docker-compose.yml
+
+```yaml
+# Backend API (solo enqueue)
+backend:
+  environment:
+    QUEUE_MODE: api  # Solo registra colas, no procesa
+
+# Worker (solo procesa)
+worker:
+  command: ["node", "dist/worker.js"]
+  environment:
+    WORKER_CONCURRENCY: 5  # Jobs concurrentes por worker
+```
+
+#### Scripts npm Disponibles
+
+```bash
+# Iniciar API en modo producción
+npm run start:prod         # Usa QUEUE_MODE del entorno
+
+# Iniciar API forzando modo api
+npm run start:api          # QUEUE_MODE=api
+
+# Iniciar worker standalone
+npm run start:worker       # Ejecuta dist/worker.js
+```
+
+### 3.5 Storage de Evidencias Fiscales
+
+Almacenamiento persistente para documentos fiscales (XML, PDF, acuses).
+
+**Estructura de directorios:**
+```
+storage/fiscal/
+├── {companyId}/
+│   └── {year}/
+│       └── {period}/
+│           ├── {detailId}_xml_original_v1.xml
+│           ├── {detailId}_xml_timbrado_v1.xml
+│           └── {detailId}_pdf_recibo_v1.pdf
+```
+
+**Verificación de integridad:**
+El sistema almacena hash SHA256 de cada documento para verificar integridad.
+
+---
+
+## 4. Variables de Entorno de Producción
+
+### 4.1 Archivo .env Completo
+
+```env
+# Base de datos
+DB_USER=nomina_prod
+DB_PASSWORD=<password-seguro-generado>
+DB_NAME=nomina_db
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=<password-redis-generado>
+REDIS_DB=0
+
+# JWT - IMPORTANTE: Usar clave única generada
+JWT_SECRET=<clave-jwt-generada-min-32-chars>
+JWT_EXPIRES_IN=8h
+
+# Cifrado - IMPORTANTE: Usar clave única generada
+ENCRYPTION_KEY=<clave-cifrado-generada-min-32-chars>
+
+# Storage fiscal
+FISCAL_STORAGE_PATH=/app/storage/fiscal
+
+# Frontend URL (CORS)
+FRONTEND_URL=https://nomina.tu-empresa.com
+
+# PAC (Proveedor de Timbrado)
+PAC_URL=https://facturacion.finkok.com
+PAC_USER=tu_usuario_pac_produccion
+PAC_PASSWORD=<password-pac>
+
+# Modo de procesamiento de colas
+# api: Solo API (enqueue, no procesa) - usar con workers separados
+# worker: Solo Worker (procesa, no API) - usado por el servicio worker
+# both: API + Worker juntos - desarrollo o instancias pequeñas
+QUEUE_MODE=api
+WORKER_CONCURRENCY=5
+```
+
+### 4.2 Variables Críticas de Seguridad
+
+| Variable | Descripción | Cómo Generar |
+|----------|-------------|--------------|
+| JWT_SECRET | Firma de tokens JWT | `openssl rand -base64 32` |
+| ENCRYPTION_KEY | Cifrado de datos sensibles | `openssl rand -base64 32` |
+| DB_PASSWORD | Password PostgreSQL | `openssl rand -base64 24` |
+| REDIS_PASSWORD | Password Redis | `openssl rand -base64 24` |
+
+---
+
+## 5. Despliegue Manual (Sin Docker)
+
+### 5.1 Preparación del Servidor
 
 #### Ubuntu/Debian
 ```bash
@@ -186,6 +384,10 @@ sudo apt install -y nodejs
 # Instalar PostgreSQL
 sudo apt install -y postgresql postgresql-contrib
 
+# Instalar Redis
+sudo apt install -y redis-server
+sudo systemctl enable redis-server
+
 # Instalar Nginx
 sudo apt install -y nginx
 
@@ -193,7 +395,7 @@ sudo apt install -y nginx
 sudo npm install -g pm2
 ```
 
-### 3.2 Configuración de PostgreSQL
+### 5.2 Configuración de PostgreSQL
 
 ```bash
 # Acceder a PostgreSQL
@@ -206,7 +408,29 @@ GRANT ALL PRIVILEGES ON DATABASE nomina TO nomina_user;
 \q
 ```
 
-### 3.3 Despliegue del Backend
+### 5.3 Configuración de Redis
+
+```bash
+# Editar configuración
+sudo nano /etc/redis/redis.conf
+
+# Agregar password
+requirepass tu_password_redis_seguro
+
+# Reiniciar Redis
+sudo systemctl restart redis-server
+```
+
+### 5.4 Crear Directorio de Storage
+
+```bash
+# Crear directorio para evidencias fiscales
+sudo mkdir -p /var/www/nomina/storage/fiscal
+sudo chown -R www-data:www-data /var/www/nomina/storage
+sudo chmod -R 755 /var/www/nomina/storage
+```
+
+### 5.5 Despliegue del Backend
 
 ```bash
 # Clonar y navegar
@@ -224,7 +448,7 @@ nano .env  # Editar con valores de producción
 # Generar cliente Prisma
 npx prisma generate
 
-# Ejecutar migraciones
+# Ejecutar migraciones (IMPORTANTE: usar deploy, no dev)
 npx prisma migrate deploy
 
 # Compilar TypeScript
@@ -236,25 +460,7 @@ pm2 save
 pm2 startup
 ```
 
-### 3.4 Despliegue del Frontend
-
-```bash
-cd /var/www/nomina/frontend
-
-# Instalar dependencias
-npm install
-
-# Configurar variables de entorno
-cp .env.example .env
-nano .env  # Configurar VITE_API_URL
-
-# Compilar para producción
-npm run build
-
-# Los archivos compilados están en /dist
-```
-
-### 3.5 Configuración de Nginx
+### 5.6 Configuración de Nginx
 
 ```nginx
 # /etc/nginx/sites-available/nomina
@@ -301,9 +507,9 @@ sudo systemctl restart nginx
 
 ---
 
-## 4. Configuración de SSL
+## 6. Configuración de SSL
 
-### 4.1 Con Let's Encrypt (Recomendado)
+### 6.1 Con Let's Encrypt (Recomendado)
 
 ```bash
 # Instalar Certbot
@@ -317,51 +523,11 @@ sudo crontab -e
 # Agregar: 0 12 * * * /usr/bin/certbot renew --quiet
 ```
 
-### 4.2 Con Certificado Propio
-
-```bash
-# Copiar certificados
-sudo cp tu-certificado.crt /etc/ssl/certs/
-sudo cp tu-certificado.key /etc/ssl/private/
-sudo chmod 600 /etc/ssl/private/tu-certificado.key
-```
-
 ---
 
-## 5. Variables de Entorno de Producción
+## 7. Backups
 
-### 5.1 Backend (.env)
-
-```env
-# Base de datos
-DATABASE_URL="postgresql://nomina_user:password_seguro@localhost:5432/nomina"
-
-# JWT - Usar clave segura generada
-JWT_SECRET="clave-secreta-muy-larga-y-aleatoria-minimo-32-caracteres"
-JWT_EXPIRES_IN="7d"
-
-# Servidor
-PORT=3000
-NODE_ENV=production
-
-# PAC (Proveedor de Timbrado)
-PAC_PROVIDER=finkok
-PAC_USER=tu_usuario_pac
-PAC_PASSWORD=tu_password_pac
-PAC_MODE=production
-```
-
-### 5.2 Frontend (.env)
-
-```env
-VITE_API_URL=https://tu-dominio.com/api
-```
-
----
-
-## 6. Backups
-
-### 6.1 Backup de Base de Datos
+### 7.1 Backup de Base de Datos
 
 #### Script de Backup
 ```bash
@@ -373,107 +539,75 @@ DATE=$(date +%Y%m%d_%H%M%S)
 DB_NAME="nomina"
 DB_USER="nomina_user"
 
-# Crear directorio si no existe
 mkdir -p $BACKUP_DIR
 
-# Realizar backup
-PGPASSWORD="tu_password" pg_dump -U $DB_USER -h localhost $DB_NAME | gzip > $BACKUP_DIR/nomina_$DATE.sql.gz
+# Backup base de datos
+PGPASSWORD="tu_password" pg_dump -U $DB_USER -h localhost $DB_NAME | gzip > $BACKUP_DIR/nomina_db_$DATE.sql.gz
 
 # Eliminar backups mayores a 30 días
-find $BACKUP_DIR -type f -mtime +30 -delete
+find $BACKUP_DIR -type f -name "*.sql.gz" -mtime +30 -delete
 
-echo "Backup completado: nomina_$DATE.sql.gz"
+echo "Backup DB completado: nomina_db_$DATE.sql.gz"
 ```
 
-#### Programar Backup Diario
+### 7.2 Backup de Evidencias Fiscales
+
+```bash
+#!/bin/bash
+# /opt/scripts/backup-fiscal.sh
+
+BACKUP_DIR="/var/backups/nomina"
+STORAGE_DIR="/var/www/nomina/storage/fiscal"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p $BACKUP_DIR
+
+# Backup incremental de evidencias fiscales
+tar czf $BACKUP_DIR/fiscal_$DATE.tar.gz -C $STORAGE_DIR .
+
+# Eliminar backups mayores a 90 días (requerimiento SAT: 5 años)
+find $BACKUP_DIR -type f -name "fiscal_*.tar.gz" -mtime +90 -delete
+
+echo "Backup fiscal completado: fiscal_$DATE.tar.gz"
+```
+
+### 7.3 Programar Backups
+
 ```bash
 sudo chmod +x /opt/scripts/backup-db.sh
+sudo chmod +x /opt/scripts/backup-fiscal.sh
 sudo crontab -e
-# Agregar: 0 2 * * * /opt/scripts/backup-db.sh
-```
-
-### 6.2 Restaurar Backup
-
-```bash
-gunzip -c /var/backups/nomina/nomina_20241220_020000.sql.gz | psql -U nomina_user -d nomina
+# Agregar:
+# 0 2 * * * /opt/scripts/backup-db.sh
+# 0 3 * * * /opt/scripts/backup-fiscal.sh
 ```
 
 ---
 
-## 7. Monitoreo
+## 8. Monitoreo
 
-### 7.1 Monitoreo con PM2
+### 8.1 Health Checks
 
 ```bash
-# Ver estado de procesos
-pm2 status
-
-# Ver logs en tiempo real
-pm2 logs nomina-backend
-
-# Monitoreo de recursos
-pm2 monit
-```
-
-### 7.2 Health Check
-
-El backend expone un endpoint de health check:
-```bash
+# Backend API
 curl https://tu-dominio.com/api/health
+
+# PostgreSQL
+docker exec nomina-db pg_isready -U nomina
+
+# Redis
+docker exec nomina-redis redis-cli ping
 ```
 
-Respuesta esperada:
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-12-20T10:00:00.000Z"
-}
-```
+### 8.2 Logs
 
----
-
-## 8. Actualizaciones
-
-### 8.1 Proceso de Actualización
-
-```bash
-# 1. Crear backup antes de actualizar
-/opt/scripts/backup-db.sh
-
-# 2. Obtener últimos cambios
-cd /var/www/nomina
-git pull origin main
-
-# 3. Actualizar backend
-cd backend
-npm install
-npx prisma migrate deploy
-npm run build
-pm2 restart nomina-backend
-
-# 4. Actualizar frontend
-cd ../frontend
-npm install
-npm run build
-
-# 5. Verificar funcionamiento
-curl https://tu-dominio.com/api/health
-```
-
-### 8.2 Rollback
-
-```bash
-# Revertir a commit anterior
-git log --oneline  # Ver commits
-git checkout <commit-hash>
-
-# Restaurar base de datos
-gunzip -c /var/backups/nomina/nomina_backup_anterior.sql.gz | psql -U nomina_user -d nomina
-
-# Reconstruir y reiniciar
-cd backend && npm run build && pm2 restart nomina-backend
-cd ../frontend && npm run build
-```
+| Componente | Comando |
+|------------|---------|
+| Backend | `docker logs -f nomina-backend` |
+| Worker | `docker logs -f nomina-worker` |
+| PostgreSQL | `docker logs -f nomina-db` |
+| Redis | `docker logs -f nomina-redis` |
+| Nginx | `/var/log/nginx/access.log` |
 
 ---
 
@@ -484,39 +618,39 @@ cd ../frontend && npm run build
 #### Error de conexión a base de datos
 ```bash
 # Verificar que PostgreSQL esté corriendo
-sudo systemctl status postgresql
+docker exec nomina-db pg_isready -U nomina
 
-# Verificar conexión
-psql -U nomina_user -d nomina -h localhost
+# Verificar conexión desde backend
+docker exec nomina-backend npx prisma db push --accept-data-loss
 ```
 
-#### Error 502 Bad Gateway
+#### Error de conexión a Redis
 ```bash
-# Verificar que el backend esté corriendo
-pm2 status
-pm2 logs nomina-backend
+# Verificar Redis
+docker exec nomina-redis redis-cli ping
 
-# Verificar configuración de Nginx
-sudo nginx -t
+# Verificar password
+docker exec nomina-redis redis-cli -a tu_password ping
 ```
 
 #### Migraciones fallidas
 ```bash
 # Ver estado de migraciones
-npx prisma migrate status
+docker exec nomina-backend npx prisma migrate status
 
-# Forzar reset (¡SOLO EN DESARROLLO!)
-npx prisma migrate reset --force
+# Forzar sincronización (¡SOLO EN EMERGENCIAS!)
+docker exec nomina-backend npx prisma db push
 ```
 
-### 9.2 Logs Importantes
+#### Permisos de storage
+```bash
+# Verificar permisos
+ls -la storage/fiscal/
 
-| Log | Ubicación |
-|-----|-----------|
-| Backend | `pm2 logs nomina-backend` |
-| Nginx Access | `/var/log/nginx/access.log` |
-| Nginx Error | `/var/log/nginx/error.log` |
-| PostgreSQL | `/var/log/postgresql/postgresql-15-main.log` |
+# Corregir permisos
+sudo chown -R 1000:1000 storage
+sudo chmod -R 755 storage
+```
 
 ---
 
@@ -524,29 +658,45 @@ npx prisma migrate reset --force
 
 ### Pre-despliegue
 - [ ] Backup de base de datos existente
+- [ ] Backup de evidencias fiscales existentes
 - [ ] Verificar requisitos de hardware
 - [ ] Obtener certificados SSL
 - [ ] Configurar DNS
-- [ ] Preparar variables de entorno
+- [ ] Generar claves seguras (JWT_SECRET, ENCRYPTION_KEY)
+- [ ] Configurar credenciales PAC de producción
+- [ ] Preparar variables de entorno (.env)
 
 ### Despliegue
 - [ ] Clonar repositorio
-- [ ] Instalar dependencias
-- [ ] Configurar variables de entorno
-- [ ] Ejecutar migraciones
-- [ ] Compilar frontend y backend
-- [ ] Configurar Nginx/proxy
+- [ ] Crear directorio de storage: `mkdir -p storage/fiscal`
+- [ ] Configurar permisos: `chown -R 1000:1000 storage`
+- [ ] Configurar .env con valores de producción
+- [ ] Construir imágenes: `docker compose build`
+- [ ] Levantar servicios: `docker compose up -d`
+- [ ] Ejecutar migraciones: `npx prisma migrate deploy`
+- [ ] Configurar Nginx/proxy reverso
 - [ ] Configurar SSL
 
 ### Post-despliegue
-- [ ] Verificar health check
-- [ ] Probar login
-- [ ] Verificar funcionalidades críticas
-- [ ] Configurar backups automáticos
+- [ ] Verificar health check: `curl /api/health`
+- [ ] Probar login con usuario admin
+- [ ] Verificar conexión a Redis
+- [ ] Probar timbrado en modo sandbox
+- [ ] Verificar escritura en storage fiscal
+- [ ] Configurar backups automáticos (DB + fiscal)
 - [ ] Configurar monitoreo
-- [ ] Documentar accesos y credenciales
+- [ ] Documentar accesos y credenciales (seguro)
+- [ ] Probar restauración de backup
+
+### Validación Fiscal (antes de producción)
+- [ ] Verificar certificados CSD vigentes
+- [ ] Probar timbrado con PAC en sandbox
+- [ ] Verificar generación correcta de XML CFDI 4.0
+- [ ] Verificar complemento nómina 1.2
+- [ ] Probar cancelación de CFDI
+- [ ] Validar evidencias fiscales almacenadas
 
 ---
 
 *Documento generado: Diciembre 2024*
-*Versión del documento: 1.0*
+*Versión del documento: 2.0*
