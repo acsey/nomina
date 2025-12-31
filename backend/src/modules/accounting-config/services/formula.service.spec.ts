@@ -9,7 +9,7 @@ describe('FormulaService', () => {
   let service: FormulaService;
   let prismaService: jest.Mocked<PrismaService>;
 
-  const mockPrismaService = {
+  const mockPrismaService: any = {
     company: {
       findUnique: jest.fn(),
     },
@@ -20,7 +20,7 @@ describe('FormulaService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
-    $transaction: jest.fn((fn) => fn(mockPrismaService)),
+    $transaction: jest.fn((fn: any): any => fn(mockPrismaService)),
   };
 
   const mockAuditService = {
