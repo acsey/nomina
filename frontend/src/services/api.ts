@@ -123,6 +123,68 @@ export const payrollApi = {
     api.get(`/payroll/receipts/${detailId}/pdf`, { responseType: 'blob' }),
   viewReceipt: (detailId: string) =>
     api.get(`/payroll/receipts/${detailId}/view`, { responseType: 'blob' }),
+
+  // === ENTERPRISE: Auditoria Fiscal ===
+  getReceiptFiscalAudit: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/fiscal-audit`),
+  getPeriodFiscalAudit: (periodId: string) =>
+    api.get(`/payroll/periods/${periodId}/fiscal-audit`),
+  getPeriodFiscalAuditSummary: (periodId: string) =>
+    api.get(`/payroll/periods/${periodId}/fiscal-audit/summary`),
+
+  // === ENTERPRISE: Versionado de Recibos ===
+  getReceiptVersions: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/versions`),
+  getReceiptVersion: (detailId: string, version: number) =>
+    api.get(`/payroll/receipts/${detailId}/versions/${version}`),
+  compareVersions: (detailId: string, versionA: number, versionB: number) =>
+    api.get(`/payroll/receipts/${detailId}/versions/compare`, {
+      params: { versionA, versionB },
+    }),
+  canModifyReceipt: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/can-modify`),
+  getPeriodStampedStatus: (periodId: string) =>
+    api.get(`/payroll/periods/${periodId}/stamped-status`),
+
+  // === ENTERPRISE: Snapshots de Reglas ===
+  getRulesetSnapshot: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/ruleset-snapshot`),
+  getRulesetSnapshotByVersion: (detailId: string, version: number) =>
+    api.get(`/payroll/receipts/${detailId}/ruleset-snapshot/${version}`),
+  getAllRulesetSnapshots: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/ruleset-snapshots`),
+  compareRulesetSnapshots: (detailId: string, versionA: number, versionB: number) =>
+    api.get(`/payroll/receipts/${detailId}/ruleset-snapshot/compare`, {
+      params: { versionA, versionB },
+    }),
+  getCalculationContext: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/calculation-context`),
+  verifySnapshotIntegrity: (detailId: string) =>
+    api.get(`/payroll/receipts/${detailId}/snapshot-integrity`),
+
+  // === ENTERPRISE: Autorizacion de Timbrado ===
+  authorizeStamping: (periodId: string, details: any) =>
+    api.post(`/payroll/periods/${periodId}/authorize-stamping`, details),
+  revokeStampingAuth: (periodId: string, reason: string) =>
+    api.post(`/payroll/periods/${periodId}/revoke-stamping-auth`, { reason }),
+  getStampingEligibility: (periodId: string) =>
+    api.get(`/payroll/periods/${periodId}/stamping-eligibility`),
+  getAuthorizationHistory: (periodId: string) =>
+    api.get(`/payroll/periods/${periodId}/authorization-history`),
+
+  // === ENTERPRISE: Documentos Fiscales ===
+  getReceiptDocuments: (detailId: string, type?: string) =>
+    api.get(`/payroll/receipts/${detailId}/documents`, { params: { type } }),
+  getDocumentMetadata: (documentId: string) =>
+    api.get(`/payroll/documents/${documentId}`),
+  downloadDocument: (documentId: string) =>
+    api.get(`/payroll/documents/${documentId}/download`, { responseType: 'blob' }),
+  verifyDocumentIntegrity: (documentId: string) =>
+    api.get(`/payroll/documents/${documentId}/verify`),
+  verifyPeriodDocumentsIntegrity: (periodId: string) =>
+    api.get(`/payroll/periods/${periodId}/documents-integrity`),
+  deleteDocument: (documentId: string, reason: string) =>
+    api.delete(`/payroll/documents/${documentId}`, { data: { reason } }),
 };
 
 export const cfdiApi = {

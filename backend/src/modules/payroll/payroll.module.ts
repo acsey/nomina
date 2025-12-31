@@ -11,6 +11,9 @@ import { LiquidationCalculatorService } from './services/liquidation-calculator.
 import { PayrollSimulationService } from './services/payroll-simulation.service';
 import { PayrollAnalyticsService } from './services/payroll-analytics.service';
 import { PayrollVersioningService } from './services/payroll-versioning.service';
+import { RulesetSnapshotService } from './services/ruleset-snapshot.service';
+import { StampingAuthorizationService } from './services/stamping-authorization.service';
+import { DocumentStorageService } from './services/document-storage.service';
 import { CfdiModule } from '../cfdi/cfdi.module';
 import { AccountingConfigModule } from '../accounting-config/accounting-config.module';
 
@@ -27,6 +30,9 @@ import { AccountingConfigModule } from '../accounting-config/accounting-config.m
     PayrollSimulationService,
     PayrollAnalyticsService,
     PayrollVersioningService,
+    RulesetSnapshotService,
+    StampingAuthorizationService,
+    DocumentStorageService,
   ],
   exports: [
     PayrollService,
@@ -35,6 +41,9 @@ import { AccountingConfigModule } from '../accounting-config/accounting-config.m
     PayrollSimulationService,
     PayrollAnalyticsService,
     PayrollVersioningService,
+    RulesetSnapshotService,
+    StampingAuthorizationService,
+    DocumentStorageService,
   ],
 })
 export class PayrollModule {}
