@@ -129,9 +129,13 @@ ON "stamping_attempt" ("idempotency_key");
 CREATE INDEX IF NOT EXISTS "idx_stamping_attempt_cfdi"
 ON "stamping_attempt" ("cfdi_id", "status");
 
+ALTER TABLE "stamping_attempt"
+ADD CONSTRAINT "stamping_attempt_cfdi_fkey"
+FOREIGN KEY ("cfdi_id") REFERENCES "cfdi_nominas"("id") ON DELETE CASCADE;
+
 -- Lock advisory para evitar concurrencia
 -- (Se maneja en código, pero agregamos columna de lock)
-ALTER TABLE "cfdi_nomina"
+ALTER TABLE "cfdi_nominas"
 ADD COLUMN IF NOT EXISTS "stamp_lock_id" TEXT,
 ADD COLUMN IF NOT EXISTS "stamp_lock_at" TIMESTAMP(3);
 
@@ -176,4 +180,4 @@ FOREIGN KEY ("payroll_detail_id") REFERENCES "payroll_details"("id") ON DELETE R
 
 ALTER TABLE "receipt_document"
 ADD CONSTRAINT "receipt_document_cfdi_fkey"
-FOREIGN KEY ("cfdi_id") REFERENCES "cfdi_nomina"("id") ON DELETE SET NULL;
+FOREIGN KEY ("cfdi_id") REFERENCES "cfdi_nominas"("id") ON DELETE SET NULL;

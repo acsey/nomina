@@ -87,7 +87,7 @@ FOREIGN KEY ("payroll_detail_id") REFERENCES "payroll_details"("id") ON DELETE R
 -- MEJORA: Registro de Errores de Timbrado con Clasificación
 -- ============================================
 
-ALTER TABLE "cfdi_nomina"
+ALTER TABLE "cfdi_nominas"
 ADD COLUMN IF NOT EXISTS "error_code" TEXT,
 ADD COLUMN IF NOT EXISTS "error_type" TEXT, -- TEMPORARY, PERMANENT, VALIDATION
 ADD COLUMN IF NOT EXISTS "retry_count" INTEGER DEFAULT 0,
@@ -95,4 +95,4 @@ ADD COLUMN IF NOT EXISTS "last_retry_at" TIMESTAMP(3),
 ADD COLUMN IF NOT EXISTS "next_retry_at" TIMESTAMP(3);
 
 CREATE INDEX IF NOT EXISTS "idx_cfdi_retry_status"
-ON "cfdi_nomina" ("status", "error_type", "next_retry_at");
+ON "cfdi_nominas" ("status", "error_type", "next_retry_at");
