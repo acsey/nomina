@@ -29,27 +29,27 @@ export class RulesetSnapshotService {
     const detail = await this.prisma.payrollDetail.findUnique({
       where: { id: payrollDetailId },
       include: {
-        period: true,
-        rulesetSnapshots: {
+        payrollPeriod: true,
+        receiptRulesetSnapshots: {
           orderBy: { version: 'desc' },
           take: 1,
         },
       },
-    });
+    }) as any;
 
     if (!detail) {
       throw new NotFoundException(`PayrollDetail ${payrollDetailId} no encontrado`);
     }
 
-    const nextVersion = detail.rulesetSnapshots.length > 0
-      ? detail.rulesetSnapshots[0].version + 1
+    const nextVersion = detail.receiptRulesetSnapshots.length > 0
+      ? detail.receiptRulesetSnapshots[0].version + 1
       : 1;
 
     const snapshot = await this.prisma.receiptRulesetSnapshot.create({
       data: {
         payrollDetailId,
         version: nextVersion,
-        formulasUsed: calculationContext.formulas || [],
+        formulasUsed: (calculationContext.formulas || []) as any,
         umaDaily: calculationContext.umaDaily,
         umaMonthly: calculationContext.umaMonthly,
         smgDaily: calculationContext.smgDaily,
@@ -59,9 +59,9 @@ export class RulesetSnapshotService {
         isrTableVersion: calculationContext.isrTableVersion,
         subsidioTableVersion: calculationContext.subsidioTableVersion,
         imssRatesVersion: calculationContext.imssRatesVersion,
-        fiscalYear: calculationContext.fiscalYear || detail.period.year,
-        periodType: calculationContext.periodType || detail.period.type,
-        calculationParams: calculationContext.additionalParams || {},
+        fiscalYear: calculationContext.fiscalYear || detail.payrollPeriod.year,
+        periodType: calculationContext.periodType || detail.payrollPeriod.type,
+        calculationParams: (calculationContext.additionalParams || {}) as any,
         createdBy: userId,
       },
     });
@@ -128,7 +128,7 @@ export class RulesetSnapshotService {
       orderBy: { version: 'desc' },
     });
 
-    return snapshots.map((s) => this.mapToDto(s));
+    return snapshots.map((s: any) => this.mapToDto(s));
   }
 
   /**
