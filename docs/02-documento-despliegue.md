@@ -209,12 +209,90 @@ docker exec -it nomina-backend sh
 
 Procesador de colas para timbrado masivo y operaciones asíncronas.
 
+#### Modos de Operación (QUEUE_MODE)
+
+El sistema soporta 3 modos de operación para escalar horizontalmente:
+
+| Modo | Descripción | Uso |
+|------|-------------|-----|
+| `api` | Solo API (enqueue jobs, no procesa) | Backend en producción |
+| `worker` | Solo Worker (procesa jobs, no API) | Workers dedicados |
+| `both` | API + Worker en mismo proceso | Desarrollo o instancias pequeñas |
+
+**Arquitectura Recomendada para Producción:**
+
+```
+                    ┌─────────────┐
+                    │   Nginx     │
+                    │   (LB)      │
+                    └──────┬──────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
+    │  Backend    │ │  Backend    │ │  Backend    │
+    │ QUEUE_MODE  │ │ QUEUE_MODE  │ │ QUEUE_MODE  │
+    │   =api      │ │   =api      │ │   =api      │
+    └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
+           │               │               │
+           └───────────────┼───────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │    Redis    │
+                    │   (Colas)   │
+                    └──────┬──────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
+    │   Worker    │ │   Worker    │ │   Worker    │
+    │  (node      │ │  (node      │ │  (node      │
+    │ dist/worker)│ │ dist/worker)│ │ dist/worker)│
+    └─────────────┘ └─────────────┘ └─────────────┘
+```
+
+#### Comandos de Despliegue
+
 ```bash
-# Activar worker (perfil enterprise)
+# Levantar solo API (sin procesadores)
+docker compose up -d backend  # Ya usa QUEUE_MODE=api por defecto
+
+# Levantar worker separado (perfil enterprise)
 docker compose --profile enterprise up -d worker
 
 # Ver logs del worker
 docker logs -f nomina-worker
+
+# Escalar workers
+docker compose --profile enterprise up -d --scale worker=3
+```
+
+#### Configuración en docker-compose.yml
+
+```yaml
+# Backend API (solo enqueue)
+backend:
+  environment:
+    QUEUE_MODE: api  # Solo registra colas, no procesa
+
+# Worker (solo procesa)
+worker:
+  command: ["node", "dist/worker.js"]
+  environment:
+    WORKER_CONCURRENCY: 5  # Jobs concurrentes por worker
+```
+
+#### Scripts npm Disponibles
+
+```bash
+# Iniciar API en modo producción
+npm run start:prod         # Usa QUEUE_MODE del entorno
+
+# Iniciar API forzando modo api
+npm run start:api          # QUEUE_MODE=api
+
+# Iniciar worker standalone
+npm run start:worker       # Ejecuta dist/worker.js
 ```
 
 ### 3.5 Storage de Evidencias Fiscales
@@ -271,8 +349,11 @@ PAC_URL=https://facturacion.finkok.com
 PAC_USER=tu_usuario_pac_produccion
 PAC_PASSWORD=<password-pac>
 
-# Modo de procesamiento
-QUEUE_MODE=async
+# Modo de procesamiento de colas
+# api: Solo API (enqueue, no procesa) - usar con workers separados
+# worker: Solo Worker (procesa, no API) - usado por el servicio worker
+# both: API + Worker juntos - desarrollo o instancias pequeñas
+QUEUE_MODE=api
 WORKER_CONCURRENCY=5
 ```
 

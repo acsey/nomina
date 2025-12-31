@@ -47,7 +47,7 @@ import { PacModule } from './modules/pac/pac.module';
     FiscalModule,   // Módulo fiscal global (UMA, SMG, tasas de riesgo)
     FormulaModule,  // Módulo de fórmulas global (evaluador seguro de expresiones)
     UtilsModule,    // Módulo de utilidades global (redondeo centralizado)
-    QueuesModule,   // Módulo de colas para procesamiento asíncrono
+    QueuesModule.forRoot(),   // Módulo de colas (usa QUEUE_MODE para configurar)
     AuthModule,
     UsersModule,
     EmployeesModule,

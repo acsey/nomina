@@ -68,8 +68,10 @@ services:
       PAC_URL: ${PAC_URL:-}
       PAC_USER: ${PAC_USER:-}
       PAC_PASSWORD: ${PAC_PASSWORD:-}
-      # Modo de cola (sync/async)
-      QUEUE_MODE: ${QUEUE_MODE:-async}
+      # Modo de cola (api/worker/both)
+      # api: solo enqueue (usar con workers separados)
+      # both: API + processors (desarrollo)
+      QUEUE_MODE: ${QUEUE_MODE:-api}
     volumes:
       - fiscal_storage:/app/storage
     ports:
