@@ -1343,6 +1343,152 @@ async function main() {
   console.log('✅ Tasas IMSS 2025 creadas');
 
   // ============================================
+  // CATÁLOGO DE PACs AUTORIZADOS SAT
+  // Lista completa actualizada al 30/12/2025
+  // ============================================
+
+  const pacProviders = [
+    // PAC de desarrollo/sandbox interno
+    {
+      code: 'SANDBOX',
+      name: 'Sandbox (Desarrollo)',
+      legalName: 'Modo de desarrollo interno',
+      integrationType: 'INTERNAL',
+      isOfficial: false,
+      isImplemented: true,
+      isFeatured: true,
+      sortOrder: 1,
+      notes: 'PAC simulado para desarrollo y pruebas. No genera CFDIs válidos ante el SAT.',
+    },
+    // PACs con implementación conocida
+    {
+      code: 'FINKOK',
+      name: 'Finkok',
+      legalName: 'Pegaso Tecnología, S.A. de C.V.',
+      sandboxStampUrl: 'https://demo-facturacion.finkok.com/servicios/soap/stamp',
+      productionStampUrl: 'https://facturacion.finkok.com/servicios/soap/stamp',
+      sandboxCancelUrl: 'https://demo-facturacion.finkok.com/servicios/soap/cancel',
+      productionCancelUrl: 'https://facturacion.finkok.com/servicios/soap/cancel',
+      integrationType: 'SOAP',
+      documentationUrl: 'https://wiki.finkok.com/',
+      websiteUrl: 'https://www.finkok.com',
+      isOfficial: true,
+      isImplemented: true,
+      isFeatured: true,
+      sortOrder: 2,
+    },
+    {
+      code: 'SW_SAPIEN',
+      name: 'SW sapien',
+      legalName: 'Solución Integral de Facturación Electrónica e Informática SIFEI, S.A. de C.V.',
+      sandboxStampUrl: 'https://services.test.sw.com.mx/cfdi33/stamp/v4',
+      productionStampUrl: 'https://services.sw.com.mx/cfdi33/stamp/v4',
+      sandboxCancelUrl: 'https://services.test.sw.com.mx/cfdi33/cancel',
+      productionCancelUrl: 'https://services.sw.com.mx/cfdi33/cancel',
+      integrationType: 'REST',
+      documentationUrl: 'https://developers.sw.com.mx/',
+      websiteUrl: 'https://sw.com.mx',
+      isOfficial: true,
+      isImplemented: true,
+      isFeatured: true,
+      sortOrder: 3,
+    },
+    // Lista completa de PACs autorizados SAT (ordenados alfabéticamente)
+    { code: 'DIGIBOX', name: 'Digibox', legalName: 'Digibox, S.A. de C.V.', sortOrder: 10 },
+    { code: 'AKVAL', name: 'AKVAL', legalName: 'AKVAL Servicios de Facturación Electrónica, S.A. de C.V.', sortOrder: 11 },
+    { code: 'FACTURAGEPP', name: 'Facturagepp', legalName: 'Servicios Administrativos Suma, S. de R.L. de C.V.', sortOrder: 12 },
+    { code: 'EDICOM', name: 'Edicom', legalName: 'Edicomunicaciones México, S.A. de C.V.', sortOrder: 13 },
+    { code: 'DIVERZA', name: 'Diverza', legalName: 'Soluciones de Negocio FNX, S.A. de C.V.', sortOrder: 14 },
+    { code: 'TRALIX', name: 'Tralix', legalName: 'Tralix México, S. de R.L. de C.V.', sortOrder: 15 },
+    { code: 'ATEB', name: 'ATEB', legalName: 'ATEB Servicios, S.A. de C.V.', sortOrder: 16 },
+    { code: 'SOLUPAC', name: 'SOLUPAC', legalName: 'Teléfonos de México, S.A.B. de C.V.', sortOrder: 17 },
+    { code: 'CONTPAQI', name: 'CONTPAQi', legalName: 'Másfacturación, S. de R.L. de C.V.', sortOrder: 18 },
+    { code: 'SOLUCION_FACTIBLE', name: 'Solución Factible', legalName: 'SFERP, S.C.', sortOrder: 19 },
+    { code: 'KONESH', name: 'Konesh Soluciones', legalName: 'Aurorian, S.A. de C.V.', sortOrder: 20 },
+    { code: 'INTERFACTURA', name: 'INTERFACTURA', legalName: 'Interfactura, S.A.P.I. de C.V.', sortOrder: 21 },
+    { code: 'MASFACTURA', name: 'Masfactura', legalName: 'Masteredí, S.A. de C.V.', sortOrder: 22 },
+    { code: 'COMERCIO_DIGITAL', name: 'Comercio Digital', legalName: 'Sistemas de Comercio Digital, S. de R.L. de C.V.', sortOrder: 23 },
+    { code: 'EMITE', name: 'Emite - Soluciones Fiscales Digitales', legalName: 'Emite Facturación, S.A. de C.V.', sortOrder: 24 },
+    { code: 'INVOICEONE', name: 'InvoiceOne', legalName: 'Sistemas de Emisión Digital, S.A. de C.V.', sortOrder: 25 },
+    { code: 'DIGITAL_FACTURA', name: 'Digital Factura', legalName: 'Impresos de Caber, S.A. de C.V.', sortOrder: 26 },
+    { code: 'SIFEI', name: 'Sifei', legalName: 'Solución Integral de Facturación Electrónica e Informática SIFEI, S.A. de C.V.', sortOrder: 27 },
+    { code: 'NT_LINK', name: 'NT Link Comunicaciones', legalName: 'NT Link Comunicaciones, S.A. de C.V.', sortOrder: 28 },
+    { code: 'FACTURA_FACILMENTE', name: 'Factura Fácilmente.com', legalName: 'Factura Fácilmente de México, S.A. de C.V.', sortOrder: 29 },
+    { code: 'CERTUS_FACTURE_HOY', name: 'CertusFactureHoy.com', legalName: 'Certus Aplicaciones Digitales, S.A. de C.V.', sortOrder: 30 },
+    { code: 'FACTUREYA', name: 'FactureYa', legalName: 'Servicios Tecnológicos Avanzados en Facturación, S.A. de C.V.', sortOrder: 31 },
+    { code: 'MISC_FOLIOS', name: 'MISC- FOLIOS (EDX-PAC)', legalName: 'Servicios Tecnológicos, S.A.P.I. de C.V.', sortOrder: 32 },
+    { code: 'B1SOFT', name: 'B1SOFT Latinoamérica', legalName: 'Servicios Tecnológicos B1 Soft, S.A. de C.V.', sortOrder: 33 },
+    { code: 'ESTELA', name: 'ESTELA', legalName: 'Servicio y Soporte en Tecnología Informática, S.A. de C.V.', sortOrder: 34 },
+    { code: 'SOVOS', name: 'Sovos', legalName: 'Advantage Security, S. de R.L. de C.V.', sortOrder: 35 },
+    { code: 'FACTURIZATE', name: 'Facturizate - EDC Invoice', legalName: 'Carvajal Tecnología y Servicios, S.A. de C.V.', sortOrder: 36 },
+    { code: 'MYSUITE', name: 'MYSuite', legalName: 'Mysuite Services, S.A. de C.V.', sortOrder: 37 },
+    { code: 'FORMAS_DIGITALES', name: 'Formas Digitales', legalName: 'Formas Continuas de Guadalajara, S.A. de C.V.', sortOrder: 38 },
+    { code: 'QUADRUM', name: 'Quadrum', legalName: 'Centro de Validación Digital CVDSA, S.A. de C.V.', sortOrder: 39 },
+    { code: 'STOFACTURA', name: 'STOFactura', legalName: 'Servicios, Tecnología y Organización, S.A. de C.V.', sortOrder: 40 },
+    { code: 'EDIFACTMX', name: 'EdiFactMx', legalName: 'EDIFACTMX, S.A. de C.V.', sortOrder: 41 },
+    { code: 'ECODEX', name: 'E CODEX', legalName: 'Desarrollo Corporativo de Negocios en Tecnología de la Información, S.A. de C.V.', sortOrder: 42 },
+    { code: 'FACTURADOR_ELECTRONICO', name: 'Facturadorelectronico.com', legalName: 'Dot Net Desarrollo de Sistemas, S.A. de C.V.', sortOrder: 43 },
+    { code: 'TSYS', name: 'TSYS', legalName: 'Total System Services de México, S.A. de C.V.', sortOrder: 44 },
+    { code: 'CECOBAN', name: 'CECOBAN', legalName: 'Cecoban, S.A. de C.V.', sortOrder: 45 },
+    { code: 'SIIGO_ASPEL', name: 'Siigo Aspel', legalName: 'Total Solutions Provider, S.A. de C.V.', sortOrder: 46 },
+    { code: 'CERTIFAC', name: 'Certifac', legalName: 'CER - Consultoría y Respuesta Estratégica, S.A. de C.V.', sortOrder: 47 },
+    { code: 'LUNA_SOFT', name: 'Luna Soft', legalName: 'Luna Soft, S.A. de C.V.', sortOrder: 48 },
+    { code: 'FABRICA_JABON', name: 'Fábrica de Jabón la Corona', legalName: 'Fábrica de Jabón La Corona, S.A. de C.V.', sortOrder: 49 },
+    { code: 'PRODIGIA', name: 'PRODIGIA', legalName: 'Prodigia Procesos Digitales Administrativos, S.A. de C.V.', sortOrder: 50 },
+    { code: 'PRODITMA', name: 'PRODITMA', legalName: 'PRODITMA, S.A. de C.V.', sortOrder: 51 },
+    { code: '4G_FACTOR', name: '4G FACTOR SA DE CV', legalName: '4G Factor, S.A. de C.V.', sortOrder: 52 },
+    { code: 'FACTRONICA', name: 'Factrónica', legalName: 'Factrónica, S. de R.L. de C.V.', sortOrder: 53 },
+    { code: 'DETECNO', name: 'DETECNO', legalName: 'DETECNO, S.A. de C.V.', sortOrder: 54 },
+    { code: 'EXPIDETUFACTURA', name: 'ExpidetuFactura', legalName: 'CPA Control de Comprobantes Digitales, S. de R.L. de C.V.', sortOrder: 55 },
+    { code: 'DIGIFACT', name: 'DigiFact (Teledesic)', legalName: 'Teledesic Broadband Networks, S.A. de C.V.', sortOrder: 56 },
+    { code: 'E_FACTURA', name: 'e-factura.net', legalName: 'Sociedad de Explotación de Redes Electrónicas y Servs. de México, S.A. de C.V.', sortOrder: 57 },
+    { code: 'TIMBOX', name: 'Timbox', legalName: 'IT &SW Development Solutions de México, S. de R.L. de C.V.', sortOrder: 58 },
+    { code: 'TURBOPAC', name: 'TurboPac', legalName: 'Qrea-t Solutions, S.A. de C.V.', sortOrder: 59 },
+    { code: 'CERTIFICACION_CFDI', name: 'Certificación CFDI', legalName: 'Certificación CFDI, S.A.P.I. de C.V.', sortOrder: 60 },
+  ];
+
+  for (const pac of pacProviders) {
+    await prisma.pacProvider.upsert({
+      where: { code: pac.code },
+      update: {
+        name: pac.name,
+        legalName: pac.legalName,
+        sandboxStampUrl: pac.sandboxStampUrl,
+        productionStampUrl: pac.productionStampUrl,
+        sandboxCancelUrl: pac.sandboxCancelUrl,
+        productionCancelUrl: pac.productionCancelUrl,
+        integrationType: pac.integrationType || 'SOAP',
+        documentationUrl: pac.documentationUrl,
+        websiteUrl: pac.websiteUrl,
+        isOfficial: pac.isOfficial ?? true,
+        isImplemented: pac.isImplemented ?? false,
+        isFeatured: pac.isFeatured ?? false,
+        sortOrder: pac.sortOrder,
+        notes: pac.notes,
+      },
+      create: {
+        code: pac.code,
+        name: pac.name,
+        legalName: pac.legalName,
+        sandboxStampUrl: pac.sandboxStampUrl,
+        productionStampUrl: pac.productionStampUrl,
+        sandboxCancelUrl: pac.sandboxCancelUrl,
+        productionCancelUrl: pac.productionCancelUrl,
+        integrationType: pac.integrationType || 'SOAP',
+        documentationUrl: pac.documentationUrl,
+        websiteUrl: pac.websiteUrl,
+        isOfficial: pac.isOfficial ?? true,
+        isImplemented: pac.isImplemented ?? false,
+        isFeatured: pac.isFeatured ?? false,
+        sortOrder: pac.sortOrder,
+        notes: pac.notes,
+      },
+    });
+  }
+
+  console.log(`✅ Catálogo de PACs creado (${pacProviders.length} proveedores)`);
+
+  // ============================================
   // RESUMEN FINAL
   // ============================================
 
