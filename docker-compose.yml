@@ -57,9 +57,21 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      REDIS_DB: 0
+      REDIS_DB: ${REDIS_DB:-0}
       # Cifrado - IMPORTANTE: Configurar en producción
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-generate-secure-key-min-32-chars}
+      # Storage de evidencias fiscales
+      FISCAL_STORAGE_PATH: /app/storage/fiscal
+      # Frontend URL para CORS
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      # PAC (Proveedor de Timbrado)
+      PAC_URL: ${PAC_URL:-}
+      PAC_USER: ${PAC_USER:-}
+      PAC_PASSWORD: ${PAC_PASSWORD:-}
+      # Modo de cola (sync/async)
+      QUEUE_MODE: ${QUEUE_MODE:-async}
+    volumes:
+      - fiscal_storage:/app/storage
     ports:
       - "3000:3000"
     depends_on:
@@ -75,6 +87,39 @@ services:
       start_period: 40s
     networks:
       - nomina-network
+
+  # Worker para procesamiento asíncrono (Enterprise)
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nomina-worker
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-nomina}:${DB_PASSWORD:-nomina123}@db:5432/${DB_NAME:-nomina_db}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-generate-secure-key-min-32-chars}
+      FISCAL_STORAGE_PATH: /app/storage/fiscal
+      PAC_URL: ${PAC_URL:-}
+      PAC_USER: ${PAC_USER:-}
+      PAC_PASSWORD: ${PAC_PASSWORD:-}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-3}
+    volumes:
+      - fiscal_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nomina-network
+    profiles:
+      - enterprise
 
   # Frontend (React + Nginx)
   frontend:
@@ -108,6 +153,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  fiscal_storage:
     driver: local
 
 networks:
