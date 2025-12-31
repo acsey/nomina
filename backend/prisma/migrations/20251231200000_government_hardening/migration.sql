@@ -284,7 +284,7 @@ BEGIN
         )
     INTO stored_hash, snapshot_data
     FROM receipt_ruleset_snapshot rrs
-    WHERE rrs.id = snapshot_id;
+    WHERE rrs.id = snapshot_id::TEXT;
 
     IF stored_hash IS NULL THEN
         RETURN QUERY SELECT FALSE, 'Snapshot no tiene hash almacenado';
