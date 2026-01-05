@@ -74,17 +74,15 @@ export class VacationsController {
   }
 
   /**
-   * Approve request
-   * - Managers can approve for subordinates
-   * - RH can approve all in their company
-   * - Company Admin can approve all in their company
-   * - Super Admin can approve all
+   * PASO 1: Aprobación del supervisor
+   * Solo managers pueden usar este endpoint para aprobar solicitudes de sus subordinados
    */
-  @Post(':id/approve')
+  @Post(':id/supervisor-approve')
   @Roles('admin', 'company_admin', 'rh', 'manager')
-  @ApiOperation({ summary: 'Aprobar solicitud' })
-  async approveRequest(
+  @ApiOperation({ summary: 'Aprobación del supervisor (Paso 1)' })
+  async supervisorApproveRequest(
     @Param('id') id: string,
+    @Body('comments') comments: string,
     @CurrentUser() user: any,
   ) {
     const request = await this.vacationsService.getRequestById(id);
@@ -100,12 +98,97 @@ export class VacationsController {
       }
     }
 
-    // For managers, check if they can approve (hierarchy-based)
-    const skipHierarchyCheck = ['admin', 'company_admin', 'rh'].includes(user.role);
+    // Get the approver's employee ID
+    const userEmployee = await this.vacationsService.getEmployeeByEmail(user.email);
+    const approverId = userEmployee?.id || user.sub;
 
-    return this.vacationsService.approveRequest(id, user.sub, skipHierarchyCheck);
+    return this.vacationsService.supervisorApproveRequest(id, approverId, comments);
   }
 
+  /**
+   * PASO 2: Validación de RH (Aprobación final)
+   * Solo RH, Company Admin o Super Admin pueden usar este endpoint
+   */
+  @Post(':id/rh-approve')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Validación de RH (Paso 2 - Aprobación final)' })
+  async rhApproveRequest(
+    @Param('id') id: string,
+    @Body('comments') comments: string,
+    @CurrentUser() user: any,
+  ) {
+    const request = await this.vacationsService.getRequestById(id);
+
+    // Company isolation
+    if (user.companyId && user.role !== 'admin') {
+      const belongsToCompany = await this.vacationsService.employeeBelongsToCompany(
+        request.employeeId,
+        user.companyId,
+      );
+      if (!belongsToCompany) {
+        throw new ForbiddenException('La solicitud no pertenece a tu empresa');
+      }
+    }
+
+    return this.vacationsService.rhApproveRequest(id, user.sub, comments);
+  }
+
+  /**
+   * Aprobar solicitud (compatibilidad hacia atrás)
+   * - Managers: aprueba como supervisor (paso 1)
+   * - RH/Admin: puede aprobar ambos pasos si la solicitud está pendiente
+   */
+  @Post(':id/approve')
+  @Roles('admin', 'company_admin', 'rh', 'manager')
+  @ApiOperation({ summary: 'Aprobar solicitud (auto-detecta paso según estado)' })
+  async approveRequest(
+    @Param('id') id: string,
+    @Body('comments') comments: string,
+    @CurrentUser() user: any,
+  ) {
+    const request = await this.vacationsService.getRequestById(id);
+
+    // Company isolation
+    if (user.companyId && user.role !== 'admin') {
+      const belongsToCompany = await this.vacationsService.employeeBelongsToCompany(
+        request.employeeId,
+        user.companyId,
+      );
+      if (!belongsToCompany) {
+        throw new ForbiddenException('La solicitud no pertenece a tu empresa');
+      }
+    }
+
+    // Determinar qué acción tomar según el estado y rol
+    const isRHOrAdmin = ['admin', 'company_admin', 'rh'].includes(user.role);
+
+    if (request.status === 'PENDING') {
+      if (isRHOrAdmin) {
+        // RH/Admin puede aprobar directamente ambos pasos
+        await this.vacationsService.supervisorApproveRequest(id, user.sub, comments);
+        return this.vacationsService.rhApproveRequest(id, user.sub, comments);
+      } else {
+        // Manager solo aprueba paso 1
+        const userEmployee = await this.vacationsService.getEmployeeByEmail(user.email);
+        return this.vacationsService.supervisorApproveRequest(id, userEmployee?.id || user.sub, comments);
+      }
+    }
+
+    if (request.status === 'SUPERVISOR_APPROVED') {
+      if (!isRHOrAdmin) {
+        throw new ForbiddenException('Solo RH o Admin pueden dar la aprobación final');
+      }
+      return this.vacationsService.rhApproveRequest(id, user.sub, comments);
+    }
+
+    throw new ForbiddenException('La solicitud no está en un estado que permita aprobación');
+  }
+
+  /**
+   * Rechazar solicitud
+   * - Managers pueden rechazar solicitudes PENDING de sus subordinados
+   * - RH/Admin pueden rechazar en cualquier estado (PENDING o SUPERVISOR_APPROVED)
+   */
   @Post(':id/reject')
   @Roles('admin', 'company_admin', 'rh', 'manager')
   @ApiOperation({ summary: 'Rechazar solicitud' })
@@ -127,7 +210,22 @@ export class VacationsController {
       }
     }
 
-    return this.vacationsService.rejectRequest(id, reason);
+    // Determinar stage según estado y rol
+    const isRHOrAdmin = ['admin', 'company_admin', 'rh'].includes(user.role);
+    let stage: 'SUPERVISOR' | 'RH';
+
+    if (request.status === 'PENDING') {
+      stage = 'SUPERVISOR';
+    } else if (request.status === 'SUPERVISOR_APPROVED') {
+      if (!isRHOrAdmin) {
+        throw new ForbiddenException('Solo RH o Admin pueden rechazar solicitudes ya aprobadas por supervisor');
+      }
+      stage = 'RH';
+    } else {
+      throw new ForbiddenException('La solicitud no está en un estado que permita rechazo');
+    }
+
+    return this.vacationsService.rejectRequest(id, reason, user.sub, stage);
   }
 
   @Get('balance/:employeeId')
@@ -188,9 +286,13 @@ export class VacationsController {
     );
   }
 
+  /**
+   * Obtener solicitudes pendientes de aprobación del supervisor
+   * Para managers: solo subordinados directos
+   */
   @Get('pending')
   @Roles('admin', 'company_admin', 'rh', 'manager')
-  @ApiOperation({ summary: 'Obtener solicitudes pendientes' })
+  @ApiOperation({ summary: 'Obtener solicitudes pendientes de supervisor' })
   async getPendingRequests(
     @Query('companyId') companyId: string,
     @CurrentUser() user: any,
@@ -210,6 +312,44 @@ export class VacationsController {
       : user.companyId;
 
     return this.vacationsService.getPendingRequests(effectiveCompanyId);
+  }
+
+  /**
+   * Obtener solicitudes aprobadas por supervisor, pendientes de validación de RH
+   * Solo para RH, Company Admin y Super Admin
+   */
+  @Get('pending-rh-validation')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener solicitudes pendientes de validación de RH' })
+  async getPendingRHValidation(
+    @Query('companyId') companyId: string,
+    @CurrentUser() user: any,
+  ) {
+    // For company-bound users, use their companyId
+    const effectiveCompanyId = user.role === 'admin' && !user.companyId
+      ? companyId
+      : user.companyId;
+
+    return this.vacationsService.getPendingRHValidation(effectiveCompanyId);
+  }
+
+  /**
+   * Obtener todas las solicitudes pendientes (PENDING + SUPERVISOR_APPROVED)
+   * Solo para RH, Company Admin y Super Admin
+   */
+  @Get('pending-all')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener todas las solicitudes pendientes' })
+  async getAllPendingRequests(
+    @Query('companyId') companyId: string,
+    @CurrentUser() user: any,
+  ) {
+    // For company-bound users, use their companyId
+    const effectiveCompanyId = user.role === 'admin' && !user.companyId
+      ? companyId
+      : user.companyId;
+
+    return this.vacationsService.getAllPendingRequests(effectiveCompanyId);
   }
 
   @Get('leave-types')

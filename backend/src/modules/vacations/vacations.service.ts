@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { LeaveType } from '@prisma/client';
 import * as dayjs from 'dayjs';
 
@@ -31,7 +32,10 @@ export class VacationsService {
     { years: 30, days: 32 },
   ];
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // ===== Helper methods for RBAC =====
 
@@ -250,7 +254,7 @@ export class VacationsService {
       });
     }
 
-    return this.prisma.vacationRequest.create({
+    const request = await this.prisma.vacationRequest.create({
       data: {
         employeeId,
         type: type as LeaveType,
@@ -263,16 +267,53 @@ export class VacationsService {
       include: {
         employee: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
+            email: true,
+            companyId: true,
+            supervisorId: true,
             department: true,
           },
         },
       },
     });
+
+    // Enviar notificaciones al supervisor y RH
+    try {
+      const supervisorUserId = await this.notificationsService.getSupervisorUserId(employeeId);
+      const rhUserIds = await this.notificationsService.getRHUserIds(request.employee.companyId);
+
+      if (supervisorUserId || rhUserIds.length > 0) {
+        await this.notificationsService.notifyVacationRequest({
+          employeeName: `${request.employee.firstName} ${request.employee.lastName}`,
+          employeeId: request.employee.id,
+          requestId: request.id,
+          startDate: dayjs(startDate).format('YYYY-MM-DD'),
+          endDate: dayjs(endDate).format('YYYY-MM-DD'),
+          totalDays,
+          supervisorUserId: supervisorUserId || '',
+          rhUserIds,
+          companyId: request.employee.companyId,
+        });
+      }
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Error sending vacation request notifications:', error);
+    }
+
+    return request;
   }
 
-  async approveRequest(requestId: string, approvedById: string, skipHierarchyCheck = false) {
+  /**
+   * PASO 1: Aprobación del Supervisor
+   * Solo puede aprobar el supervisor directo o alguien en la cadena de supervisión
+   */
+  async supervisorApproveRequest(
+    requestId: string,
+    supervisorId: string,
+    comments?: string,
+  ) {
     const request = await this.prisma.vacationRequest.findUnique({
       where: { id: requestId },
       include: { employee: true },
@@ -283,14 +324,121 @@ export class VacationsService {
     }
 
     if (request.status !== 'PENDING') {
-      throw new BadRequestException('Solo se pueden aprobar solicitudes pendientes');
+      throw new BadRequestException('Solo se pueden aprobar solicitudes en estado PENDING');
     }
 
-    // Check if approver has permission (unless admin/rh)
-    if (!skipHierarchyCheck) {
-      const canApprove = await this.canApproveRequest(approvedById, request.employeeId);
-      if (!canApprove.allowed) {
-        throw new ForbiddenException('No tiene permiso para aprobar esta solicitud');
+    // Verificar que el aprobador es el supervisor o está en la cadena
+    const canApprove = await this.canApproveRequest(supervisorId, request.employeeId);
+    if (!canApprove.allowed) {
+      throw new ForbiddenException('No tiene permiso para aprobar esta solicitud');
+    }
+
+    // Actualizar la cadena de aprobación
+    const approvalChain = (request.approvalChain as any[]) || [];
+    approvalChain.push({
+      level: 1,
+      employeeId: supervisorId,
+      role: 'SUPERVISOR',
+      status: 'APPROVED',
+      timestamp: new Date().toISOString(),
+      comments,
+    });
+
+    const updatedRequest = await this.prisma.vacationRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'SUPERVISOR_APPROVED',
+        supervisorApprovedById: supervisorId,
+        supervisorApprovedAt: new Date(),
+        supervisorComments: comments,
+        approvalChain,
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+            department: true,
+          },
+        },
+      },
+    });
+
+    // Enviar notificaciones al empleado y RH
+    try {
+      // Obtener nombre del supervisor
+      const supervisor = await this.prisma.employee.findUnique({
+        where: { id: supervisorId },
+        select: { firstName: true, lastName: true },
+      });
+      const supervisorName = supervisor
+        ? `${supervisor.firstName} ${supervisor.lastName}`
+        : 'Supervisor';
+
+      // Obtener userId del empleado
+      const employeeUser = await this.prisma.user.findFirst({
+        where: { email: updatedRequest.employee.email },
+        select: { id: true },
+      });
+
+      const rhUserIds = await this.notificationsService.getRHUserIds(updatedRequest.employee.companyId);
+
+      if (employeeUser || rhUserIds.length > 0) {
+        await this.notificationsService.notifySupervisorApproval({
+          employeeName: `${updatedRequest.employee.firstName} ${updatedRequest.employee.lastName}`,
+          employeeId: updatedRequest.employee.id,
+          employeeUserId: employeeUser?.id || '',
+          requestId: updatedRequest.id,
+          supervisorName,
+          rhUserIds,
+          companyId: updatedRequest.employee.companyId,
+        });
+      }
+    } catch (error) {
+      console.error('Error sending supervisor approval notifications:', error);
+    }
+
+    return updatedRequest;
+  }
+
+  /**
+   * PASO 2: Validación de RH (Aprobación Final)
+   * Solo RH, Company Admin o Super Admin pueden dar la aprobación final
+   */
+  async rhApproveRequest(
+    requestId: string,
+    rhUserId: string,
+    comments?: string,
+  ) {
+    const request = await this.prisma.vacationRequest.findUnique({
+      where: { id: requestId },
+      include: { employee: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    if (request.status !== 'SUPERVISOR_APPROVED') {
+      throw new BadRequestException('Solo se pueden validar solicitudes aprobadas por el supervisor');
+    }
+
+    // Buscar el empleado de RH/Admin para registrar
+    let rhEmployee = await this.prisma.employee.findUnique({
+      where: { id: rhUserId },
+    });
+
+    if (!rhEmployee) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: rhUserId },
+      });
+      if (user?.email) {
+        rhEmployee = await this.prisma.employee.findFirst({
+          where: { email: user.email },
+        });
       }
     }
 
@@ -310,14 +458,107 @@ export class VacationsService {
       });
     }
 
-    return this.prisma.vacationRequest.update({
+    // Actualizar la cadena de aprobación
+    const approvalChain = (request.approvalChain as any[]) || [];
+    approvalChain.push({
+      level: 2,
+      employeeId: rhEmployee?.id || rhUserId,
+      role: 'RH',
+      status: 'APPROVED',
+      timestamp: new Date().toISOString(),
+      comments,
+    });
+
+    const updatedRequest = await this.prisma.vacationRequest.update({
       where: { id: requestId },
       data: {
         status: 'APPROVED',
-        approvedById,
+        approvedById: rhEmployee?.id || null,
         approvedAt: new Date(),
+        rhComments: comments,
+        approvalChain,
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+            supervisorId: true,
+            department: true,
+          },
+        },
       },
     });
+
+    // Enviar notificaciones al empleado y supervisor
+    try {
+      // Obtener userId del empleado
+      const employeeUser = await this.prisma.user.findFirst({
+        where: { email: updatedRequest.employee.email },
+        select: { id: true },
+      });
+
+      // Obtener userId del supervisor
+      const supervisorUserId = updatedRequest.employee.supervisorId
+        ? await this.notificationsService.getSupervisorUserId(updatedRequest.employee.id)
+        : null;
+
+      if (employeeUser || supervisorUserId) {
+        await this.notificationsService.notifyVacationApproved({
+          employeeName: `${updatedRequest.employee.firstName} ${updatedRequest.employee.lastName}`,
+          employeeUserId: employeeUser?.id || '',
+          requestId: updatedRequest.id,
+          startDate: dayjs(request.startDate).format('YYYY-MM-DD'),
+          endDate: dayjs(request.endDate).format('YYYY-MM-DD'),
+          totalDays: request.totalDays,
+          supervisorUserId: supervisorUserId || '',
+          companyId: updatedRequest.employee.companyId,
+        });
+      }
+    } catch (error) {
+      console.error('Error sending RH approval notifications:', error);
+    }
+
+    return updatedRequest;
+  }
+
+  /**
+   * @deprecated Usar supervisorApproveRequest o rhApproveRequest según el rol
+   * Mantenido para compatibilidad hacia atrás
+   */
+  async approveRequest(requestId: string, approvedById: string, skipHierarchyCheck = false) {
+    const request = await this.prisma.vacationRequest.findUnique({
+      where: { id: requestId },
+      include: { employee: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    // Si está PENDING, es aprobación de supervisor
+    if (request.status === 'PENDING') {
+      if (!skipHierarchyCheck) {
+        return this.supervisorApproveRequest(requestId, approvedById);
+      }
+      // Si skipHierarchyCheck es true (admin/rh/company_admin), puede aprobar directamente
+      // Pero primero pasa por supervisor
+      await this.supervisorApproveRequest(requestId, approvedById);
+      return this.rhApproveRequest(requestId, approvedById);
+    }
+
+    // Si está SUPERVISOR_APPROVED, es validación de RH
+    if (request.status === 'SUPERVISOR_APPROVED') {
+      if (!skipHierarchyCheck) {
+        throw new ForbiddenException('Solo RH o Admin pueden dar la aprobación final');
+      }
+      return this.rhApproveRequest(requestId, approvedById);
+    }
+
+    throw new BadRequestException('Solo se pueden aprobar solicitudes pendientes o aprobadas por supervisor');
   }
 
   // Check if an employee can approve a request for another employee
@@ -478,7 +719,15 @@ export class VacationsService {
     return approvers;
   }
 
-  async rejectRequest(requestId: string, reason: string) {
+  /**
+   * Rechazar solicitud (puede ser por Supervisor o RH)
+   */
+  async rejectRequest(
+    requestId: string,
+    reason: string,
+    rejectedById?: string,
+    stage?: 'SUPERVISOR' | 'RH',
+  ) {
     const request = await this.prisma.vacationRequest.findUnique({
       where: { id: requestId },
     });
@@ -487,8 +736,14 @@ export class VacationsService {
       throw new NotFoundException('Solicitud no encontrada');
     }
 
-    if (request.status !== 'PENDING') {
-      throw new BadRequestException('Solo se pueden rechazar solicitudes pendientes');
+    // Determinar la etapa del rechazo
+    let rejectedStage = stage;
+    if (!rejectedStage) {
+      rejectedStage = request.status === 'PENDING' ? 'SUPERVISOR' : 'RH';
+    }
+
+    if (request.status !== 'PENDING' && request.status !== 'SUPERVISOR_APPROVED') {
+      throw new BadRequestException('Solo se pueden rechazar solicitudes pendientes o aprobadas por supervisor');
     }
 
     // Restaurar días pendientes si es vacaciones
@@ -506,13 +761,97 @@ export class VacationsService {
       });
     }
 
-    return this.prisma.vacationRequest.update({
+    // Buscar el empleado que rechaza
+    let rejecterEmployee = null;
+    if (rejectedById) {
+      rejecterEmployee = await this.prisma.employee.findUnique({
+        where: { id: rejectedById },
+      });
+
+      if (!rejecterEmployee) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: rejectedById },
+        });
+        if (user?.email) {
+          rejecterEmployee = await this.prisma.employee.findFirst({
+            where: { email: user.email },
+          });
+        }
+      }
+    }
+
+    // Actualizar la cadena de aprobación
+    const approvalChain = (request.approvalChain as any[]) || [];
+    approvalChain.push({
+      level: rejectedStage === 'SUPERVISOR' ? 1 : 2,
+      employeeId: rejecterEmployee?.id || rejectedById,
+      role: rejectedStage,
+      status: 'REJECTED',
+      timestamp: new Date().toISOString(),
+      reason,
+    });
+
+    const updatedRequest = await this.prisma.vacationRequest.update({
       where: { id: requestId },
       data: {
         status: 'REJECTED',
+        rejectedById: rejecterEmployee?.id || null,
+        rejectedAt: new Date(),
         rejectedReason: reason,
+        rejectedStage,
+        approvalChain,
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+            supervisorId: true,
+            department: true,
+          },
+        },
       },
     });
+
+    // Enviar notificaciones al empleado (y supervisor si fue rechazado por RH)
+    try {
+      // Obtener nombre de quien rechaza
+      const rejecterName = rejecterEmployee
+        ? `${rejecterEmployee.firstName} ${rejecterEmployee.lastName}`
+        : rejectedStage;
+
+      // Obtener userId del empleado
+      const employeeUser = await this.prisma.user.findFirst({
+        where: { email: updatedRequest.employee.email },
+        select: { id: true },
+      });
+
+      // Obtener userId del supervisor si el rechazo fue por RH
+      let supervisorUserId: string | undefined;
+      if (rejectedStage === 'RH' && updatedRequest.employee.supervisorId) {
+        supervisorUserId = await this.notificationsService.getSupervisorUserId(updatedRequest.employee.id) || undefined;
+      }
+
+      if (employeeUser) {
+        await this.notificationsService.notifyVacationRejected({
+          employeeName: `${updatedRequest.employee.firstName} ${updatedRequest.employee.lastName}`,
+          employeeUserId: employeeUser.id,
+          requestId: updatedRequest.id,
+          reason,
+          rejectedBy: rejecterName,
+          rejectedStage,
+          supervisorUserId,
+          companyId: updatedRequest.employee.companyId,
+        });
+      }
+    } catch (error) {
+      console.error('Error sending rejection notifications:', error);
+    }
+
+    return updatedRequest;
   }
 
   async getBalance(employeeId: string, year: number) {
@@ -568,6 +907,10 @@ export class VacationsService {
     });
   }
 
+  /**
+   * Obtener solicitudes pendientes de aprobación por supervisor
+   * Para managers/supervisores
+   */
   async getPendingRequests(companyId: string) {
     return this.prisma.vacationRequest.findMany({
       where: {
@@ -583,7 +926,85 @@ export class VacationsService {
             employeeNumber: true,
             firstName: true,
             lastName: true,
+            email: true,
             department: true,
+            supervisor: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Obtener solicitudes aprobadas por supervisor, pendientes de validación de RH
+   * Para RH, Company Admin y Super Admin
+   */
+  async getPendingRHValidation(companyId: string) {
+    return this.prisma.vacationRequest.findMany({
+      where: {
+        status: 'SUPERVISOR_APPROVED',
+        employee: {
+          companyId,
+        },
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            employeeNumber: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            department: true,
+          },
+        },
+        supervisorApprovedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: { supervisorApprovedAt: 'asc' },
+    });
+  }
+
+  /**
+   * Obtener todas las solicitudes pendientes (PENDING + SUPERVISOR_APPROVED)
+   * Para RH, Company Admin y Super Admin
+   */
+  async getAllPendingRequests(companyId: string) {
+    return this.prisma.vacationRequest.findMany({
+      where: {
+        status: { in: ['PENDING', 'SUPERVISOR_APPROVED'] },
+        employee: {
+          companyId,
+        },
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            employeeNumber: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            department: true,
+          },
+        },
+        supervisorApprovedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },

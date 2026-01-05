@@ -29,6 +29,7 @@ import { SystemConfigModule } from './modules/system-config/system-config.module
 import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { PacModule } from './modules/pac/pac.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { PacModule } from './modules/pac/pac.module';
     HierarchyModule,
     UploadsModule,
     PacModule,      // Módulo de configuración de PACs
+    NotificationsModule, // Sistema de notificaciones in-app
   ],
   controllers: [AppController],
   providers: [AppService],
