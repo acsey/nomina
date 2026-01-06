@@ -5,7 +5,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 const DEFAULT_CONFIGS = [
   {
     key: 'MULTI_COMPANY_ENABLED',
-    value: 'true',
+    value: 'false',
     description: 'Habilita el modo multiempresa. Cuando está deshabilitado, los usuarios solo ven su empresa asignada.',
     dataType: 'boolean',
     category: 'general',
