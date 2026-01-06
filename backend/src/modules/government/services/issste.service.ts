@@ -25,7 +25,7 @@ export class IssstService {
       },
     });
 
-    const report = employees.map((emp) => {
+    const report = employees.map((emp: any) => {
       const baseSalary = Number(emp.baseSalary);
 
       // Cuotas ISSSTE
@@ -55,11 +55,11 @@ export class IssstService {
       period: periodId,
       employees: report,
       totals: {
-        pension: report.reduce((sum, e) => sum + e.quotas.pension, 0),
-        salud: report.reduce((sum, e) => sum + e.quotas.salud, 0),
-        vivienda: report.reduce((sum, e) => sum + e.quotas.vivienda, 0),
-        serviciosSociales: report.reduce((sum, e) => sum + e.quotas.serviciosSociales, 0),
-        total: report.reduce((sum, e) => sum + e.quotas.total, 0),
+        pension: report.reduce((sum: number, e: any) => sum + e.quotas.pension, 0),
+        salud: report.reduce((sum: number, e: any) => sum + e.quotas.salud, 0),
+        vivienda: report.reduce((sum: number, e: any) => sum + e.quotas.vivienda, 0),
+        serviciosSociales: report.reduce((sum: number, e: any) => sum + e.quotas.serviciosSociales, 0),
+        total: report.reduce((sum: number, e: any) => sum + e.quotas.total, 0),
       },
     };
   }

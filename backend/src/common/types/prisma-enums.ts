@@ -260,6 +260,7 @@ export enum IncidentStatus {
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
   APPLIED = 'APPLIED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum DelegationType {
@@ -294,6 +295,9 @@ export enum LiquidationType {
   DEATH = 'DEATH',
   DISABILITY = 'DISABILITY',
   OTHER = 'OTHER',
+  // Aliases comunes en México
+  FINIQUITO = 'FINIQUITO',
+  LIQUIDACION = 'LIQUIDACION',
 }
 
 export enum LiquidationStatus {

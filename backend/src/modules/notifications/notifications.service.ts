@@ -578,7 +578,7 @@ export class NotificationsService {
       select: { id: true },
     });
 
-    return rhUsers.map((u) => u.id);
+    return rhUsers.map((u: any) => u.id);
   }
 
   /**
@@ -645,7 +645,7 @@ export class NotificationsService {
         select: { email: true },
       });
 
-      const emails = users.map((u) => u.email).filter(Boolean);
+      const emails = users.map((u: any) => u.email).filter(Boolean);
 
       if (emails.length === 0) {
         this.logger.warn('No valid emails found for notification');
@@ -691,7 +691,7 @@ export class NotificationsService {
         select: { email: true },
       });
 
-      const emails = users.map((u) => u.email).filter(Boolean);
+      const emails = users.map((u: any) => u.email).filter(Boolean);
 
       for (const email of emails) {
         await this.emailService.sendVacationRequestNotification(
@@ -729,7 +729,7 @@ export class NotificationsService {
         select: { email: true },
       });
 
-      const emails = users.map((u) => u.email).filter(Boolean);
+      const emails = users.map((u: any) => u.email).filter(Boolean);
 
       for (const email of emails) {
         await this.emailService.sendBirthdayNotification(
@@ -765,7 +765,7 @@ export class NotificationsService {
         select: { email: true },
       });
 
-      const emails = users.map((u) => u.email).filter(Boolean);
+      const emails = users.map((u: any) => u.email).filter(Boolean);
 
       for (const email of emails) {
         await this.emailService.sendAnniversaryNotification(

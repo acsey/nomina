@@ -159,7 +159,7 @@ export class HierarchyService {
 
       // Check for active delegation
       const activeDelegation = supervisor.delegationsGiven.find(
-        (d) => d.delegationType === 'VACATION' || d.delegationType === 'ALL'
+        (d: any) => d.delegationType === 'VACATION' || d.delegationType === 'ALL'
       );
 
       chain.push({
@@ -293,7 +293,7 @@ export class HierarchyService {
       orderBy: { lastName: 'asc' },
     });
 
-    return subordinates.map((emp) => ({
+    return subordinates.map((emp: any) => ({
       id: emp.id,
       employeeNumber: emp.employeeNumber,
       firstName: emp.firstName,
@@ -624,7 +624,7 @@ export class HierarchyService {
         where: { isActive: true },
         select: { id: true },
       });
-      return allEmployees.map(e => e.id);
+      return allEmployees.map((e: any) => e.id);
     }
 
     // Company-scoped roles
@@ -639,7 +639,7 @@ export class HierarchyService {
         },
         select: { id: true },
       });
-      return companyEmployees.map(e => e.id);
+      return companyEmployees.map((e: any) => e.id);
     }
 
     // Find employee linked to this user by email

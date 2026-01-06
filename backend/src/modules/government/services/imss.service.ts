@@ -28,7 +28,7 @@ export class ImssService {
       },
     });
 
-    const report = employees.map((emp) => {
+    const report = employees.map((emp: any) => {
       const sbc = Number(emp.salarioDiarioIntegrado) || this.calculateSBC(emp);
       const periodDays = this.getPeriodDays(period?.periodType || 'BIWEEKLY');
 
@@ -43,7 +43,7 @@ export class ImssService {
     });
 
     const totals = report.reduce(
-      (acc, emp) => ({
+      (acc: any, emp: any) => ({
         employerTotal: acc.employerTotal + emp.quotas.employer.total,
         employeeTotal: acc.employeeTotal + emp.quotas.employee.total,
         grandTotal: acc.grandTotal + emp.quotas.employer.total + emp.quotas.employee.total,
@@ -65,39 +65,39 @@ export class ImssService {
       period: report.period,
       summary: {
         cuotaFijaPatron: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.cuotaFija,
+          (sum: number, e: any) => sum + e.quotas.employer.cuotaFija,
           0,
         ),
         excedente: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.excedente,
+          (sum: number, e: any) => sum + e.quotas.employer.excedente,
           0,
         ),
         prestacionesDinero: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.prestacionesDinero,
+          (sum: number, e: any) => sum + e.quotas.employer.prestacionesDinero,
           0,
         ),
         gastosMedicosPensionados: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.gastosMedicosPensionados,
+          (sum: number, e: any) => sum + e.quotas.employer.gastosMedicosPensionados,
           0,
         ),
         riesgoTrabajo: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.riesgoTrabajo,
+          (sum: number, e: any) => sum + e.quotas.employer.riesgoTrabajo,
           0,
         ),
         invalidezVida: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.invalidezVida,
+          (sum: number, e: any) => sum + e.quotas.employer.invalidezVida,
           0,
         ),
         guarderias: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.guarderias,
+          (sum: number, e: any) => sum + e.quotas.employer.guarderias,
           0,
         ),
         cesantiaVejez: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.cesantiaVejez,
+          (sum: number, e: any) => sum + e.quotas.employer.cesantiaVejez,
           0,
         ),
         infonavit: report.employees.reduce(
-          (sum, e) => sum + e.quotas.employer.infonavit,
+          (sum: number, e: any) => sum + e.quotas.employer.infonavit,
           0,
         ),
         total: report.totals.employerTotal,
@@ -196,16 +196,16 @@ export class ImssService {
 
     return {
       period: { month, year },
-      altas: altas.map((e) => ({
+      altas: altas.map((e: any) => ({
         ...e,
         movementType: 'ALTA',
         sbc: Number(e.salarioDiarioIntegrado) || Number(e.baseSalary) / 30,
       })),
-      bajas: bajas.map((e) => ({
+      bajas: bajas.map((e: any) => ({
         ...e,
         movementType: 'BAJA',
       })),
-      modificaciones: modificaciones.map((m) => ({
+      modificaciones: modificaciones.map((m: any) => ({
         ...m.employee,
         movementType: 'MODIFICACION_SALARIO',
         oldSalary: m.oldSalary,

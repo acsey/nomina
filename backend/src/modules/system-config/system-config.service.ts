@@ -230,7 +230,7 @@ export class SystemConfigService implements OnModuleInit {
   }
 
   async updateMultiple(configs: { key: string; value: string }[]) {
-    const updates = configs.map((config) =>
+    const updates = configs.map((config: any) =>
       this.prisma.systemConfig.update({
         where: { key: config.key },
         data: { value: config.value },

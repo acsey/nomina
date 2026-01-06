@@ -150,8 +150,8 @@ export class XmlBuilderService {
       return '';
     }
 
-    const totalGravado = perceptions.reduce((sum, p) => sum + Number(p.taxableAmount), 0);
-    const totalExento = perceptions.reduce((sum, p) => sum + Number(p.exemptAmount), 0);
+    const totalGravado = perceptions.reduce((sum: number, p: any) => sum + Number(p.taxableAmount), 0);
+    const totalExento = perceptions.reduce((sum: number, p: any) => sum + Number(p.exemptAmount), 0);
 
     const items = perceptions.map((p) => `
                 <nomina12:Percepcion
@@ -175,7 +175,7 @@ export class XmlBuilderService {
       return '';
     }
 
-    const total = deductions.reduce((sum, d) => sum + Number(d.amount), 0);
+    const total = deductions.reduce((sum: number, d: any) => sum + Number(d.amount), 0);
 
     const items = deductions.map((d) => `
                 <nomina12:Deduccion

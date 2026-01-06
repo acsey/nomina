@@ -291,7 +291,7 @@ export class PayrollCalculationProcessor extends WorkerHost {
     });
 
     // Crear percepciones
-    const salaryConcept = concepts.find(c => c.code === 'P001');
+    const salaryConcept = concepts.find((c: any) => c.code === 'P001');
     if (salaryConcept) {
       await this.prisma.payrollPerception.upsert({
         where: {

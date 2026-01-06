@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { PayrollCalculatorService } from './services/payroll-calculator.service';
 import { CfdiService } from '../cfdi/cfdi.service';
-import { Prisma, PayrollStatus, PeriodType, ExtraordinaryType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { PayrollStatus, PeriodType, ExtraordinaryType } from '@/common/types/prisma-enums';
 
 @Injectable()
 export class PayrollService {

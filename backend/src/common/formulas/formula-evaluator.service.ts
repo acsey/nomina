@@ -582,13 +582,13 @@ export class FormulaEvaluatorService {
 
     const divParts = this.splitByOperator(expr, '/');
     if (divParts.length > 1) {
-      const values = divParts.map(p => this.parseExpression(p));
+      const values = divParts.map((p: any) => this.parseExpression(p));
       return values.reduce((a, b) => a / b);
     }
 
     const modParts = this.splitByOperator(expr, '%');
     if (modParts.length > 1) {
-      const values = modParts.map(p => this.parseExpression(p));
+      const values = modParts.map((p: any) => this.parseExpression(p));
       return values.reduce((a, b) => a % b);
     }
 
@@ -672,7 +672,7 @@ export class FormulaEvaluatorService {
     }
 
     parts.push(current.trim());
-    return parts.filter(p => p.length > 0);
+    return parts.filter((p: any) => p.length > 0);
   }
 
   private splitByOperatorKeepSign(expr: string, operators: string[]): string[] {
