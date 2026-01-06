@@ -1,19 +1,21 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, HttpException, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '@/common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { MfaService } from './mfa.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly mfaService: MfaService,
   ) {}
 
   async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
+    const { email, password, mfaCode } = loginDto;
 
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -32,6 +34,31 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    // P0.1 - Verificar MFA si está habilitado
+    const mfaEnabled = await this.mfaService.isMfaEnabled(user.id);
+
+    if (mfaEnabled) {
+      if (!mfaCode) {
+        // MFA requerido pero no proporcionado - devolver respuesta especial
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.PRECONDITION_REQUIRED,
+            message: 'Se requiere código MFA',
+            error: 'MFA_REQUIRED',
+            mfaRequired: true,
+          },
+          HttpStatus.PRECONDITION_REQUIRED,
+        );
+      }
+
+      // Verificar código MFA
+      const mfaResult = await this.mfaService.verifyMfa(user.id, mfaCode);
+
+      if (!mfaResult.valid) {
+        throw new UnauthorizedException('Código MFA inválido');
+      }
     }
 
     const payload = {

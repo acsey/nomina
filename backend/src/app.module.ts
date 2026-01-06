@@ -1,6 +1,8 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -9,6 +11,8 @@ import { FiscalModule } from './common/fiscal/fiscal.module';
 import { FormulaModule } from './common/formulas/formula.module';
 import { UtilsModule } from './common/utils/utils.module';
 import { QueuesModule } from './common/queues/queues.module';
+import { HealthModule } from './common/health/health.module';
+import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
@@ -44,6 +48,35 @@ import { EmailModule } from './modules/email/email.module';
       maxListeners: 20,
       verboseMemoryLeak: true,
     }),
+    // ============================================
+    // P0.4 - Rate Limiting por IP/usuario
+    // ============================================
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            // Límite general: 100 requests por minuto por IP
+            name: 'short',
+            ttl: 60000, // 1 minuto en ms
+            limit: config.get<number>('RATE_LIMIT_SHORT', 100),
+          },
+          {
+            // Límite medio: 1000 requests por hora por IP
+            name: 'medium',
+            ttl: 3600000, // 1 hora en ms
+            limit: config.get<number>('RATE_LIMIT_MEDIUM', 1000),
+          },
+          {
+            // Límite largo: 10000 requests por día por IP
+            name: 'long',
+            ttl: 86400000, // 24 horas en ms
+            limit: config.get<number>('RATE_LIMIT_LONG', 10000),
+          },
+        ],
+      }),
+    }),
     PrismaModule,
     SecurityModule, // Módulo de seguridad global (cifrado, secretos, auditoría)
     FiscalModule,   // Módulo fiscal global (UMA, SMG, tasas de riesgo)
@@ -72,8 +105,21 @@ import { EmailModule } from './modules/email/email.module';
     PacModule,      // Módulo de configuración de PACs
     NotificationsModule, // Sistema de notificaciones in-app
     EmailModule,    // Servicio de correo electrónico con SMTP
+    HealthModule,   // Endpoints de health check para monitoreo
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // P0.4 - Aplicar rate limiting globalmente
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Aplicar middleware de correlationId a todas las rutas
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}

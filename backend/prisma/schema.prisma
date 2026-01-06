@@ -53,6 +53,11 @@ model User {
   benefitsCreated   Benefit[] @relation("BenefitCreator")
   benefitsApproved  Benefit[] @relation("BenefitApprover")
   notifications     Notification[]
+  // P0.2 - Segregación de Funciones: Dual Control
+  dualControlRequestsMade     DualControlRequest[] @relation("DualControlRequester")
+  dualControlRequestsApproved DualControlRequest[] @relation("DualControlApprover")
+  // P0.1 - MFA
+  mfaConfig                   MfaConfig?
 
   @@map("users")
 }
@@ -82,6 +87,11 @@ model AuditLog {
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
+  // P0.3 - Auditoría Tamper-Evident: Hash encadenado
+  entryHash        String?  @map("entry_hash")        // SHA-256 del contenido de esta entrada
+  previousEntryHash String? @map("previous_entry_hash") // Hash de la entrada anterior (cadena)
+  sequenceNumber   Int?     @map("sequence_number")   // Número de secuencia para verificación
+
   // MEJORA GOB: Campos de justificación y doble control
   justification       String?   @db.Text // Motivo obligatorio para acciones críticas
   requiresConfirmation Boolean  @default(false) @map("requires_confirmation")
@@ -91,7 +101,36 @@ model AuditLog {
   legalBasis          String?   @map("legal_basis") @db.Text
 
   @@index([isCriticalAction])
+  @@index([entryHash])
+  @@index([sequenceNumber])
   @@map("audit_logs")
+}
+
+// P0.2 - Segregación de Funciones: Dual Control (Maker-Checker)
+model DualControlRequest {
+  id               String   @id @default(uuid())
+  requesterId      String   @map("requester_id")
+  requester        User     @relation("DualControlRequester", fields: [requesterId], references: [id])
+  operation        String   // PAYROLL_APPROVE, CFDI_CANCEL, SALARY_CHANGE, etc.
+  entity           String   // PayrollPeriod, CfdiNomina, Employee, etc.
+  entityId         String   @map("entity_id")
+  details          Json     @default("{}")
+  justification    String   @db.Text
+  status           String   @default("PENDING") // PENDING, APPROVED, REJECTED, EXPIRED, CANCELLED
+  approverId       String?  @map("approver_id")
+  approver         User?    @relation("DualControlApprover", fields: [approverId], references: [id])
+  approverComments String?  @map("approver_comments") @db.Text
+  expiresAt        DateTime @map("expires_at")
+  approvedAt       DateTime? @map("approved_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([requesterId])
+  @@index([approverId])
+  @@index([status])
+  @@index([operation])
+  @@index([entity, entityId])
+  @@index([expiresAt])
+  @@map("dual_control_requests")
 }
 
 model Notification {
@@ -2152,5 +2191,25 @@ model IntegrityAlert {
   @@index([severity, isResolved])
   @@index([entityType, entityId])
   @@map("integrity_alerts")
+}
+
+// ============================================
+// MÓDULO: P0.1 - AUTENTICACIÓN MFA
+// ============================================
+
+// Configuración de MFA por usuario
+model MfaConfig {
+  id          String    @id @default(uuid())
+  userId      String    @unique @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret      String    // Secreto TOTP cifrado (Base32)
+  backupCodes String    @map("backup_codes") // Códigos de respaldo cifrados (JSON array)
+  status      String    @default("PENDING") // PENDING, ACTIVE, DISABLED
+  createdAt   DateTime  @default(now()) @map("created_at")
+  verifiedAt  DateTime? @map("verified_at")
+  disabledAt  DateTime? @map("disabled_at")
+
+  @@index([status])
+  @@map("mfa_config")
 }
 

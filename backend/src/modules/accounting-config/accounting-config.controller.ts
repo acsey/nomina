@@ -28,7 +28,7 @@ import {
   CreateImssRateDto,
   UpdateImssRateDto,
 } from './dto/accounting-config.dto';
-import { PeriodType } from '@prisma/client';
+import { PeriodType } from '@/common/types/period-type';
 
 @Controller('accounting-config')
 @UseGuards(JwtAuthGuard, RolesGuard)

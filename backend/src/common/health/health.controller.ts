@@ -12,6 +12,7 @@
 
 import { Controller, Get, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
@@ -42,6 +43,7 @@ export interface SystemHealth {
 
 @ApiTags('Health')
 @Controller('health')
+@SkipThrottle() // Health checks no deben tener rate limiting para monitoreo
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);
   private readonly startTime = Date.now();
