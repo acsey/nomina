@@ -258,7 +258,7 @@ export class LiquidationCalculatorService {
     const liquidation = await this.prisma.liquidationCalculation.create({
       data: {
         employeeId: input.employeeId,
-        type: input.type,
+        type: input.type as any,
         terminationDate,
         terminationReason: input.terminationReason,
         dailySalary: breakdown.dailySalary,
