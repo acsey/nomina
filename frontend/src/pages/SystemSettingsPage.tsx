@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { systemConfigApi } from '../services/api';
+import { systemConfigApi, emailApi } from '../services/api';
 import toast from 'react-hot-toast';
 import {
   Cog6ToothIcon,
@@ -17,6 +17,8 @@ import {
   CloudIcon,
   EyeIcon,
   EyeSlashIcon,
+  EnvelopeIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 
 interface SystemConfig {
@@ -38,6 +40,8 @@ export default function SystemSettingsPage() {
   const queryClient = useQueryClient();
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+  const [testingSmtp, setTestingSmtp] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
 
   const isAdmin = user?.role === 'admin';
 
@@ -79,6 +83,45 @@ export default function SystemSettingsPage() {
       toast.error('Error al guardar configuracion');
     },
   });
+
+  const handleTestSmtpConnection = async () => {
+    setTestingSmtp(true);
+    try {
+      const response = await emailApi.testConnection();
+      if (response.data.success) {
+        toast.success('Conexion SMTP exitosa');
+      } else {
+        toast.error(`Error de conexion: ${response.data.error}`);
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Error al probar conexion SMTP';
+      toast.error(errorMsg);
+    } finally {
+      setTestingSmtp(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmail) {
+      toast.error('Ingresa un correo de prueba');
+      return;
+    }
+    setTestingSmtp(true);
+    try {
+      const response = await emailApi.testSend(testEmail);
+      if (response.data.success) {
+        toast.success('Correo de prueba enviado correctamente');
+        setTestEmail('');
+      } else {
+        toast.error(`Error al enviar: ${response.data.error}`);
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Error al enviar correo de prueba';
+      toast.error(errorMsg);
+    } finally {
+      setTestingSmtp(false);
+    }
+  };
 
   const handleValueChange = (key: string, value: string) => {
     setPendingChanges((prev) => ({ ...prev, [key]: value }));
@@ -127,6 +170,10 @@ export default function SystemSettingsPage() {
         return <CloudIcon className="h-5 w-5" />;
       case 'security':
         return <ShieldCheckIcon className="h-5 w-5" />;
+      case 'email':
+        return <EnvelopeIcon className="h-5 w-5" />;
+      case 'notifications':
+        return <BellIcon className="h-5 w-5" />;
       default:
         return <GlobeAltIcon className="h-5 w-5" />;
     }
@@ -142,6 +189,10 @@ export default function SystemSettingsPage() {
         return 'Microsoft Azure AD / Entra ID';
       case 'security':
         return 'Seguridad';
+      case 'email':
+        return 'Configuracion de Correo (SMTP)';
+      case 'notifications':
+        return 'Notificaciones';
       default:
         return category.charAt(0).toUpperCase() + category.slice(1);
     }
@@ -442,6 +493,59 @@ export default function SystemSettingsPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* Email category: Test SMTP buttons */}
+                {category === 'email' && (
+                  <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50">
+                    <div className="flex flex-col gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                          Probar Configuracion SMTP
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                          Guarda los cambios antes de probar. Las pruebas usaran la configuracion guardada en la base de datos.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                          onClick={handleTestSmtpConnection}
+                          disabled={testingSmtp}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                          {testingSmtp ? (
+                            <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                          ) : (
+                            <EnvelopeIcon className="h-4 w-4" />
+                          )}
+                          Probar Conexion
+                        </button>
+
+                        <div className="flex flex-1 gap-2">
+                          <input
+                            type="email"
+                            placeholder="correo@ejemplo.com"
+                            value={testEmail}
+                            onChange={(e) => setTestEmail(e.target.value)}
+                            className="input flex-1"
+                          />
+                          <button
+                            onClick={handleSendTestEmail}
+                            disabled={testingSmtp || !testEmail}
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                          >
+                            {testingSmtp ? (
+                              <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                            ) : (
+                              <EnvelopeIcon className="h-4 w-4" />
+                            )}
+                            Enviar Prueba
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
