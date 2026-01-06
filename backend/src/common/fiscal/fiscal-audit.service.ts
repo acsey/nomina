@@ -257,7 +257,7 @@ export class FiscalAuditService {
         payrollDetailId: entry.payrollDetailId,
         conceptType: entry.conceptType,
         conceptCode: entry.conceptCode,
-        inputValues: entry.inputValues as Prisma.InputJsonValue,
+        inputValues: entry.inputValues as any,
         ruleApplied: entry.ruleApplied,
         ruleVersion: entry.ruleVersion,
         tableUsed: entry.tableUsed,
@@ -293,7 +293,7 @@ export class FiscalAuditService {
       select: { id: true },
     });
 
-    const detailIds = details.map(d => d.id);
+    const detailIds = details.map((d: { id: string }) => d.id);
 
     return this.prisma.fiscalCalculationAudit.findMany({
       where: {

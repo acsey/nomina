@@ -1,6 +1,5 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 import * as net from 'net';
 
 export enum DeviceType {
@@ -77,7 +76,7 @@ export class DevicesService {
         port: data.port || 4370,
         serialNumber: data.serialNumber,
         location: data.location,
-        config: data.config as Prisma.InputJsonValue,
+        config: data.config as any,
         status: DeviceStatus.OFFLINE,
       },
     });
@@ -111,7 +110,7 @@ export class DevicesService {
         ...(data.serialNumber !== undefined && { serialNumber: data.serialNumber }),
         ...(data.location !== undefined && { location: data.location }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.config && { config: data.config as Prisma.InputJsonValue }),
+        ...(data.config && { config: data.config as any }),
       },
     });
   }
@@ -332,7 +331,7 @@ export class DevicesService {
         timestamp,
         eventType: data.type,
         verifyMode: data.verifyMode,
-        rawData: data as Prisma.InputJsonValue,
+        rawData: data as any,
       },
     });
 

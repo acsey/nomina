@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { Prisma, Gender, MaritalStatus, ContractType, EmploymentType, SalaryType, PaymentMethod } from '@prisma/client';
+import { Gender, MaritalStatus, ContractType, EmploymentType, SalaryType, PaymentMethod } from '@/common/types/prisma-enums';
 
 @Injectable()
 export class EmployeesService {
@@ -80,7 +80,7 @@ export class EmployeesService {
     const skip = Number(params.skip) || 0;
     const take = Number(params.take) || 10;
 
-    const where: Prisma.EmployeeWhereInput = {
+    const where: any = {
       isActive: true,
       ...(departmentId && { departmentId }),
       ...(companyId && { companyId }),
@@ -174,7 +174,7 @@ export class EmployeesService {
     } = updateEmployeeDto;
 
     // Build the update data with proper relation connections and type casting
-    const updateData: Prisma.EmployeeUpdateInput = {
+    const updateData: any = {
       ...directFields,
       // Handle enum fields with proper casting
       ...(gender && { gender: gender as Gender }),

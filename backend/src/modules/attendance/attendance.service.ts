@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { AttendanceStatus } from '@prisma/client';
+import { AttendanceStatus } from '@/common/types/prisma-enums';
 import * as dayjs from 'dayjs';
 
 @Injectable()
@@ -30,11 +30,11 @@ export class AttendanceService {
     });
 
     // Determinar estado (presente o tarde)
-    let status: AttendanceStatus = 'PRESENT';
+    let status: AttendanceStatus = AttendanceStatus.PRESENT;
     if (employee?.workSchedule) {
       const dayOfWeek = dayjs().day();
       const scheduleDetail = employee.workSchedule.scheduleDetails.find(
-        (d) => d.dayOfWeek === dayOfWeek,
+        (d: any) => d.dayOfWeek === dayOfWeek,
       );
 
       if (scheduleDetail) {
@@ -42,7 +42,7 @@ export class AttendanceService {
         const scheduledStart = dayjs().hour(hours).minute(minutes).second(0);
 
         if (dayjs(now).isAfter(scheduledStart.add(10, 'minute'))) {
-          status = 'LATE';
+          status = AttendanceStatus.LATE;
         }
       }
     }
@@ -158,7 +158,7 @@ export class AttendanceService {
     });
 
     return records.reduce(
-      (acc, curr) => {
+      (acc: Record<string, number>, curr: any) => {
         acc[curr.status.toLowerCase()] = curr._count;
         return acc;
       },
@@ -307,7 +307,7 @@ export class AttendanceService {
       },
     });
 
-    return employees.map(emp => ({
+    return employees.map((emp: any) => ({
       ...emp,
       todayAttendance: emp.attendanceRecords[0] || null,
     }));

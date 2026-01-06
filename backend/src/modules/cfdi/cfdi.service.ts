@@ -4,7 +4,7 @@ import { XmlBuilderService } from './services/xml-builder.service';
 import { StampingService } from './services/stamping.service';
 import { SecretsService } from '@/common/security/secrets.service';
 import { AuditService } from '@/common/security/audit.service';
-import { CfdiStatus } from '@prisma/client';
+import { CfdiStatus } from '@/common/types/prisma-enums';
 
 @Injectable()
 export class CfdiService {

@@ -1,6 +1,6 @@
 import { IsString, IsNumber, IsBoolean, IsOptional, IsEnum, IsDateString, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PeriodType } from '@prisma/client';
+import { PeriodType } from '@/common/types/period-type';
 
 // ============================================
 // STATE ISN CONFIG DTOs
