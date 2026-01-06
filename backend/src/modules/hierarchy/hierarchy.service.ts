@@ -129,9 +129,10 @@ export class HierarchyService {
     let level = 1;
 
     // Step 1: Add supervisors up the chain (same company only)
-    while (currentEmployee.supervisorId) {
+    let currentSupervisorId = currentEmployee.supervisorId;
+    while (currentSupervisorId) {
       const supervisor = await this.prisma.employee.findUnique({
-        where: { id: currentEmployee.supervisorId },
+        where: { id: currentSupervisorId },
         include: {
           jobPosition: true,
           department: true,
@@ -191,7 +192,7 @@ export class HierarchyService {
         });
       }
 
-      currentEmployee = supervisor;
+      currentSupervisorId = supervisor.supervisorId;
       level++;
     }
 
@@ -199,26 +200,28 @@ export class HierarchyService {
     const rhUsers = await this.prisma.user.findMany({
       where: {
         companyId,
-        role: 'rh',
+        role: { name: 'rh' },
         isActive: true,
       },
-      include: {
-        employee: {
-          include: { jobPosition: true, department: true },
-        },
-      },
+      include: { role: true },
     });
 
     for (const rhUser of rhUsers) {
+      // Find employee by email match
+      const rhEmployee = await this.prisma.employee.findFirst({
+        where: { email: rhUser.email, companyId, isActive: true },
+        include: { jobPosition: true, department: true },
+      });
+
       // Avoid duplicates if RH is already in supervisor chain
-      if (!chain.some(c => c.employeeId === rhUser.employeeId) && rhUser.employee) {
+      if (rhEmployee && !chain.some(c => c.employeeId === rhEmployee.id)) {
         chain.push({
           level: level++,
-          employeeId: rhUser.employee.id,
-          employeeNumber: rhUser.employee.employeeNumber,
-          name: `${rhUser.employee.firstName} ${rhUser.employee.lastName}`,
-          jobPosition: rhUser.employee.jobPosition?.name || 'Recursos Humanos',
-          department: rhUser.employee.department?.name,
+          employeeId: rhEmployee.id,
+          employeeNumber: rhEmployee.employeeNumber,
+          name: `${rhEmployee.firstName} ${rhEmployee.lastName}`,
+          jobPosition: rhEmployee.jobPosition?.name || 'Recursos Humanos',
+          department: rhEmployee.department?.name,
           email: rhUser.email,
           role: 'RH',
           canApprove: true,
@@ -231,26 +234,28 @@ export class HierarchyService {
     const companyAdmins = await this.prisma.user.findMany({
       where: {
         companyId,
-        role: 'company_admin',
+        role: { name: 'company_admin' },
         isActive: true,
       },
-      include: {
-        employee: {
-          include: { jobPosition: true, department: true },
-        },
-      },
+      include: { role: true },
     });
 
     for (const admin of companyAdmins) {
+      // Find employee by email match
+      const adminEmployee = await this.prisma.employee.findFirst({
+        where: { email: admin.email, companyId, isActive: true },
+        include: { jobPosition: true, department: true },
+      });
+
       // Avoid duplicates
-      if (!chain.some(c => c.employeeId === admin.employeeId) && admin.employee) {
+      if (adminEmployee && !chain.some(c => c.employeeId === adminEmployee.id)) {
         chain.push({
           level: level++,
-          employeeId: admin.employee.id,
-          employeeNumber: admin.employee.employeeNumber,
-          name: `${admin.employee.firstName} ${admin.employee.lastName}`,
-          jobPosition: admin.employee.jobPosition?.name || 'Administrador',
-          department: admin.employee.department?.name,
+          employeeId: adminEmployee.id,
+          employeeNumber: adminEmployee.employeeNumber,
+          name: `${adminEmployee.firstName} ${adminEmployee.lastName}`,
+          jobPosition: adminEmployee.jobPosition?.name || 'Administrador',
+          department: adminEmployee.department?.name,
           email: admin.email,
           role: 'ADMIN',
           canApprove: true,
@@ -498,14 +503,23 @@ export class HierarchyService {
     const isInChain = await this.isInHierarchyChain(delegatorId, delegateeId);
     if (isInChain) return true;
 
-    // Check if delegatee is RH or company_admin of the same company
+    // Get the delegatee employee to find their email
+    const delegateeEmployee = await this.prisma.employee.findUnique({
+      where: { id: delegateeId },
+      select: { email: true },
+    });
+
+    if (!delegateeEmployee?.email) return false;
+
+    // Check if delegatee has a user account with RH or company_admin role
     const delegateeUser = await this.prisma.user.findFirst({
       where: {
-        employeeId: delegateeId,
+        email: delegateeEmployee.email,
         companyId,
-        role: { in: ['rh', 'company_admin'] },
+        role: { name: { in: ['rh', 'company_admin'] } },
         isActive: true,
       },
+      include: { role: true },
     });
 
     return !!delegateeUser;
@@ -597,13 +611,15 @@ export class HierarchyService {
   async getManagedEmployees(userId: string): Promise<string[]> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { employee: true },
+      include: { role: true },
     });
 
     if (!user) return [];
 
+    const roleName = user.role?.name;
+
     // Super admin can see all
-    if (user.role === 'admin') {
+    if (roleName === 'admin') {
       const allEmployees = await this.prisma.employee.findMany({
         where: { isActive: true },
         select: { id: true },
@@ -615,7 +631,7 @@ export class HierarchyService {
     if (!user.companyId) return [];
 
     // company_admin and rh can see all employees of their company
-    if (user.role === 'company_admin' || user.role === 'rh') {
+    if (roleName === 'company_admin' || roleName === 'rh') {
       const companyEmployees = await this.prisma.employee.findMany({
         where: {
           companyId: user.companyId,
@@ -626,14 +642,20 @@ export class HierarchyService {
       return companyEmployees.map(e => e.id);
     }
 
+    // Find employee linked to this user by email
+    const userEmployee = await this.prisma.employee.findFirst({
+      where: { email: user.email, isActive: true },
+      select: { id: true },
+    });
+
     // manager can see their subordinates
-    if (user.role === 'manager' && user.employeeId) {
-      const subordinates = await this.getAllSubordinates(user.employeeId);
+    if (roleName === 'manager' && userEmployee) {
+      const subordinates = await this.getAllSubordinates(userEmployee.id);
       return subordinates.map(s => s.id);
     }
 
     // employee can only see themselves
-    return user.employeeId ? [user.employeeId] : [];
+    return userEmployee ? [userEmployee.id] : [];
   }
 
   // Validate that a user can access an employee's data
