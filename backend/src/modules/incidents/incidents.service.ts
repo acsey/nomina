@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { IncidentCategory, IncidentValueType, IncidentStatus } from '@/common/types/prisma-enums';
 
 @Injectable()

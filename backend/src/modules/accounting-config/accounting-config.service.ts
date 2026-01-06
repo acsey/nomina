@@ -181,7 +181,7 @@ export class AccountingConfigService {
     });
 
     const data = {
-      defaultPeriodType: dto.defaultPeriodType ?? 'BIWEEKLY',
+      defaultPeriodType: dto.defaultPeriodType ?? PeriodType.BIWEEKLY,
       payDayOfWeek: dto.payDayOfWeek,
       payDayOfMonth: dto.payDayOfMonth,
       stateCode: dto.stateCode,

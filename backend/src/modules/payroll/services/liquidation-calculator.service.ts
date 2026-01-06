@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { AccountingConfigService } from '@/modules/accounting-config/accounting-config.service';
 import { LiquidationType, LiquidationStatus } from '@prisma/client';
+import { PeriodType } from '@/common/types/prisma-enums';
 
 interface LiquidationInput {
   employeeId: string;
@@ -322,7 +323,7 @@ export class LiquidationCalculatorService {
         const result = await this.accountingConfig.calculateIsr(
           grossTotal / 12, // Monthly equivalent
           currentYear,
-          'MONTHLY',
+          PeriodType.MONTHLY,
         );
         return result.netIsr;
       } catch {

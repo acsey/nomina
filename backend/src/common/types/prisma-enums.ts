@@ -260,6 +260,7 @@ export enum IncidentStatus {
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
   APPLIED = 'APPLIED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum DelegationType {
