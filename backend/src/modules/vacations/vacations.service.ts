@@ -378,11 +378,13 @@ export class VacationsService {
         ? `${supervisor.firstName} ${supervisor.lastName}`
         : 'Supervisor';
 
-      // Obtener userId del empleado
-      const employeeUser = await this.prisma.user.findFirst({
-        where: { email: updatedRequest.employee.email },
-        select: { id: true },
-      });
+      // Obtener userId del empleado (solo si tiene email)
+      const employeeUser = updatedRequest.employee.email
+        ? await this.prisma.user.findFirst({
+            where: { email: updatedRequest.employee.email },
+            select: { id: true },
+          })
+        : null;
 
       const rhUserIds = await this.notificationsService.getRHUserIds(updatedRequest.employee.companyId);
 
@@ -498,11 +500,13 @@ export class VacationsService {
 
     // Enviar notificaciones al empleado y supervisor
     try {
-      // Obtener userId del empleado
-      const employeeUser = await this.prisma.user.findFirst({
-        where: { email: updatedRequest.employee.email },
-        select: { id: true },
-      });
+      // Obtener userId del empleado (solo si tiene email)
+      const employeeUser = updatedRequest.employee.email
+        ? await this.prisma.user.findFirst({
+            where: { email: updatedRequest.employee.email },
+            select: { id: true },
+          })
+        : null;
 
       // Obtener userId del supervisor
       const supervisorUserId = updatedRequest.employee.supervisorId
@@ -826,11 +830,13 @@ export class VacationsService {
         ? `${rejecterEmployee.firstName} ${rejecterEmployee.lastName}`
         : rejectedStage;
 
-      // Obtener userId del empleado
-      const employeeUser = await this.prisma.user.findFirst({
-        where: { email: updatedRequest.employee.email },
-        select: { id: true },
-      });
+      // Obtener userId del empleado (solo si tiene email)
+      const employeeUser = updatedRequest.employee.email
+        ? await this.prisma.user.findFirst({
+            where: { email: updatedRequest.employee.email },
+            select: { id: true },
+          })
+        : null;
 
       // Obtener userId del supervisor si el rechazo fue por RH
       let supervisorUserId: string | undefined;

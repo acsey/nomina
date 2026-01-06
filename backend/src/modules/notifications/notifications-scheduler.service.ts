@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '@/common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import * as dayjs from 'dayjs';
 
@@ -44,14 +44,6 @@ export class NotificationsSchedulerService {
     const employees = await this.prisma.employee.findMany({
       where: {
         isActive: true,
-        // Filter by birth month and day
-        AND: [
-          {
-            birthDate: {
-              not: null,
-            },
-          },
-        ],
       },
       select: {
         id: true,
@@ -124,9 +116,6 @@ export class NotificationsSchedulerService {
     const employees = await this.prisma.employee.findMany({
       where: {
         isActive: true,
-        hireDate: {
-          not: null,
-        },
       },
       select: {
         id: true,
@@ -202,18 +191,23 @@ export class NotificationsSchedulerService {
       where: {
         companyId,
         isActive: true,
-        birthDate: { not: null },
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         birthDate: true,
-        department: {
-          select: { name: true },
-        },
+        departmentId: true,
       },
     });
+
+    // Get department names separately to avoid type issues
+    const departmentIds = [...new Set(employees.map(e => e.departmentId).filter(Boolean))];
+    const departments = await this.prisma.department.findMany({
+      where: { id: { in: departmentIds } },
+      select: { id: true, name: true },
+    });
+    const deptMap = new Map(departments.map(d => [d.id, d.name]));
 
     const upcoming = employees
       .map((emp) => {
@@ -226,10 +220,13 @@ export class NotificationsSchedulerService {
         }
         const daysUntil = nextBirthday.diff(today, 'day');
         return {
-          ...emp,
+          id: emp.id,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          birthDate: emp.birthDate,
           nextBirthday: nextBirthday.format('YYYY-MM-DD'),
           daysUntil,
-          departmentName: emp.department?.name,
+          departmentName: emp.departmentId ? deptMap.get(emp.departmentId) : undefined,
         };
       })
       .filter((emp) => emp.daysUntil >= 0 && emp.daysUntil <= daysAhead)
@@ -247,18 +244,23 @@ export class NotificationsSchedulerService {
       where: {
         companyId,
         isActive: true,
-        hireDate: { not: null },
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         hireDate: true,
-        department: {
-          select: { name: true },
-        },
+        departmentId: true,
       },
     });
+
+    // Get department names separately to avoid type issues
+    const departmentIds = [...new Set(employees.map(e => e.departmentId).filter(Boolean))];
+    const departments = await this.prisma.department.findMany({
+      where: { id: { in: departmentIds } },
+      select: { id: true, name: true },
+    });
+    const deptMap = new Map(departments.map(d => [d.id, d.name]));
 
     const upcoming = employees
       .map((emp) => {
@@ -272,11 +274,14 @@ export class NotificationsSchedulerService {
         const daysUntil = nextAnniversary.diff(today, 'day');
         const yearsAtCompany = nextAnniversary.diff(hireDate, 'year');
         return {
-          ...emp,
+          id: emp.id,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          hireDate: emp.hireDate,
           nextAnniversary: nextAnniversary.format('YYYY-MM-DD'),
           daysUntil,
           yearsAtCompany,
-          departmentName: emp.department?.name,
+          departmentName: emp.departmentId ? deptMap.get(emp.departmentId) : undefined,
         };
       })
       .filter((emp) => emp.daysUntil >= 0 && emp.daysUntil <= daysAhead && emp.yearsAtCompany >= 1)
