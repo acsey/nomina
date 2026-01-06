@@ -82,6 +82,11 @@ model AuditLog {
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
+  // P0.3 - Auditoría Tamper-Evident: Hash encadenado
+  entryHash        String?  @map("entry_hash")        // SHA-256 del contenido de esta entrada
+  previousEntryHash String? @map("previous_entry_hash") // Hash de la entrada anterior (cadena)
+  sequenceNumber   Int?     @map("sequence_number")   // Número de secuencia para verificación
+
   // MEJORA GOB: Campos de justificación y doble control
   justification       String?   @db.Text // Motivo obligatorio para acciones críticas
   requiresConfirmation Boolean  @default(false) @map("requires_confirmation")
@@ -91,6 +96,8 @@ model AuditLog {
   legalBasis          String?   @map("legal_basis") @db.Text
 
   @@index([isCriticalAction])
+  @@index([entryHash])
+  @@index([sequenceNumber])
   @@map("audit_logs")
 }
 

@@ -1,5 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { createHash } from 'crypto';
+
+/**
+ * P0.3 - Auditoría Tamper-Evident
+ *
+ * Implementación de hash encadenado para garantizar inmutabilidad de logs.
+ * Cada entrada incluye el hash de la entrada anterior, formando una cadena.
+ * Cualquier modificación rompe la cadena y es detectable.
+ */
 
 /**
  * Tipos de acciones críticas que requieren auditoría especial
@@ -63,27 +72,114 @@ export interface AuditLogEntry {
  */
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * P0.3 - Calcula el hash SHA-256 de los datos de una entrada de auditoría
+   */
+  private calculateEntryHash(data: {
+    userId: string;
+    action: string;
+    entity: string;
+    entityId?: string;
+    oldValues?: any;
+    newValues?: any;
+    createdAt: Date;
+    previousEntryHash?: string;
+    sequenceNumber: number;
+  }): string {
+    const hashContent = JSON.stringify({
+      userId: data.userId,
+      action: data.action,
+      entity: data.entity,
+      entityId: data.entityId || null,
+      oldValues: data.oldValues || null,
+      newValues: data.newValues || null,
+      createdAt: data.createdAt.toISOString(),
+      previousEntryHash: data.previousEntryHash || 'GENESIS',
+      sequenceNumber: data.sequenceNumber,
+    });
+
+    return createHash('sha256').update(hashContent).digest('hex');
+  }
+
+  /**
+   * P0.3 - Obtiene la última entrada de auditoría para encadenar
+   */
+  private async getLastAuditEntry(): Promise<{
+    entryHash: string | null;
+    sequenceNumber: number;
+  }> {
+    const lastEntry = await this.prisma.auditLog.findFirst({
+      where: {
+        entryHash: { not: null },
+      },
+      orderBy: {
+        sequenceNumber: 'desc',
+      },
+      select: {
+        entryHash: true,
+        sequenceNumber: true,
+      },
+    });
+
+    return {
+      entryHash: lastEntry?.entryHash || null,
+      sequenceNumber: lastEntry?.sequenceNumber || 0,
+    };
+  }
+
+  /**
    * Registra una acción crítica en el log de auditoría
+   * P0.3 - Con hash encadenado para detección de manipulación
    */
   async logCriticalAction(entry: AuditLogEntry) {
-    return this.prisma.auditLog.create({
+    // P0.3 - Obtener última entrada para encadenar hash
+    const lastEntry = await this.getLastAuditEntry();
+    const sequenceNumber = lastEntry.sequenceNumber + 1;
+    const createdAt = new Date();
+
+    const newValues = {
+      ...entry.newValues,
+      ...entry.details,
+      timestamp: createdAt.toISOString(),
+    };
+
+    // P0.3 - Calcular hash de esta entrada incluyendo referencia al anterior
+    const entryHash = this.calculateEntryHash({
+      userId: entry.userId || 'SYSTEM',
+      action: entry.action,
+      entity: entry.entity,
+      entityId: entry.entityId,
+      oldValues: entry.oldValues,
+      newValues,
+      createdAt,
+      previousEntryHash: lastEntry.entryHash || undefined,
+      sequenceNumber,
+    });
+
+    // Crear entrada con hash encadenado
+    const auditEntry = await this.prisma.auditLog.create({
       data: {
         userId: entry.userId || 'SYSTEM',
         action: entry.action,
         entity: entry.entity,
         entityId: entry.entityId,
         oldValues: entry.oldValues || null,
-        newValues: {
-          ...entry.newValues,
-          ...entry.details,
-          timestamp: new Date().toISOString(),
-        } as any,
+        newValues: newValues as any,
         ipAddress: entry.ipAddress,
+        createdAt,
+        // P0.3 - Campos de hash encadenado
+        entryHash,
+        previousEntryHash: lastEntry.entryHash,
+        sequenceNumber,
       },
     });
+
+    this.logger.debug(`Audit entry created: ${auditEntry.id} [seq: ${sequenceNumber}]`);
+    return auditEntry;
   }
 
   /**
@@ -294,5 +390,232 @@ export class AuditService {
         createdAt: 'desc',
       },
     });
+  }
+
+  // ============================================
+  // P0.3 - Métodos de verificación de integridad
+  // ============================================
+
+  /**
+   * P0.3 - Verifica la integridad de una entrada individual
+   * Recalcula el hash y compara con el almacenado
+   */
+  async verifyEntryIntegrity(entryId: string): Promise<{
+    valid: boolean;
+    entry: any;
+    expectedHash: string;
+    actualHash: string | null;
+    error?: string;
+  }> {
+    const entry = await this.prisma.auditLog.findUnique({
+      where: { id: entryId },
+    });
+
+    if (!entry) {
+      return {
+        valid: false,
+        entry: null,
+        expectedHash: '',
+        actualHash: null,
+        error: 'Entrada no encontrada',
+      };
+    }
+
+    // Si la entrada no tiene hash (entrada antigua), no se puede verificar
+    if (!entry.entryHash) {
+      return {
+        valid: true,
+        entry,
+        expectedHash: 'N/A (entrada pre-hash)',
+        actualHash: null,
+        error: 'Entrada creada antes de implementar hash encadenado',
+      };
+    }
+
+    // Recalcular hash
+    const recalculatedHash = this.calculateEntryHash({
+      userId: entry.userId,
+      action: entry.action,
+      entity: entry.entity,
+      entityId: entry.entityId || undefined,
+      oldValues: entry.oldValues,
+      newValues: entry.newValues,
+      createdAt: entry.createdAt,
+      previousEntryHash: entry.previousEntryHash || undefined,
+      sequenceNumber: entry.sequenceNumber || 0,
+    });
+
+    const valid = recalculatedHash === entry.entryHash;
+
+    if (!valid) {
+      this.logger.error(`TAMPER DETECTED: Entry ${entryId} hash mismatch!`);
+      this.logger.error(`Expected: ${entry.entryHash}, Calculated: ${recalculatedHash}`);
+    }
+
+    return {
+      valid,
+      entry,
+      expectedHash: recalculatedHash,
+      actualHash: entry.entryHash,
+    };
+  }
+
+  /**
+   * P0.3 - Verifica la integridad de la cadena de auditoría
+   * Verifica que los hashes estén correctamente encadenados
+   */
+  async verifyChainIntegrity(options?: {
+    startSequence?: number;
+    endSequence?: number;
+    limit?: number;
+  }): Promise<{
+    valid: boolean;
+    totalChecked: number;
+    errors: Array<{
+      sequenceNumber: number;
+      entryId: string;
+      type: 'hash_mismatch' | 'chain_break' | 'missing_sequence';
+      details: string;
+    }>;
+  }> {
+    const { startSequence = 1, endSequence, limit = 1000 } = options || {};
+
+    const entries = await this.prisma.auditLog.findMany({
+      where: {
+        sequenceNumber: {
+          gte: startSequence,
+          ...(endSequence && { lte: endSequence }),
+        },
+        entryHash: { not: null },
+      },
+      orderBy: { sequenceNumber: 'asc' },
+      take: limit,
+    });
+
+    const errors: Array<{
+      sequenceNumber: number;
+      entryId: string;
+      type: 'hash_mismatch' | 'chain_break' | 'missing_sequence';
+      details: string;
+    }> = [];
+
+    let previousHash: string | null = null;
+    let expectedSequence = startSequence;
+
+    for (const entry of entries) {
+      // Verificar secuencia
+      if (entry.sequenceNumber !== expectedSequence && expectedSequence !== startSequence) {
+        errors.push({
+          sequenceNumber: expectedSequence,
+          entryId: 'N/A',
+          type: 'missing_sequence',
+          details: `Falta entrada con secuencia ${expectedSequence}`,
+        });
+      }
+
+      // Verificar que previousEntryHash coincide con el hash de la entrada anterior
+      if (previousHash !== null && entry.previousEntryHash !== previousHash) {
+        errors.push({
+          sequenceNumber: entry.sequenceNumber || 0,
+          entryId: entry.id,
+          type: 'chain_break',
+          details: `previousEntryHash no coincide. Esperado: ${previousHash}, Encontrado: ${entry.previousEntryHash}`,
+        });
+      }
+
+      // Verificar hash de la entrada
+      const recalculatedHash = this.calculateEntryHash({
+        userId: entry.userId,
+        action: entry.action,
+        entity: entry.entity,
+        entityId: entry.entityId || undefined,
+        oldValues: entry.oldValues,
+        newValues: entry.newValues,
+        createdAt: entry.createdAt,
+        previousEntryHash: entry.previousEntryHash || undefined,
+        sequenceNumber: entry.sequenceNumber || 0,
+      });
+
+      if (recalculatedHash !== entry.entryHash) {
+        errors.push({
+          sequenceNumber: entry.sequenceNumber || 0,
+          entryId: entry.id,
+          type: 'hash_mismatch',
+          details: `Hash no coincide. Esperado: ${recalculatedHash}, Almacenado: ${entry.entryHash}`,
+        });
+      }
+
+      previousHash = entry.entryHash;
+      expectedSequence = (entry.sequenceNumber || 0) + 1;
+    }
+
+    const valid = errors.length === 0;
+
+    if (!valid) {
+      this.logger.error(`AUDIT CHAIN INTEGRITY CHECK FAILED: ${errors.length} errors found`);
+      errors.forEach(e => this.logger.error(`  - Seq ${e.sequenceNumber}: ${e.type} - ${e.details}`));
+    } else {
+      this.logger.log(`Audit chain integrity verified: ${entries.length} entries checked, all valid`);
+    }
+
+    return {
+      valid,
+      totalChecked: entries.length,
+      errors,
+    };
+  }
+
+  /**
+   * P0.3 - Genera reporte de integridad de auditoría
+   */
+  async generateIntegrityReport(): Promise<{
+    timestamp: string;
+    totalEntries: number;
+    entriesWithHash: number;
+    entriesWithoutHash: number;
+    chainIntegrity: {
+      valid: boolean;
+      errors: number;
+    };
+    lastVerifiedSequence: number;
+    recommendations: string[];
+  }> {
+    const [totalEntries, entriesWithHash] = await Promise.all([
+      this.prisma.auditLog.count(),
+      this.prisma.auditLog.count({
+        where: { entryHash: { not: null } },
+      }),
+    ]);
+
+    const chainVerification = await this.verifyChainIntegrity({ limit: 10000 });
+
+    const lastEntry = await this.getLastAuditEntry();
+
+    const recommendations: string[] = [];
+
+    if (entriesWithHash < totalEntries) {
+      recommendations.push(
+        `${totalEntries - entriesWithHash} entradas sin hash (creadas antes de P0.3). Considere migración de datos históricos.`,
+      );
+    }
+
+    if (!chainVerification.valid) {
+      recommendations.push(
+        `Se detectaron ${chainVerification.errors.length} problemas de integridad. Investigar inmediatamente.`,
+      );
+    }
+
+    return {
+      timestamp: new Date().toISOString(),
+      totalEntries,
+      entriesWithHash,
+      entriesWithoutHash: totalEntries - entriesWithHash,
+      chainIntegrity: {
+        valid: chainVerification.valid,
+        errors: chainVerification.errors.length,
+      },
+      lastVerifiedSequence: lastEntry.sequenceNumber,
+      recommendations,
+    };
   }
 }
