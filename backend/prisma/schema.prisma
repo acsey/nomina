@@ -305,7 +305,11 @@ model Employee {
   // Delegaciones de aprobación
   delegationsGiven    ApprovalDelegation[] @relation("DelegationFrom")
   delegationsReceived ApprovalDelegation[] @relation("DelegationTo")
-  approvedRequests    VacationRequest[] @relation("RequestApprover")
+
+  // Vacaciones - aprobaciones
+  supervisorApprovedRequests VacationRequest[] @relation("RequestSupervisorApprover")
+  approvedRequests           VacationRequest[] @relation("RequestApprover")
+  rejectedRequests           VacationRequest[] @relation("RequestRejecter")
 
   @@map("employees")
 }
@@ -538,14 +542,27 @@ model VacationRequest {
   isPaid        Boolean  @default(true) @map("is_paid") // Si es con goce de sueldo
   status        RequestStatus @default(PENDING)
 
-  // Aprobador (puede ser jefe directo o delegado)
+  // Paso 1: Aprobación del supervisor directo
+  supervisorApprovedById  String?   @map("supervisor_approved_by_id")
+  supervisorApprovedBy    Employee? @relation("RequestSupervisorApprover", fields: [supervisorApprovedById], references: [id])
+  supervisorApprovedAt    DateTime? @map("supervisor_approved_at")
+  supervisorComments      String?   @map("supervisor_comments")
+
+  // Paso 2: Validación de RH (aprobación final)
   approvedById  String?  @map("approved_by_id")
   approvedBy    Employee? @relation("RequestApprover", fields: [approvedById], references: [id])
   approvedAt    DateTime? @map("approved_at")
-  rejectedReason String? @map("rejected_reason")
+  rhComments    String?  @map("rh_comments")
+
+  // Rechazo (puede ser por supervisor o RH)
+  rejectedById   String?  @map("rejected_by_id")
+  rejectedBy     Employee? @relation("RequestRejecter", fields: [rejectedById], references: [id])
+  rejectedAt     DateTime? @map("rejected_at")
+  rejectedReason String?  @map("rejected_reason")
+  rejectedStage  String?  @map("rejected_stage") // 'SUPERVISOR' o 'RH'
 
   // Tracking de la cadena de aprobación
-  approvalChain Json?    @map("approval_chain") // [{level: 1, employeeId: "...", name: "..."}]
+  approvalChain Json?    @map("approval_chain") // [{level: 1, employeeId: "...", name: "...", role: "SUPERVISOR"|"RH", status: "..."}]
 
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -1070,10 +1087,11 @@ enum LeaveType {
 }
 
 enum RequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELLED
+  PENDING               // Esperando aprobación del supervisor
+  SUPERVISOR_APPROVED   // Supervisor aprobó, esperando validación de RH
+  APPROVED              // Aprobado por RH (estado final)
+  REJECTED              // Rechazado (por supervisor o RH)
+  CANCELLED             // Cancelado por el empleado
 }
 
 enum PeriodType {
