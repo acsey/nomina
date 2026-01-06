@@ -56,6 +56,8 @@ model User {
   // P0.2 - Segregación de Funciones: Dual Control
   dualControlRequestsMade     DualControlRequest[] @relation("DualControlRequester")
   dualControlRequestsApproved DualControlRequest[] @relation("DualControlApprover")
+  // P0.1 - MFA
+  mfaConfig                   MfaConfig?
 
   @@map("users")
 }
@@ -2189,5 +2191,25 @@ model IntegrityAlert {
   @@index([severity, isResolved])
   @@index([entityType, entityId])
   @@map("integrity_alerts")
+}
+
+// ============================================
+// MÓDULO: P0.1 - AUTENTICACIÓN MFA
+// ============================================
+
+// Configuración de MFA por usuario
+model MfaConfig {
+  id          String    @id @default(uuid())
+  userId      String    @unique @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret      String    // Secreto TOTP cifrado (Base32)
+  backupCodes String    @map("backup_codes") // Códigos de respaldo cifrados (JSON array)
+  status      String    @default("PENDING") // PENDING, ACTIVE, DISABLED
+  createdAt   DateTime  @default(now()) @map("created_at")
+  verifiedAt  DateTime? @map("verified_at")
+  disabledAt  DateTime? @map("disabled_at")
+
+  @@index([status])
+  @@map("mfa_config")
 }
 
