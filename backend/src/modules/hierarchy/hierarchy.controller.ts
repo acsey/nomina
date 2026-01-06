@@ -28,7 +28,7 @@ export class HierarchyController {
   // Super admin can see all companies, others only see their own company
   @Get('org-chart')
   async getOrganizationalChart(
-    @Request() req,
+    @Request() req: any,
     @Query('companyId') companyId?: string,
   ) {
     const user = req.user;
@@ -40,7 +40,6 @@ export class HierarchyController {
       }
       // If no companyId specified, return charts for all companies
       const companies = await this.prisma.company.findMany({
-        where: { isActive: true },
         select: { id: true, name: true },
       });
 
@@ -74,7 +73,7 @@ export class HierarchyController {
   // Get hierarchy chain for an employee (supervisors up to top)
   @Get('employee/:id/chain')
   async getEmployeeHierarchy(
-    @Request() req,
+    @Request() req: any,
     @Param('id') employeeId: string,
   ) {
     await this.validateEmployeeAccess(req.user, employeeId);
@@ -84,7 +83,7 @@ export class HierarchyController {
   // Get direct subordinates
   @Get('employee/:id/subordinates')
   async getSubordinates(
-    @Request() req,
+    @Request() req: any,
     @Param('id') employeeId: string,
   ) {
     await this.validateEmployeeAccess(req.user, employeeId);
@@ -94,7 +93,7 @@ export class HierarchyController {
   // Get all subordinates (recursive)
   @Get('employee/:id/all-subordinates')
   async getAllSubordinates(
-    @Request() req,
+    @Request() req: any,
     @Param('id') employeeId: string,
   ) {
     await this.validateEmployeeAccess(req.user, employeeId);
@@ -104,7 +103,7 @@ export class HierarchyController {
   // Get who can approve for an employee
   @Get('employee/:id/approvers')
   async getApprovers(
-    @Request() req,
+    @Request() req: any,
     @Param('id') employeeId: string,
   ) {
     await this.validateEmployeeAccess(req.user, employeeId);
@@ -114,7 +113,7 @@ export class HierarchyController {
   // Set supervisor for an employee
   @Patch('employee/:id/supervisor')
   async setSupervisor(
-    @Request() req,
+    @Request() req: any,
     @Param('id') employeeId: string,
     @Body() body: { supervisorId: string | null },
   ) {
@@ -135,7 +134,7 @@ export class HierarchyController {
   // Create a delegation
   @Post('delegations')
   async createDelegation(
-    @Request() req,
+    @Request() req: any,
     @Body()
     body: {
       delegatorId: string;
@@ -173,7 +172,7 @@ export class HierarchyController {
   // Get delegations for an employee
   @Get('employee/:id/delegations')
   async getDelegations(
-    @Request() req,
+    @Request() req: any,
     @Param('id') employeeId: string,
   ) {
     await this.validateEmployeeAccess(req.user, employeeId);
@@ -183,7 +182,7 @@ export class HierarchyController {
   // Revoke a delegation
   @Delete('delegations/:id')
   async revokeDelegation(
-    @Request() req,
+    @Request() req: any,
     @Param('id') delegationId: string,
   ) {
     // Get delegation to check ownership
