@@ -39,7 +39,7 @@ export class IsrCalculatorService {
     } else {
       // Encontrar el rango aplicable
       const range = isrTable.find(
-        (r) =>
+        (r: any) =>
           taxableIncome >= Number(r.lowerLimit) &&
           taxableIncome <= Number(r.upperLimit),
       );

@@ -660,7 +660,7 @@ export class FormulaService {
       });
 
       // Filtrar por rango de fechas
-      formula = candidates.find(f => {
+      formula = candidates.find((f: any) => {
         if (!f.validFrom) return true; // Sin fecha = siempre válida
         const start = f.validFrom.getTime();
         const end = f.validTo?.getTime() ?? Infinity;
@@ -728,7 +728,7 @@ export class FormulaService {
     }
 
     // Usar transacción para atomicidad
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       // Desactivar versión anterior
       await tx.companyCalculationFormula.update({
         where: { id: formulaId },

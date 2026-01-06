@@ -295,6 +295,9 @@ export enum LiquidationType {
   DEATH = 'DEATH',
   DISABILITY = 'DISABILITY',
   OTHER = 'OTHER',
+  // Aliases comunes en México
+  FINIQUITO = 'FINIQUITO',
+  LIQUIDACION = 'LIQUIDACION',
 }
 
 export enum LiquidationStatus {

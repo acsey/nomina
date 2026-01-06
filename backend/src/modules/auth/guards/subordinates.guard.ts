@@ -109,7 +109,7 @@ export class SubordinatesGuard implements CanActivate {
     });
 
     if (managedDepartments.length > 0) {
-      const departmentIds = managedDepartments.map(d => d.id);
+      const departmentIds = managedDepartments.map((d: any) => d.id);
       const inDepartment = await this.prisma.employee.findFirst({
         where: {
           id: targetEmployeeId,

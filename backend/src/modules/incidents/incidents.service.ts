@@ -51,7 +51,7 @@ export class IncidentsService {
     });
 
     if (managedDepartments.length > 0) {
-      const departmentIds = managedDepartments.map(d => d.id);
+      const departmentIds = managedDepartments.map((d: any) => d.id);
       const inDepartment = await this.prisma.employee.findFirst({
         where: {
           id: employeeId,
@@ -102,7 +102,7 @@ export class IncidentsService {
     });
 
     if (managedDepartments.length > 0) {
-      const departmentIds = managedDepartments.map(d => d.id);
+      const departmentIds = managedDepartments.map((d: any) => d.id);
       const departmentEmployees = await this.prisma.employee.findMany({
         where: {
           departmentId: { in: departmentIds },
@@ -110,7 +110,7 @@ export class IncidentsService {
         },
         select: { id: true },
       });
-      subordinateIds.push(...departmentEmployees.map(e => e.id));
+      subordinateIds.push(...departmentEmployees.map((e: any) => e.id));
     }
 
     // Get direct subordinates
@@ -296,7 +296,7 @@ export class IncidentsService {
     subordinateIds?: string[];
   }) {
     // Build where clause with company and subordinate filters
-    const whereClause: Prisma.EmployeeIncidentWhereInput = {
+    const whereClause = {
       ...(filters?.employeeId && { employeeId: filters.employeeId }),
       ...(filters?.incidentTypeId && { incidentTypeId: filters.incidentTypeId }),
       ...(filters?.status && { status: filters.status }),

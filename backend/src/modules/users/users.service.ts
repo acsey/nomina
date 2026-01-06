@@ -131,7 +131,7 @@ export class UsersService {
     ]);
 
     // Remove passwords from response
-    const usersWithoutPassword = users.map(({ password, ...user }) => user);
+    const usersWithoutPassword = users.map(({ password, ...user }: any) => user);
 
     return {
       data: usersWithoutPassword,

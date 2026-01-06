@@ -375,7 +375,7 @@ export class CatalogsController {
         isActive: data.isActive ?? true,
         scheduleDetails: data.scheduleDetails
           ? {
-              create: data.scheduleDetails.map((detail) => ({
+              create: data.scheduleDetails.map((detail: any) => ({
                 dayOfWeek: detail.dayOfWeek,
                 startTime: detail.startTime,
                 endTime: detail.endTime,
@@ -413,7 +413,7 @@ export class CatalogsController {
         ...(data.isActive !== undefined && { isActive: data.isActive }),
         ...(data.scheduleDetails && {
           scheduleDetails: {
-            create: data.scheduleDetails.map((detail) => ({
+            create: data.scheduleDetails.map((detail: any) => ({
               dayOfWeek: detail.dayOfWeek,
               startTime: detail.startTime,
               endTime: detail.endTime,

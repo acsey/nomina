@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { AccountingConfigService } from '@/modules/accounting-config/accounting-config.service';
-import { LiquidationType, LiquidationStatus } from '@prisma/client';
-import { PeriodType } from '@/common/types/prisma-enums';
+import { LiquidationType, LiquidationStatus, PeriodType } from '@/common/types/prisma-enums';
 
 interface LiquidationInput {
   employeeId: string;
@@ -143,7 +142,7 @@ export class LiquidationCalculatorService {
     let seniorityPremium = 0;
     let seniorityPremiumDays = 0;
 
-    if (input.type === 'LIQUIDACION') {
+    if (input.type === LiquidationType.LIQUIDACION || input.type === LiquidationType.TERMINATION) {
       // 5. 90 days constitutional indemnization (Art. 48 LFT)
       indemnization90Days = integratedSalary * 90;
 
@@ -316,7 +315,7 @@ export class LiquidationCalculatorService {
     // For finiquito (voluntary resignation), normal ISR applies
     // For liquidación, there's a special calculation method
 
-    if (type === 'FINIQUITO') {
+    if (type === LiquidationType.FINIQUITO || type === LiquidationType.RESIGNATION) {
       // Apply normal ISR table to annual equivalent
       const currentYear = new Date().getFullYear();
       try {

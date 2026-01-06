@@ -139,7 +139,7 @@ export class PayrollVersioningService {
     const nextVersion = (lastVersion?.version || 0) + 1;
 
     // Crear snapshot
-    const perceptionsSnapshot = detail.perceptions.map(p => ({
+    const perceptionsSnapshot = detail.perceptions.map((p: any) => ({
       conceptId: p.conceptId,
       conceptCode: p.concept.code,
       conceptName: p.concept.name,
@@ -148,7 +148,7 @@ export class PayrollVersioningService {
       exemptAmount: Number(p.exemptAmount),
     }));
 
-    const deductionsSnapshot = detail.deductions.map(d => ({
+    const deductionsSnapshot = detail.deductions.map((d: any) => ({
       conceptId: d.conceptId,
       conceptCode: d.concept.code,
       conceptName: d.concept.name,
@@ -165,8 +165,8 @@ export class PayrollVersioningService {
         totalDeductions: detail.totalDeductions,
         netPay: detail.netPay,
         status: detail.status,
-        perceptionsSnapshot: perceptionsSnapshot as unknown as Prisma.InputJsonValue,
-        deductionsSnapshot: deductionsSnapshot as unknown as Prisma.InputJsonValue,
+        perceptionsSnapshot: perceptionsSnapshot as any,
+        deductionsSnapshot: deductionsSnapshot as any,
         createdBy: userId,
         createdReason: reason,
         cfdiUuid: detail.cfdiNomina?.uuid,

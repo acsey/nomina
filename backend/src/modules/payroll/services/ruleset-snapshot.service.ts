@@ -384,8 +384,8 @@ export class RulesetSnapshotService {
   ): FormulaComparison[] {
     const differences: FormulaComparison[] = [];
 
-    const mapA = new Map(formulasA.map((f) => [f.conceptCode, f]));
-    const mapB = new Map(formulasB.map((f) => [f.conceptCode, f]));
+    const mapA = new Map(formulasA.map((f: any) => [f.conceptCode, f]));
+    const mapB = new Map(formulasB.map((f: any) => [f.conceptCode, f]));
 
     // Fórmulas modificadas o eliminadas
     for (const [code, formulaA] of mapA) {

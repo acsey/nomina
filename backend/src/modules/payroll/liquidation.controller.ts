@@ -11,7 +11,7 @@ import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { LiquidationCalculatorService } from './services/liquidation-calculator.service';
-import { LiquidationType } from '@prisma/client';
+import { LiquidationType } from '@/common/types/prisma-enums';
 import { IsString, IsEnum, IsOptional, IsBoolean, IsDateString } from 'class-validator';
 
 class CalculateLiquidationDto {

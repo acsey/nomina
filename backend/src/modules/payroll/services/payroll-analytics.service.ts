@@ -184,21 +184,21 @@ export class PayrollAnalyticsService {
     ]);
 
     // Crear sets de empleados para comparar
-    const period1Employees = new Set(period1Data.payrollDetails.map(d => d.employeeId));
-    const period2Employees = new Set(period2Data.payrollDetails.map(d => d.employeeId));
+    const period1Employees = new Set(period1Data.payrollDetails.map((d: any) => d.employeeId));
+    const period2Employees = new Set(period2Data.payrollDetails.map((d: any) => d.employeeId));
 
     // Identificar cambios de empleados
     const newEmployees = period2Data.payrollDetails
-      .filter(d => !period1Employees.has(d.employeeId))
-      .map(d => ({
+      .filter((d: any) => !period1Employees.has(d.employeeId))
+      .map((d: any) => ({
         id: d.employeeId,
         name: `${d.employee.firstName} ${d.employee.lastName}`,
         netPay: Number(d.netPay),
       }));
 
     const terminatedEmployees = period1Data.payrollDetails
-      .filter(d => !period2Employees.has(d.employeeId))
-      .map(d => ({
+      .filter((d: any) => !period2Employees.has(d.employeeId))
+      .map((d: any) => ({
         id: d.employeeId,
         name: `${d.employee.firstName} ${d.employee.lastName}`,
         lastNetPay: Number(d.netPay),
@@ -207,7 +207,7 @@ export class PayrollAnalyticsService {
     // Calcular cambios de salario para empleados que están en ambos períodos
     const salaryChanges: PeriodComparison['employeeChanges']['salaryChanges'] = [];
     for (const detail2 of period2Data.payrollDetails) {
-      const detail1 = period1Data.payrollDetails.find(d => d.employeeId === detail2.employeeId);
+      const detail1 = period1Data.payrollDetails.find((d: any) => d.employeeId === detail2.employeeId);
       if (detail1) {
         const previousNet = Number(detail1.netPay);
         const currentNet = Number(detail2.netPay);
@@ -228,7 +228,7 @@ export class PayrollAnalyticsService {
     }
 
     // Ordenar por mayor cambio absoluto
-    salaryChanges.sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
+    salaryChanges.sort((a: any, b: any) => Math.abs(b.difference) - Math.abs(a.difference));
 
     // Calcular cambios por concepto
     const conceptChanges = await this.calculateConceptChanges(period1Id, period2Id);
@@ -323,19 +323,19 @@ export class PayrollAnalyticsService {
     // Calcular total del período actual
     const currentPeriodTotal = currentPeriod
       ? this.rounding.sumAndRound(
-          currentPeriod.payrollDetails.map(d => Number(d.netPay))
+          currentPeriod.payrollDetails.map((d: any) => Number(d.netPay))
         )
       : 0;
 
     const currentPeriodPerceptions = currentPeriod
       ? this.rounding.sumAndRound(
-          currentPeriod.payrollDetails.map(d => Number(d.totalPerceptions))
+          currentPeriod.payrollDetails.map((d: any) => Number(d.totalPerceptions))
         )
       : 0;
 
     const currentPeriodDeductions = currentPeriod
       ? this.rounding.sumAndRound(
-          currentPeriod.payrollDetails.map(d => Number(d.totalDeductions))
+          currentPeriod.payrollDetails.map((d: any) => Number(d.totalDeductions))
         )
       : 0;
 
@@ -353,7 +353,7 @@ export class PayrollAnalyticsService {
           }
         : null,
       kpis,
-      trend: recentPeriods.reverse().map(p => ({
+      trend: recentPeriods.reverse().map((p: any) => ({
         period: `${p.periodType.substring(0, 3)} ${p.periodNumber}/${p.year}`,
         totalNet: Number(p.totalNet),
         employeeCount: p._count.payrollDetails,
@@ -385,7 +385,7 @@ export class PayrollAnalyticsService {
         title: 'Empleados sin NSS',
         description: 'Empleados activos sin Número de Seguro Social registrado',
         totalCount: employeesWithoutNss.length,
-        items: employeesWithoutNss.map(e => ({
+        items: employeesWithoutNss.map((e: any) => ({
           id: e.id,
           employeeId: e.id,
           employeeName: `${e.firstName} ${e.lastName}`,
@@ -414,7 +414,7 @@ export class PayrollAnalyticsService {
         title: 'CFDIs pendientes de timbrar',
         description: 'Comprobantes fiscales generados pero no timbrados',
         totalCount: pendingCfdis.length,
-        items: pendingCfdis.map(c => ({
+        items: pendingCfdis.map((c: any) => ({
           id: c.id,
           employeeId: c.employeeId,
           employeeName: `${c.employee.firstName} ${c.employee.lastName}`,
@@ -443,7 +443,7 @@ export class PayrollAnalyticsService {
         title: 'Incidencias pendientes',
         description: 'Incidencias que requieren aprobación',
         totalCount: pendingIncidents.length,
-        items: pendingIncidents.map(i => ({
+        items: pendingIncidents.map((i: any) => ({
           id: i.id,
           employeeId: i.employeeId,
           employeeName: `${i.employee.firstName} ${i.employee.lastName}`,
@@ -472,7 +472,7 @@ export class PayrollAnalyticsService {
         title: 'Vacaciones pendientes de aprobar',
         description: 'Solicitudes de vacaciones esperando aprobación',
         totalCount: pendingVacations.length,
-        items: pendingVacations.map(v => ({
+        items: pendingVacations.map((v: any) => ({
           id: v.id,
           employeeId: v.employeeId,
           employeeName: `${v.employee.firstName} ${v.employee.lastName}`,
@@ -501,7 +501,7 @@ export class PayrollAnalyticsService {
         title: 'Certificados por vencer',
         description: 'Certificados SAT que vencen en los próximos 30 días',
         totalCount: companies.length,
-        items: companies.map(c => ({
+        items: companies.map((c: any) => ({
           id: c.id,
           description: `Certificado de ${c.name} vence el ${c.certificadoVigenciaFin?.toLocaleDateString('es-MX')}`,
           severity: 'CRITICAL' as const,
@@ -534,7 +534,7 @@ export class PayrollAnalyticsService {
         title: 'Empleados sin departamento',
         description: 'Empleados activos sin departamento asignado',
         totalCount: employeesWithoutDept.length,
-        items: employeesWithoutDept.map(e => ({
+        items: employeesWithoutDept.map((e: any) => ({
           id: e.id,
           employeeId: e.id,
           employeeName: `${e.firstName} ${e.lastName}`,
@@ -613,13 +613,13 @@ export class PayrollAnalyticsService {
 
     // Combinar percepciones
     const allPerceptionCodes = new Set([
-      ...p1Perceptions.map(p => p.code),
-      ...p2Perceptions.map(p => p.code),
+      ...p1Perceptions.map((p: any) => p.code),
+      ...p2Perceptions.map((p: any) => p.code),
     ]);
 
     for (const code of allPerceptionCodes) {
-      const p1 = p1Perceptions.find(p => p.code === code);
-      const p2 = p2Perceptions.find(p => p.code === code);
+      const p1 = p1Perceptions.find((p: any) => p.code === code);
+      const p2 = p2Perceptions.find((p: any) => p.code === code);
       const period1Total = p1?.total || 0;
       const period2Total = p2?.total || 0;
       const difference = this.rounding.roundCurrency(period2Total - period1Total);
@@ -641,13 +641,13 @@ export class PayrollAnalyticsService {
 
     // Combinar deducciones
     const allDeductionCodes = new Set([
-      ...p1Deductions.map(p => p.code),
-      ...p2Deductions.map(p => p.code),
+      ...p1Deductions.map((p: any) => p.code),
+      ...p2Deductions.map((p: any) => p.code),
     ]);
 
     for (const code of allDeductionCodes) {
-      const p1 = p1Deductions.find(p => p.code === code);
-      const p2 = p2Deductions.find(p => p.code === code);
+      const p1 = p1Deductions.find((p: any) => p.code === code);
+      const p2 = p2Deductions.find((p: any) => p.code === code);
       const period1Total = p1?.total || 0;
       const period2Total = p2?.total || 0;
       const difference = this.rounding.roundCurrency(period2Total - period1Total);
@@ -668,7 +668,7 @@ export class PayrollAnalyticsService {
     }
 
     // Ordenar por mayor cambio absoluto
-    return changes.sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
+    return changes.sort((a: any, b: any) => Math.abs(b.difference) - Math.abs(a.difference));
   }
 
   private async getConceptTotals(
@@ -683,12 +683,12 @@ export class PayrollAnalyticsService {
       });
 
       const concepts = await this.prisma.payrollConcept.findMany({
-        where: { id: { in: perceptions.map(p => p.conceptId) } },
+        where: { id: { in: perceptions.map((p: any) => p.conceptId) } },
       });
 
-      return perceptions.map(p => ({
-        code: concepts.find(c => c.id === p.conceptId)?.code || '',
-        name: concepts.find(c => c.id === p.conceptId)?.name || '',
+      return perceptions.map((p: any) => ({
+        code: concepts.find((c: any) => c.id === p.conceptId)?.code || '',
+        name: concepts.find((c: any) => c.id === p.conceptId)?.name || '',
         total: Number(p._sum.amount) || 0,
       }));
     } else {
@@ -699,12 +699,12 @@ export class PayrollAnalyticsService {
       });
 
       const concepts = await this.prisma.payrollConcept.findMany({
-        where: { id: { in: deductions.map(d => d.conceptId) } },
+        where: { id: { in: deductions.map((d: any) => d.conceptId) } },
       });
 
-      return deductions.map(d => ({
-        code: concepts.find(c => c.id === d.conceptId)?.code || '',
-        name: concepts.find(c => c.id === d.conceptId)?.name || '',
+      return deductions.map((d: any) => ({
+        code: concepts.find((c: any) => c.id === d.conceptId)?.code || '',
+        name: concepts.find((c: any) => c.id === d.conceptId)?.name || '',
         total: Number(d._sum.amount) || 0,
       }));
     }
@@ -726,14 +726,14 @@ export class PayrollAnalyticsService {
       },
     });
 
-    const totalNet = departments.reduce((sum, dept) => {
-      return sum + dept.employees.reduce((empSum, emp) => {
+    const totalNet = departments.reduce((sum: any, dept: any) => {
+      return sum + dept.employees.reduce((empSum: any, emp: any) => {
         return empSum + (emp.payrollDetails[0] ? Number(emp.payrollDetails[0].netPay) : 0);
       }, 0);
     }, 0);
 
-    return departments.map(dept => {
-      const deptTotal = dept.employees.reduce((sum, emp) => {
+    return departments.map((dept: any) => {
+      const deptTotal = dept.employees.reduce((sum: number, emp: any) => {
         return sum + (emp.payrollDetails[0] ? Number(emp.payrollDetails[0].netPay) : 0);
       }, 0);
 
@@ -746,7 +746,7 @@ export class PayrollAnalyticsService {
           ? this.rounding.roundPercentage((deptTotal / totalNet) * 100)
           : 0,
       };
-    }).sort((a, b) => b.totalNet - a.totalNet);
+    }).sort((a: any, b: any) => b.totalNet - a.totalNet);
   }
 
   private async getTopConcepts(
@@ -765,7 +765,7 @@ export class PayrollAnalyticsService {
     const total = this.rounding.sumAndRound(totals.map(t => t.total));
 
     return totals
-      .sort((a, b) => b.total - a.total)
+      .sort((a: any, b: any) => b.total - a.total)
       .slice(0, limit)
       .map(t => ({
         code: t.code,
