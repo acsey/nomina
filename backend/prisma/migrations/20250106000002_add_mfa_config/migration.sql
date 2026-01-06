@@ -14,9 +14,8 @@ CREATE TABLE "mfa_config" (
     CONSTRAINT "mfa_config_pkey" PRIMARY KEY ("id")
 );
 
--- Índices para búsqueda eficiente
-CREATE UNIQUE INDEX "mfa_config_user_id_key" ON "mfa_config"("user_id");
-CREATE INDEX "mfa_config_status_idx" ON "mfa_config"("status");
+-- Índice para búsqueda por status (el índice unique de user_id ya se crea con UNIQUE constraint)
+CREATE INDEX IF NOT EXISTS "mfa_config_status_idx" ON "mfa_config"("status");
 
 -- Relación con usuarios
 ALTER TABLE "mfa_config" ADD CONSTRAINT "mfa_config_user_id_fkey"
