@@ -563,6 +563,12 @@ export const hierarchyApi = {
     api.get('/hierarchy/can-approve', { params: { approverId, employeeId } }),
 };
 
+// Email API - Testing SMTP
+export const emailApi = {
+  testConnection: () => api.post('/email/test-connection'),
+  testSend: (to: string) => api.post('/email/test-send', { to }),
+};
+
 // PAC API - Proveedores Autorizados de Certificación
 export const pacApi = {
   // Get all PAC providers (for admin catalog view)

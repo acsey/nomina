@@ -4,13 +4,19 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 
-// Role hierarchy: admin > rh > manager > employee
+// Role hierarchy: admin/company_admin > rh > manager > employee
 const ROLE_HIERARCHY: Record<string, number> = {
-  admin: 4,
+  admin: 5,
+  company_admin: 4,
   rh: 3,
   manager: 2,
   employee: 1,
 };
+
+// Helper to check if user is super admin (admin without company)
+function isSuperAdmin(user: { role: string; companyId?: string }): boolean {
+  return user.role === 'admin' && !user.companyId;
+}
 
 @Injectable()
 export class UsersService {
@@ -46,9 +52,10 @@ export class UsersService {
       throw new ForbiddenException('No tiene permisos para crear usuarios con este rol');
     }
 
-    // For non-admin users, force company assignment to their own company
+    // Only super admin can create users for any company
+    // All other users (including company_admin) can only create for their company
     let companyId = createUserDto.companyId;
-    if (currentUser.role !== 'admin' && currentUser.companyId) {
+    if (!isSuperAdmin(currentUser) && currentUser.companyId) {
       companyId = currentUser.companyId;
     }
 
@@ -84,8 +91,9 @@ export class UsersService {
     // Build where clause based on role and company
     const where: any = {};
 
-    // Non-admin users can only see users from their company
-    if (currentUser.role !== 'admin' && currentUser.companyId) {
+    // Only super admin (admin without companyId) can see all users
+    // Company admins and other roles are restricted to their company
+    if (!isSuperAdmin(currentUser) && currentUser.companyId) {
       where.companyId = currentUser.companyId;
     }
 
@@ -150,13 +158,14 @@ export class UsersService {
     }
 
     // Check if current user can view this user
-    if (currentUser.role !== 'admin') {
-      // Non-admin can only view users from their company
+    // Only super admin bypasses these checks
+    if (!isSuperAdmin(currentUser)) {
+      // Company admins and other roles can only view users from their company
       if (currentUser.companyId && user.companyId !== currentUser.companyId) {
         throw new ForbiddenException('No tiene permisos para ver este usuario');
       }
 
-      // Can only view users with lower hierarchy
+      // Can only view users with lower or equal hierarchy
       if (!this.canManageRole(currentUser.role, user.role.name)) {
         throw new ForbiddenException('No tiene permisos para ver este usuario');
       }
@@ -185,9 +194,9 @@ export class UsersService {
       }
     }
 
-    // For non-admin users, prevent changing company
+    // Only super admin can change company assignment
     let companyId = updateUserDto.companyId;
-    if (currentUser.role !== 'admin') {
+    if (!isSuperAdmin(currentUser)) {
       companyId = user.companyId || currentUser.companyId;
     }
 

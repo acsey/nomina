@@ -25,7 +25,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles('admin', 'rh', 'manager')
+  @Roles('admin', 'company_admin', 'rh', 'manager')
   @ApiOperation({ summary: 'Crear nuevo usuario' })
   create(
     @Body() createUserDto: CreateUserDto,
@@ -38,7 +38,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles('admin', 'rh', 'manager')
+  @Roles('admin', 'company_admin', 'rh', 'manager')
   @ApiOperation({ summary: 'Listar usuarios' })
   @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'take', required: false })
@@ -59,7 +59,7 @@ export class UsersController {
   }
 
   @Get('roles')
-  @Roles('admin', 'rh', 'manager')
+  @Roles('admin', 'company_admin', 'rh', 'manager')
   @ApiOperation({ summary: 'Obtener roles asignables' })
   getRoles(@CurrentUser() user: any) {
     return this.usersService.getRoles({
@@ -68,7 +68,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('admin', 'rh', 'manager')
+  @Roles('admin', 'company_admin', 'rh', 'manager')
   @ApiOperation({ summary: 'Obtener usuario por ID' })
   findOne(
     @Param('id') id: string,
@@ -81,7 +81,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'rh', 'manager')
+  @Roles('admin', 'company_admin', 'rh', 'manager')
   @ApiOperation({ summary: 'Actualizar usuario' })
   update(
     @Param('id') id: string,
@@ -95,7 +95,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Desactivar usuario' })
   remove(
     @Param('id') id: string,

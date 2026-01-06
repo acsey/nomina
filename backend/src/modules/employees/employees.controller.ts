@@ -8,6 +8,8 @@ import {
   Delete,
   Query,
   UseGuards,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { EmployeesService } from './employees.service';
@@ -16,18 +18,47 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles, CurrentUser } from '@/common/decorators';
+import { PrismaService } from '@/common/prisma/prisma.service';
 
 @ApiTags('employees')
 @Controller('employees')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class EmployeesController {
-  constructor(private readonly employeesService: EmployeesService) {}
+  constructor(
+    private readonly employeesService: EmployeesService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post()
   @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Crear nuevo empleado' })
-  create(@Body() createEmployeeDto: CreateEmployeeDto) {
+  async create(
+    @CurrentUser() user: any,
+    @Body() createEmployeeDto: CreateEmployeeDto,
+  ) {
+    // Validate user can create employees for this company
+    const isSuperAdmin = user.role === 'admin' && !user.companyId;
+
+    if (!isSuperAdmin) {
+      // User must create employees for their own company only
+      if (createEmployeeDto.companyId !== user.companyId) {
+        throw new ForbiddenException('No puede crear empleados para otra empresa');
+      }
+    }
+
+    // Validate supervisor belongs to the same company
+    if (createEmployeeDto.supervisorId) {
+      const supervisor = await this.prisma.employee.findUnique({
+        where: { id: createEmployeeDto.supervisorId },
+        select: { companyId: true },
+      });
+
+      if (!supervisor || supervisor.companyId !== createEmployeeDto.companyId) {
+        throw new BadRequestException('El supervisor debe pertenecer a la misma empresa');
+      }
+    }
+
     return this.employeesService.create(createEmployeeDto);
   }
 
@@ -49,14 +80,18 @@ export class EmployeesController {
     @Query('companyId') companyIdQuery?: string,
   ) {
     // Only super admin (without companyId) can see all companies
-    // company_admin, rh, manager, employee filter by their assigned company
-    const userRole = user.role || user.roleName;
-    const isSuperAdmin = userRole === 'admin' && !user.companyId;
+    const isSuperAdmin = user.role === 'admin' && !user.companyId;
 
     // Super admin can filter by any company, others see only their company
-    const companyId = isSuperAdmin
-      ? companyIdQuery
-      : user.companyId;
+    let companyId: string | undefined;
+
+    if (isSuperAdmin) {
+      // Super admin can specify any company or see all
+      companyId = companyIdQuery;
+    } else {
+      // CRITICAL: Force the user's company - ignore any query parameter
+      companyId = user.companyId;
+    }
 
     return this.employeesService.findAll({
       skip,
@@ -70,48 +105,155 @@ export class EmployeesController {
 
   @Get('by-email/:email')
   @ApiOperation({ summary: 'Obtener empleado por email' })
-  findByEmail(@Param('email') email: string) {
-    return this.employeesService.findByEmail(email);
+  async findByEmail(
+    @CurrentUser() user: any,
+    @Param('email') email: string,
+  ) {
+    const employee = await this.employeesService.findByEmail(email);
+
+    // Validate access
+    await this.validateEmployeeAccess(user, employee.companyId);
+
+    return employee;
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener empleado por ID' })
-  findOne(@Param('id') id: string) {
-    return this.employeesService.findOne(id);
+  async findOne(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const employee = await this.employeesService.findOne(id);
+
+    // Validate access
+    await this.validateEmployeeAccess(user, employee.companyId);
+
+    return employee;
   }
 
   @Patch(':id')
   @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Actualizar empleado' })
-  update(@Param('id') id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
+  async update(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() updateEmployeeDto: UpdateEmployeeDto,
+  ) {
+    // Get employee to check company
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      select: { companyId: true },
+    });
+
+    if (!employee) {
+      throw new BadRequestException('Empleado no encontrado');
+    }
+
+    // Validate access
+    await this.validateEmployeeAccess(user, employee.companyId);
+
+    // Validate supervisor belongs to the same company if changing
+    if (updateEmployeeDto.supervisorId) {
+      const supervisor = await this.prisma.employee.findUnique({
+        where: { id: updateEmployeeDto.supervisorId },
+        select: { companyId: true },
+      });
+
+      if (!supervisor || supervisor.companyId !== employee.companyId) {
+        throw new BadRequestException('El supervisor debe pertenecer a la misma empresa');
+      }
+    }
+
+    // Prevent changing employee's company (unless super admin)
+    const isSuperAdmin = user.role === 'admin' && !user.companyId;
+    if (updateEmployeeDto.companyId && updateEmployeeDto.companyId !== employee.companyId && !isSuperAdmin) {
+      throw new ForbiddenException('No puede cambiar la empresa del empleado');
+    }
+
     return this.employeesService.update(id, updateEmployeeDto);
   }
 
   @Delete(':id')
   @Roles('admin', 'company_admin')
   @ApiOperation({ summary: 'Desactivar empleado' })
-  remove(@Param('id') id: string) {
+  async remove(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    // Get employee to check company
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      select: { companyId: true },
+    });
+
+    if (!employee) {
+      throw new BadRequestException('Empleado no encontrado');
+    }
+
+    // Validate access
+    await this.validateEmployeeAccess(user, employee.companyId);
+
     return this.employeesService.remove(id);
   }
 
   @Post(':id/terminate')
   @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Dar de baja a empleado' })
-  terminate(
+  async terminate(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body('terminationDate') terminationDate: Date,
   ) {
+    // Get employee to check company
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      select: { companyId: true },
+    });
+
+    if (!employee) {
+      throw new BadRequestException('Empleado no encontrado');
+    }
+
+    // Validate access
+    await this.validateEmployeeAccess(user, employee.companyId);
+
     return this.employeesService.terminate(id, terminationDate);
   }
 
   @Post(':id/salary')
   @Roles('admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Actualizar salario del empleado' })
-  updateSalary(
+  async updateSalary(
+    @CurrentUser() user: any,
     @Param('id') id: string,
     @Body('newSalary') newSalary: number,
     @Body('reason') reason?: string,
   ) {
+    // Get employee to check company
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      select: { companyId: true },
+    });
+
+    if (!employee) {
+      throw new BadRequestException('Empleado no encontrado');
+    }
+
+    // Validate access
+    await this.validateEmployeeAccess(user, employee.companyId);
+
     return this.employeesService.updateSalary(id, newSalary, reason);
+  }
+
+  // Helper method to validate user can access an employee's company
+  private async validateEmployeeAccess(user: any, employeeCompanyId: string): Promise<void> {
+    // Super admin can access all
+    const isSuperAdmin = user.role === 'admin' && !user.companyId;
+    if (isSuperAdmin) return;
+
+    // User must be from the same company
+    if (user.companyId !== employeeCompanyId) {
+      throw new ForbiddenException('No tiene acceso a empleados de otra empresa');
+    }
   }
 }

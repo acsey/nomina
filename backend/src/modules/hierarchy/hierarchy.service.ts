@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 export interface HierarchyNode {
@@ -9,10 +9,12 @@ export interface HierarchyNode {
   fullName: string;
   jobPosition: string;
   department: string;
+  departmentId: string | null;
   email: string | null;
   photoUrl?: string;
   level: number;
   supervisorId: string | null;
+  companyId: string;
   subordinates: HierarchyNode[];
 }
 
@@ -22,6 +24,9 @@ export interface ApprovalChainMember {
   employeeNumber: string;
   name: string;
   jobPosition: string;
+  department?: string;
+  email?: string;
+  role: 'SUPERVISOR' | 'RH' | 'ADMIN';
   canApprove: boolean;
   isDelegated: boolean;
   delegatedFrom?: string;
@@ -32,25 +37,30 @@ export class HierarchyService {
   constructor(private prisma: PrismaService) {}
 
   // Get the full organizational chart starting from top-level employees
-  async getOrganizationalChart(companyId?: string): Promise<HierarchyNode[]> {
-    // Get all employees with no supervisor (top level)
+  // CRITICAL: Always filter by companyId to ensure data isolation
+  async getOrganizationalChart(companyId: string): Promise<HierarchyNode[]> {
+    if (!companyId) {
+      throw new BadRequestException('Se requiere el ID de la empresa');
+    }
+
+    // Get all employees with no supervisor (top level) for this company only
     const topLevelEmployees = await this.prisma.employee.findMany({
       where: {
         supervisorId: null,
         isActive: true,
-        ...(companyId && { companyId }),
+        companyId, // CRITICAL: Always filter by company
       },
       include: {
         jobPosition: true,
         department: true,
       },
-      orderBy: { hierarchyLevel: 'asc' },
+      orderBy: [{ hierarchyLevel: 'asc' }, { lastName: 'asc' }],
     });
 
     // Build hierarchy for each top-level employee
     const chart: HierarchyNode[] = [];
     for (const employee of topLevelEmployees) {
-      const node = await this.buildHierarchyNode(employee, 0);
+      const node = await this.buildHierarchyNode(employee, 0, companyId);
       chart.push(node);
     }
 
@@ -58,11 +68,13 @@ export class HierarchyService {
   }
 
   // Build hierarchy tree for a single employee
-  private async buildHierarchyNode(employee: any, level: number): Promise<HierarchyNode> {
+  // CRITICAL: companyId is required to ensure we only get subordinates from the same company
+  private async buildHierarchyNode(employee: any, level: number, companyId: string): Promise<HierarchyNode> {
     const subordinates = await this.prisma.employee.findMany({
       where: {
         supervisorId: employee.id,
         isActive: true,
+        companyId, // CRITICAL: Filter subordinates by company
       },
       include: {
         jobPosition: true,
@@ -73,7 +85,7 @@ export class HierarchyService {
 
     const subordinateNodes: HierarchyNode[] = [];
     for (const sub of subordinates) {
-      const subNode = await this.buildHierarchyNode(sub, level + 1);
+      const subNode = await this.buildHierarchyNode(sub, level + 1, companyId);
       subordinateNodes.push(subNode);
     }
 
@@ -85,19 +97,25 @@ export class HierarchyService {
       fullName: `${employee.firstName} ${employee.lastName}`,
       jobPosition: employee.jobPosition?.name || '',
       department: employee.department?.name || '',
+      departmentId: employee.departmentId,
       email: employee.email,
+      photoUrl: employee.photoUrl,
       level,
       supervisorId: employee.supervisorId,
+      companyId: employee.companyId,
       subordinates: subordinateNodes,
     };
   }
 
   // Get hierarchy for a specific employee (their supervisors up to the top)
+  // Returns the approval chain: Supervisor → RH → Admin
   async getEmployeeHierarchy(employeeId: string): Promise<ApprovalChainMember[]> {
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
       include: {
         jobPosition: true,
+        department: true,
+        company: true,
       },
     });
 
@@ -106,14 +124,17 @@ export class HierarchyService {
     }
 
     const chain: ApprovalChainMember[] = [];
+    const companyId = employee.companyId;
     let currentEmployee = employee;
     let level = 1;
 
+    // Step 1: Add supervisors up the chain (same company only)
     while (currentEmployee.supervisorId) {
       const supervisor = await this.prisma.employee.findUnique({
         where: { id: currentEmployee.supervisorId },
         include: {
           jobPosition: true,
+          department: true,
           delegationsGiven: {
             where: {
               isActive: true,
@@ -125,14 +146,15 @@ export class HierarchyService {
             },
             include: {
               delegatee: {
-                include: { jobPosition: true },
+                include: { jobPosition: true, department: true },
               },
             },
           },
         },
       });
 
-      if (!supervisor) break;
+      // CRITICAL: Only include supervisors from the same company
+      if (!supervisor || supervisor.companyId !== companyId) break;
 
       // Check for active delegation
       const activeDelegation = supervisor.delegationsGiven.find(
@@ -145,18 +167,24 @@ export class HierarchyService {
         employeeNumber: supervisor.employeeNumber,
         name: `${supervisor.firstName} ${supervisor.lastName}`,
         jobPosition: supervisor.jobPosition?.name || '',
+        department: supervisor.department?.name,
+        email: supervisor.email || undefined,
+        role: 'SUPERVISOR',
         canApprove: true,
         isDelegated: false,
       });
 
-      // If there's a delegation, add the delegatee
-      if (activeDelegation) {
+      // If there's a delegation, add the delegatee (same company only)
+      if (activeDelegation && activeDelegation.delegatee.companyId === companyId) {
         chain.push({
           level,
           employeeId: activeDelegation.delegatee.id,
           employeeNumber: activeDelegation.delegatee.employeeNumber,
           name: `${activeDelegation.delegatee.firstName} ${activeDelegation.delegatee.lastName}`,
           jobPosition: activeDelegation.delegatee.jobPosition?.name || '',
+          department: activeDelegation.delegatee.department?.name,
+          email: activeDelegation.delegatee.email || undefined,
+          role: 'SUPERVISOR',
           canApprove: true,
           isDelegated: true,
           delegatedFrom: `${supervisor.firstName} ${supervisor.lastName}`,
@@ -167,15 +195,91 @@ export class HierarchyService {
       level++;
     }
 
+    // Step 2: Add RH users from the same company
+    const rhUsers = await this.prisma.user.findMany({
+      where: {
+        companyId,
+        role: 'rh',
+        isActive: true,
+      },
+      include: {
+        employee: {
+          include: { jobPosition: true, department: true },
+        },
+      },
+    });
+
+    for (const rhUser of rhUsers) {
+      // Avoid duplicates if RH is already in supervisor chain
+      if (!chain.some(c => c.employeeId === rhUser.employeeId) && rhUser.employee) {
+        chain.push({
+          level: level++,
+          employeeId: rhUser.employee.id,
+          employeeNumber: rhUser.employee.employeeNumber,
+          name: `${rhUser.employee.firstName} ${rhUser.employee.lastName}`,
+          jobPosition: rhUser.employee.jobPosition?.name || 'Recursos Humanos',
+          department: rhUser.employee.department?.name,
+          email: rhUser.email,
+          role: 'RH',
+          canApprove: true,
+          isDelegated: false,
+        });
+      }
+    }
+
+    // Step 3: Add Company Admin
+    const companyAdmins = await this.prisma.user.findMany({
+      where: {
+        companyId,
+        role: 'company_admin',
+        isActive: true,
+      },
+      include: {
+        employee: {
+          include: { jobPosition: true, department: true },
+        },
+      },
+    });
+
+    for (const admin of companyAdmins) {
+      // Avoid duplicates
+      if (!chain.some(c => c.employeeId === admin.employeeId) && admin.employee) {
+        chain.push({
+          level: level++,
+          employeeId: admin.employee.id,
+          employeeNumber: admin.employee.employeeNumber,
+          name: `${admin.employee.firstName} ${admin.employee.lastName}`,
+          jobPosition: admin.employee.jobPosition?.name || 'Administrador',
+          department: admin.employee.department?.name,
+          email: admin.email,
+          role: 'ADMIN',
+          canApprove: true,
+          isDelegated: false,
+        });
+      }
+    }
+
     return chain;
   }
 
   // Get subordinates for an employee (direct reports)
+  // CRITICAL: Filter by the employee's company to ensure isolation
   async getSubordinates(employeeId: string): Promise<any[]> {
+    // First get the employee to know their company
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { companyId: true },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
     const subordinates = await this.prisma.employee.findMany({
       where: {
         supervisorId: employeeId,
         isActive: true,
+        companyId: employee.companyId, // CRITICAL: Filter by company
       },
       include: {
         jobPosition: true,
@@ -187,14 +291,19 @@ export class HierarchyService {
     return subordinates.map((emp) => ({
       id: emp.id,
       employeeNumber: emp.employeeNumber,
+      firstName: emp.firstName,
+      lastName: emp.lastName,
       fullName: `${emp.firstName} ${emp.lastName}`,
       jobPosition: emp.jobPosition?.name || '',
       department: emp.department?.name || '',
+      departmentId: emp.departmentId,
       email: emp.email,
+      companyId: emp.companyId,
     }));
   }
 
   // Get all subordinates recursively (entire team)
+  // CRITICAL: Uses getSubordinates which already filters by company
   async getAllSubordinates(employeeId: string): Promise<any[]> {
     const result: any[] = [];
     const directReports = await this.getSubordinates(employeeId);
@@ -209,9 +318,34 @@ export class HierarchyService {
   }
 
   // Set supervisor for an employee
+  // CRITICAL: Validates that both employees belong to the same company
   async setSupervisor(employeeId: string, supervisorId: string | null): Promise<any> {
-    // Validate no circular reference
+    // Get the employee first
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { companyId: true },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
     if (supervisorId) {
+      // CRITICAL: Validate supervisor belongs to the same company
+      const supervisor = await this.prisma.employee.findUnique({
+        where: { id: supervisorId },
+        select: { companyId: true, hierarchyLevel: true },
+      });
+
+      if (!supervisor) {
+        throw new NotFoundException('Supervisor no encontrado');
+      }
+
+      if (supervisor.companyId !== employee.companyId) {
+        throw new ForbiddenException('El supervisor debe pertenecer a la misma empresa');
+      }
+
+      // Validate no circular reference
       const isCircular = await this.checkCircularReference(employeeId, supervisorId);
       if (isCircular) {
         throw new BadRequestException('No se puede crear una referencia circular en la jerarquía');
@@ -241,6 +375,7 @@ export class HierarchyService {
         },
         jobPosition: true,
         department: true,
+        company: true,
       },
     });
 
@@ -291,6 +426,7 @@ export class HierarchyService {
   }
 
   // Create approval delegation
+  // CRITICAL: Validates that both employees belong to the same company
   async createDelegation(data: {
     delegatorId: string;
     delegateeId: string;
@@ -299,19 +435,35 @@ export class HierarchyService {
     endDate?: Date;
     reason?: string;
   }): Promise<any> {
-    // Validate delegatee is in the approval chain (supervisor or above)
+    // Get delegator with company info
     const delegator = await this.prisma.employee.findUnique({
       where: { id: data.delegatorId },
+      select: { id: true, companyId: true },
     });
 
     if (!delegator) {
       throw new NotFoundException('Delegador no encontrado');
     }
 
-    // Check if delegatee is a supervisor of the delegator
-    const isValidDelegatee = await this.isInHierarchyChain(data.delegatorId, data.delegateeId);
+    // Get delegatee with company info
+    const delegatee = await this.prisma.employee.findUnique({
+      where: { id: data.delegateeId },
+      select: { id: true, companyId: true },
+    });
+
+    if (!delegatee) {
+      throw new NotFoundException('Delegatario no encontrado');
+    }
+
+    // CRITICAL: Validate both belong to the same company
+    if (delegator.companyId !== delegatee.companyId) {
+      throw new ForbiddenException('Solo puede delegar a empleados de la misma empresa');
+    }
+
+    // Check if delegatee is a supervisor of the delegator or RH/Admin
+    const isValidDelegatee = await this.isValidDelegatee(data.delegatorId, data.delegateeId, delegator.companyId);
     if (!isValidDelegatee) {
-      throw new BadRequestException('Solo puede delegar a un supervisor en su cadena jerárquica');
+      throw new BadRequestException('Solo puede delegar a un supervisor, RH o administrador de su empresa');
     }
 
     // Deactivate existing delegations of same type
@@ -334,26 +486,57 @@ export class HierarchyService {
         reason: data.reason,
       },
       include: {
-        delegator: { include: { jobPosition: true } },
-        delegatee: { include: { jobPosition: true } },
+        delegator: { include: { jobPosition: true, department: true } },
+        delegatee: { include: { jobPosition: true, department: true } },
       },
     });
   }
 
+  // Check if delegatee is valid (supervisor in chain, RH, or admin)
+  private async isValidDelegatee(delegatorId: string, delegateeId: string, companyId: string): Promise<boolean> {
+    // Check if in supervisor chain
+    const isInChain = await this.isInHierarchyChain(delegatorId, delegateeId);
+    if (isInChain) return true;
+
+    // Check if delegatee is RH or company_admin of the same company
+    const delegateeUser = await this.prisma.user.findFirst({
+      where: {
+        employeeId: delegateeId,
+        companyId,
+        role: { in: ['rh', 'company_admin'] },
+        isActive: true,
+      },
+    });
+
+    return !!delegateeUser;
+  }
+
   // Check if targetId is in the supervisor chain of employeeId
+  // CRITICAL: Also validates company consistency
   private async isInHierarchyChain(employeeId: string, targetId: string): Promise<boolean> {
-    let currentId = employeeId;
+    // Get employee's company
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { companyId: true, supervisorId: true },
+    });
+
+    if (!employee) return false;
+
+    const companyId = employee.companyId;
+    let currentId = employee.supervisorId;
 
     while (currentId) {
-      const employee = await this.prisma.employee.findUnique({
+      if (currentId === targetId) return true;
+
+      const current = await this.prisma.employee.findUnique({
         where: { id: currentId },
-        select: { supervisorId: true },
+        select: { supervisorId: true, companyId: true },
       });
 
-      if (!employee || !employee.supervisorId) return false;
-      if (employee.supervisorId === targetId) return true;
+      // CRITICAL: Stop if we leave the company
+      if (!current || current.companyId !== companyId) return false;
 
-      currentId = employee.supervisorId;
+      currentId = current.supervisorId;
     }
 
     return false;
@@ -387,8 +570,75 @@ export class HierarchyService {
   }
 
   // Check if an approver can approve for an employee
+  // CRITICAL: Validates company consistency
   async canApprove(approverId: string, employeeId: string): Promise<boolean> {
+    // Get both employees
+    const [approver, employee] = await Promise.all([
+      this.prisma.employee.findUnique({
+        where: { id: approverId },
+        select: { companyId: true },
+      }),
+      this.prisma.employee.findUnique({
+        where: { id: employeeId },
+        select: { companyId: true },
+      }),
+    ]);
+
+    // Both must exist and belong to the same company
+    if (!approver || !employee) return false;
+    if (approver.companyId !== employee.companyId) return false;
+
+    // Check if in approval chain
     const approvers = await this.getApprovers(employeeId);
     return approvers.some((a) => a.employeeId === approverId && a.canApprove);
+  }
+
+  // Get employees that a user can manage based on their role
+  async getManagedEmployees(userId: string): Promise<string[]> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { employee: true },
+    });
+
+    if (!user) return [];
+
+    // Super admin can see all
+    if (user.role === 'admin') {
+      const allEmployees = await this.prisma.employee.findMany({
+        where: { isActive: true },
+        select: { id: true },
+      });
+      return allEmployees.map(e => e.id);
+    }
+
+    // Company-scoped roles
+    if (!user.companyId) return [];
+
+    // company_admin and rh can see all employees of their company
+    if (user.role === 'company_admin' || user.role === 'rh') {
+      const companyEmployees = await this.prisma.employee.findMany({
+        where: {
+          companyId: user.companyId,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      return companyEmployees.map(e => e.id);
+    }
+
+    // manager can see their subordinates
+    if (user.role === 'manager' && user.employeeId) {
+      const subordinates = await this.getAllSubordinates(user.employeeId);
+      return subordinates.map(s => s.id);
+    }
+
+    // employee can only see themselves
+    return user.employeeId ? [user.employeeId] : [];
+  }
+
+  // Validate that a user can access an employee's data
+  async validateAccess(userId: string, employeeId: string): Promise<boolean> {
+    const managedEmployees = await this.getManagedEmployees(userId);
+    return managedEmployees.includes(employeeId);
   }
 }
