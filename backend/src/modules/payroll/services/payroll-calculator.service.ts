@@ -94,7 +94,7 @@ export class PayrollCalculatorService {
     });
 
     // Marcar retroactivas y agregar nota
-    const processedCurrent = currentPeriodIncidents.map(incident => ({
+    const processedCurrent = currentPeriodIncidents.map((incident: any) => ({
       id: incident.id,
       employeeId: incident.employeeId,
       date: incident.date,
@@ -113,7 +113,7 @@ export class PayrollCalculatorService {
       },
     }));
 
-    const processedRetroactive = retroactiveIncidents.map(incident => ({
+    const processedRetroactive = retroactiveIncidents.map((incident: any) => ({
       id: incident.id,
       employeeId: incident.employeeId,
       date: incident.date,
@@ -194,7 +194,7 @@ export class PayrollCalculatorService {
         if (incident.incidentType.category === 'TARDINESS') conceptCode = 'D011';
         if (incident.isRetroactive) conceptCode = 'D012'; // Ajuste retroactivo
 
-        const concept = concepts.find(c => c.code === conceptCode);
+        const concept = concepts.find((c: any) => c.code === conceptCode);
         if (concept && amount > 0) {
           incidentDeductions.push({
             conceptId: concept.id,
@@ -211,7 +211,7 @@ export class PayrollCalculatorService {
         if (incident.incidentType.category === 'OVERTIME') conceptCode = 'P002';
         if (incident.isRetroactive) conceptCode = 'P011'; // Ajuste retroactivo
 
-        const concept = concepts.find(c => c.code === conceptCode);
+        const concept = concepts.find((c: any) => c.code === conceptCode);
         if (concept && amount > 0) {
           incidentPerceptions.push({
             conceptId: concept.id,
@@ -257,8 +257,8 @@ export class PayrollCalculatorService {
       where: { isActive: true },
     });
 
-    const perceptionConcepts = concepts.filter((c) => c.type === 'PERCEPTION');
-    const deductionConcepts = concepts.filter((c) => c.type === 'DEDUCTION');
+    const perceptionConcepts = concepts.filter((c: any) => c.type === 'PERCEPTION');
+    const deductionConcepts = concepts.filter((c: any) => c.type === 'DEDUCTION');
 
     // Obtener incidencias aplicables (incluyendo retroactivas)
     const applicableIncidents = await this.getApplicableIncidents(period, employee.id);
@@ -354,7 +354,7 @@ export class PayrollCalculatorService {
     const netPay = totalPerceptions - totalDeductions;
 
     // Formatear incidencias para mostrar
-    const incidentsDisplay = applicableIncidents.map(i => ({
+    const incidentsDisplay = applicableIncidents.map((i: any) => ({
       type: i.incidentType.name,
       date: i.date,
       value: i.value,
@@ -382,16 +382,16 @@ export class PayrollCalculatorService {
         retroactive: applicableIncidents.filter(i => i.isRetroactive).length,
         absenceDays: incidentEffects.absenceDays,
       },
-      perceptions: perceptions.map(p => {
-        const concept = concepts.find(c => c.id === p.conceptId);
+      perceptions: perceptions.map((p: any) => {
+        const concept = concepts.find((c: any) => c.id === p.conceptId);
         return {
           ...p,
           conceptName: concept?.name || 'N/A',
           conceptCode: concept?.code || 'N/A',
         };
       }),
-      deductions: deductions.map(d => {
-        const concept = concepts.find(c => c.id === d.conceptId);
+      deductions: deductions.map((d: any) => {
+        const concept = concepts.find((c: any) => c.id === d.conceptId);
         return {
           ...d,
           conceptName: concept?.name || 'N/A',
@@ -419,7 +419,7 @@ export class PayrollCalculatorService {
       },
     });
 
-    return incidents.map(i => ({
+    return incidents.map((i: any) => ({
       type: i.incidentType?.name || 'Incidencia',
       date: i.date,
       value: i.value,
@@ -432,8 +432,8 @@ export class PayrollCalculatorService {
       where: { isActive: true },
     });
 
-    const perceptionConcepts = concepts.filter((c) => c.type === 'PERCEPTION');
-    const deductionConcepts = concepts.filter((c) => c.type === 'DEDUCTION');
+    const perceptionConcepts = concepts.filter((c: any) => c.type === 'PERCEPTION');
+    const deductionConcepts = concepts.filter((c: any) => c.type === 'DEDUCTION');
 
     // Obtener incidencias aplicables (incluyendo retroactivas)
     const applicableIncidents = await this.getApplicableIncidents(period, employee.id);
@@ -531,7 +531,7 @@ export class PayrollCalculatorService {
     // Marcar incidencias como aplicadas
     if (applicableIncidents.length > 0) {
       await this.markIncidentsAsApplied(
-        applicableIncidents.map(i => i.id),
+        applicableIncidents.map((i: any) => i.id),
         period.id,
       );
     }
@@ -612,7 +612,7 @@ export class PayrollCalculatorService {
     // Si hay registros de asistencia, calcular dias trabajados
     if (attendanceRecords.length > 0) {
       const workedDays = attendanceRecords.filter(
-        (r) => r.status === 'PRESENT' || r.status === 'LATE'
+        (r: any) => r.status === 'PRESENT' || r.status === 'LATE'
       ).length;
       return workedDays;
     }
@@ -652,7 +652,7 @@ export class PayrollCalculatorService {
     const umaDaily = await this.fiscalValues.getUmaDaily(year);
 
     // Sueldo base
-    const salaryConcept = concepts.find((c) => c.code === 'P001');
+    const salaryConcept = concepts.find((c: any) => c.code === 'P001');
     if (salaryConcept) {
       const amount = dailySalary * workedDays;
       perceptions.push({
@@ -695,7 +695,7 @@ export class PayrollCalculatorService {
         if (benefit.type === 'FOOD_VOUCHERS') conceptCode = 'P007';
         if (benefit.type === 'SAVINGS_FUND') conceptCode = 'P008';
 
-        const benefitConcept = concepts.find((c) => c.code === conceptCode);
+        const benefitConcept = concepts.find((c: any) => c.code === conceptCode);
         if (benefitConcept) {
           // Calcular parte exenta (vales de despensa hasta 40% UMA mensual)
           let exemptAmount = 0;
@@ -767,7 +767,7 @@ export class PayrollCalculatorService {
         const exemptAmount = Math.min(amount, exemptLimit);
         const taxableAmount = Math.max(0, amount - exemptAmount);
 
-        const aguinaldoConcept = concepts.find((c) => c.code === 'P004');
+        const aguinaldoConcept = concepts.find((c: any) => c.code === 'P004');
         if (aguinaldoConcept) {
           perceptions.push({
             conceptId: aguinaldoConcept.id,
@@ -790,7 +790,7 @@ export class PayrollCalculatorService {
         const exemptAmount = Math.min(amount, exemptLimit);
         const taxableAmount = Math.max(0, amount - exemptAmount);
 
-        const primaVacacionalConcept = concepts.find((c) => c.code === 'P003');
+        const primaVacacionalConcept = concepts.find((c: any) => c.code === 'P003');
         if (primaVacacionalConcept) {
           perceptions.push({
             conceptId: primaVacacionalConcept.id,
@@ -812,7 +812,7 @@ export class PayrollCalculatorService {
         const exemptAmount = Math.min(ptuAmount, exemptLimit);
         const taxableAmount = Math.max(0, ptuAmount - exemptAmount);
 
-        const ptuConcept = concepts.find((c) => c.name?.includes('PTU') || c.code === 'P009');
+        const ptuConcept = concepts.find((c: any) => c.name?.includes('PTU') || c.code === 'P009');
         if (ptuConcept) {
           perceptions.push({
             conceptId: ptuConcept.id,
@@ -828,7 +828,7 @@ export class PayrollCalculatorService {
         // Bono extraordinario
         const bonusAmount = Number(period.description) || 0;
 
-        const bonusConcept = concepts.find((c) => c.code === 'P005');
+        const bonusConcept = concepts.find((c: any) => c.code === 'P005');
         if (bonusConcept) {
           perceptions.push({
             conceptId: bonusConcept.id,
@@ -881,7 +881,7 @@ export class PayrollCalculatorService {
     const year = period.year || new Date().getFullYear();
 
     // ISR
-    const isrConcept = concepts.find((c) => c.code === 'D001');
+    const isrConcept = concepts.find((c: any) => c.code === 'D001');
     if (isrConcept && taxableIncome > 0) {
       const isr = await this.isrCalculator.calculate(
         taxableIncome,
@@ -898,7 +898,7 @@ export class PayrollCalculatorService {
 
     // IMSS (solo para periodos normales)
     if (!isExtraordinary) {
-      const imssConcept = concepts.find((c) => c.code === 'D002');
+      const imssConcept = concepts.find((c: any) => c.code === 'D002');
       if (imssConcept && employee.nss) {
         const imss = await this.imssCalculator.calculateEmployeeQuota(
           employee,
@@ -915,7 +915,7 @@ export class PayrollCalculatorService {
 
     // INFONAVIT
     for (const credit of employee.infonavitCredits || []) {
-      const infonavitConcept = concepts.find((c) => c.code === 'D003');
+      const infonavitConcept = concepts.find((c: any) => c.code === 'D003');
       if (infonavitConcept) {
         let amount = 0;
         if (credit.discountType === 'PERCENTAGE') {
@@ -938,7 +938,7 @@ export class PayrollCalculatorService {
 
     // Pension alimenticia
     for (const pension of employee.pensionAlimenticia || []) {
-      const pensionConcept = concepts.find((c) => c.code === 'D004');
+      const pensionConcept = concepts.find((c: any) => c.code === 'D004');
       if (pensionConcept) {
         let amount = 0;
         if (pension.discountType === 'PERCENTAGE') {
@@ -958,7 +958,7 @@ export class PayrollCalculatorService {
     // Fondo de ahorro (si aplica)
     for (const empBenefit of employee.benefits || []) {
       if (empBenefit.benefit.type === 'SAVINGS_FUND') {
-        const savingsConcept = concepts.find((c) => c.code === 'D005');
+        const savingsConcept = concepts.find((c: any) => c.code === 'D005');
         if (savingsConcept) {
           const baseValue = empBenefit.customValue || empBenefit.benefit.value || 0;
           let amount = 0;

@@ -547,7 +547,7 @@ export class AuditExportService {
     sheet.addRow(headers);
     sheet.getRow(1).font = { bold: true };
 
-    details.forEach((d) => {
+    details.forEach((d: any) => {
       sheet.addRow([
         d.employee?.employeeNumber,
         `${d.employee?.firstName} ${d.employee?.lastName}`,
@@ -569,7 +569,7 @@ export class AuditExportService {
     sheet.addRow(headers);
     sheet.getRow(1).font = { bold: true };
 
-    details.forEach((d) => {
+    details.forEach((d: any) => {
       // Percepciones
       d.perceptions?.forEach((p: any) => {
         sheet.addRow([

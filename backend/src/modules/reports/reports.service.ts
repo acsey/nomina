@@ -80,7 +80,7 @@ export class ReportsService {
     ];
 
     // Datos
-    data.payrollDetails.forEach((detail) => {
+    data.payrollDetails.forEach((detail: any) => {
       summarySheet.addRow([
         detail.employee.employeeNumber,
         `${detail.employee.firstName} ${detail.employee.lastName}`,
@@ -118,8 +118,8 @@ export class ReportsService {
 
     // Obtener todos los conceptos únicos de percepciones
     const perceptionConcepts = new Map<string, string>();
-    data.payrollDetails.forEach((detail) => {
-      detail.perceptions.forEach((p) => {
+    data.payrollDetails.forEach((detail: any) => {
+      detail.perceptions.forEach((p: any) => {
         perceptionConcepts.set(p.concept.code, p.concept.name);
       });
     });
@@ -141,14 +141,14 @@ export class ReportsService {
     };
 
     // Datos
-    data.payrollDetails.forEach((detail) => {
+    data.payrollDetails.forEach((detail: any) => {
       const row: (string | number)[] = [
         detail.employee.employeeNumber,
         `${detail.employee.firstName} ${detail.employee.lastName}`,
       ];
 
       conceptCodes.forEach((code) => {
-        const perception = detail.perceptions.find((p) => p.concept.code === code);
+        const perception = detail.perceptions.find((p: any) => p.concept.code === code);
         row.push(perception ? Number(perception.amount) : 0);
       });
 
@@ -171,8 +171,8 @@ export class ReportsService {
 
     // Obtener todos los conceptos únicos de deducciones
     const deductionConcepts = new Map<string, string>();
-    data.payrollDetails.forEach((detail) => {
-      detail.deductions.forEach((d) => {
+    data.payrollDetails.forEach((detail: any) => {
+      detail.deductions.forEach((d: any) => {
         deductionConcepts.set(d.concept.code, d.concept.name);
       });
     });
@@ -194,14 +194,14 @@ export class ReportsService {
     };
 
     // Datos
-    data.payrollDetails.forEach((detail) => {
+    data.payrollDetails.forEach((detail: any) => {
       const row: (string | number)[] = [
         detail.employee.employeeNumber,
         `${detail.employee.firstName} ${detail.employee.lastName}`,
       ];
 
       deductionCodes.forEach((code) => {
-        const deduction = detail.deductions.find((d) => d.concept.code === code);
+        const deduction = detail.deductions.find((d: any) => d.concept.code === code);
         row.push(deduction ? Number(deduction.amount) : 0);
       });
 
@@ -264,7 +264,7 @@ export class ReportsService {
     ];
 
     // Datos - empleados con transferencia
-    data.payrollDetails.forEach((detail) => {
+    data.payrollDetails.forEach((detail: any) => {
       const emp = detail.employee as any;
       const paymentMethod = emp.paymentMethod || 'TRANSFER';
 
@@ -289,7 +289,7 @@ export class ReportsService {
     sheet.addRow([]);
     const totalRow = sheet.addRow([
       '', '', '', '', '', '', '', 'TOTAL:',
-      data.payrollDetails.reduce((sum, d) => sum + Number(d.netPay), 0),
+      data.payrollDetails.reduce((sum: number, d: any) => sum + Number(d.netPay), 0),
       '',
     ]);
     totalRow.font = { bold: true };
@@ -321,7 +321,7 @@ export class ReportsService {
     lines.push(`H|${data.company?.rfc || 'RFC'}|${paymentDate}|DISPERSION NOMINA ${data.periodNumber}/${data.year}`);
 
     // Detalle - solo transferencias
-    data.payrollDetails.forEach((detail) => {
+    data.payrollDetails.forEach((detail: any) => {
       const emp = detail.employee as any;
       const paymentMethod = emp.paymentMethod || 'TRANSFER';
 
@@ -336,11 +336,11 @@ export class ReportsService {
     });
 
     // Pie
-    const transferDetails = data.payrollDetails.filter((d) => {
+    const transferDetails = data.payrollDetails.filter((d: any) => {
       const emp = d.employee as any;
       return (emp.paymentMethod || 'TRANSFER') === 'TRANSFER';
     });
-    const totalAmount = transferDetails.reduce((sum, d) => sum + Number(d.netPay), 0);
+    const totalAmount = transferDetails.reduce((sum: number, d: any) => sum + Number(d.netPay), 0);
     const totalCount = transferDetails.length;
 
     lines.push(`T|${totalCount}|${totalAmount.toFixed(2).replace('.', '')}`);
@@ -375,7 +375,7 @@ export class ReportsService {
       doc.text('No. Empleado | Nombre | Percepciones | Deducciones | Neto');
       doc.moveDown(0.5);
 
-      data?.payrollDetails.forEach((detail) => {
+      data?.payrollDetails.forEach((detail: any) => {
         doc.text(
           `${detail.employee.employeeNumber} | ${detail.employee.firstName} ${detail.employee.lastName} | $${Number(detail.totalPerceptions).toFixed(2)} | $${Number(detail.totalDeductions).toFixed(2)} | $${Number(detail.netPay).toFixed(2)}`,
         );
@@ -426,12 +426,12 @@ export class ReportsService {
       imss: 0,
     };
 
-    employee?.payrollDetails.forEach((detail) => {
+    employee?.payrollDetails.forEach((detail: any) => {
       totals.totalPerceptions += Number(detail.totalPerceptions);
       totals.totalDeductions += Number(detail.totalDeductions);
       totals.totalNet += Number(detail.netPay);
 
-      detail.deductions.forEach((ded) => {
+      detail.deductions.forEach((ded: any) => {
         if (ded.concept.code === 'D001') {
           totals.isr += Number(ded.amount);
         }
@@ -471,8 +471,8 @@ export class ReportsService {
       totalNet: 0,
     };
 
-    department?.employees.forEach((emp) => {
-      emp.payrollDetails.forEach((detail) => {
+    department?.employees.forEach((emp: any) => {
+      emp.payrollDetails.forEach((detail: any) => {
         totals.totalPerceptions += Number(detail.totalPerceptions);
         totals.totalDeductions += Number(detail.totalDeductions);
         totals.totalNet += Number(detail.netPay);
@@ -506,7 +506,7 @@ export class ReportsService {
 
       // Buscar la deducción de IMSS (código D002)
       const imssDeduction = detail.deductions.find(
-        (d) => d.concept.code === 'D002' || d.concept.code === 'IMSS'
+        (d: any) => d.concept.code === 'D002' || d.concept.code === 'IMSS'
       );
 
       const cuotaObrera = imssDeduction ? Number(imssDeduction.amount) : 0;
@@ -641,7 +641,7 @@ export class ReportsService {
 
       // Buscar la deducción de ISSSTE (código ISSSTE o similar)
       const isssteDeduction = detail.deductions.find(
-        (d) => d.concept.code === 'ISSSTE' || d.concept.name.toLowerCase().includes('issste')
+        (d: any) => d.concept.code === 'ISSSTE' || d.concept.name.toLowerCase().includes('issste')
       );
 
       const cuotaTrabajador = isssteDeduction ? Number(isssteDeduction.amount) : 0;
@@ -777,7 +777,7 @@ export class ReportsService {
 
       // Buscar la deducción de INFONAVIT (código D003 o similar)
       const infonavitDeduction = detail.deductions.find(
-        (d) => d.concept.code === 'D003' ||
+        (d: any) => d.concept.code === 'D003' ||
                d.concept.code === 'INFONAVIT' ||
                d.concept.name.toLowerCase().includes('infonavit')
       );

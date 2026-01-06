@@ -265,12 +265,12 @@ export class PayrollSimulationService {
     }
 
     // Calcular totales de percepciones
-    const grossPay = this.rounding.sumAndRound(perceptions.map(p => p.amount));
+    const grossPay = this.rounding.sumAndRound(perceptions.map((p: any) => p.amount));
     const taxableIncome = this.rounding.sumAndRound(
-      perceptions.map(p => p.taxableAmount || 0)
+      perceptions.map((p: any) => p.taxableAmount || 0)
     );
     const exemptIncome = this.rounding.sumAndRound(
-      perceptions.map(p => p.exemptAmount || 0)
+      perceptions.map((p: any) => p.exemptAmount || 0)
     );
 
     // ===== DEDUCCIONES =====
@@ -355,7 +355,7 @@ export class PayrollSimulationService {
     }
 
     // Calcular totales
-    const totalDeductions = this.rounding.sumAndRound(deductions.map(d => d.amount));
+    const totalDeductions = this.rounding.sumAndRound(deductions.map((d: any) => d.amount));
     const netPay = this.rounding.roundCurrency(grossPay - totalDeductions);
 
     return {
@@ -474,15 +474,15 @@ export class PayrollSimulationService {
 
     // Calcular resumen
     const summary = {
-      totalGrossPay: this.rounding.sumAndRound(employeeResults.map(r => r.totals.grossPay)),
-      totalDeductions: this.rounding.sumAndRound(employeeResults.map(r => r.totals.totalDeductions)),
-      totalNetPay: this.rounding.sumAndRound(employeeResults.map(r => r.totals.netPay)),
-      totalIsr: this.rounding.sumAndRound(employeeResults.map(r => r.fiscalDetails.isrAmount)),
-      totalImssEmployee: this.rounding.sumAndRound(employeeResults.map(r => r.fiscalDetails.imssEmployee)),
-      totalImssEmployer: this.rounding.sumAndRound(employeeResults.map(r => r.fiscalDetails.imssEmployer)),
+      totalGrossPay: this.rounding.sumAndRound(employeeResults.map((r: any) => r.totals.grossPay)),
+      totalDeductions: this.rounding.sumAndRound(employeeResults.map((r: any) => r.totals.totalDeductions)),
+      totalNetPay: this.rounding.sumAndRound(employeeResults.map((r: any) => r.totals.netPay)),
+      totalIsr: this.rounding.sumAndRound(employeeResults.map((r: any) => r.fiscalDetails.isrAmount)),
+      totalImssEmployee: this.rounding.sumAndRound(employeeResults.map((r: any) => r.fiscalDetails.imssEmployee)),
+      totalImssEmployer: this.rounding.sumAndRound(employeeResults.map((r: any) => r.fiscalDetails.imssEmployer)),
       averageNetPay: employeeResults.length > 0
         ? this.rounding.roundCurrency(
-            this.rounding.sumAndRound(employeeResults.map(r => r.totals.netPay)) / employeeResults.length
+            this.rounding.sumAndRound(employeeResults.map((r: any) => r.totals.netPay)) / employeeResults.length
           )
         : 0,
     };

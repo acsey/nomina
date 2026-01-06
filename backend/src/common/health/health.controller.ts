@@ -73,12 +73,12 @@ export class HealthController {
     components.push(await this.checkStorage());
 
     // Determinar estado general
-    const downComponents = components.filter((c) => c.status === 'DOWN');
+    const downComponents = components.filter((c: any) => c.status === 'DOWN');
     let status: 'UP' | 'DOWN' | 'DEGRADED' = 'UP';
 
     if (downComponents.length > 0) {
       // Si la BD está caída, sistema DOWN
-      if (downComponents.some((c) => c.name === 'database')) {
+      if (downComponents.some((c: any) => c.name === 'database')) {
         status = 'DOWN';
       } else {
         status = 'DEGRADED';

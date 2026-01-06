@@ -380,7 +380,7 @@ export class CompanyConceptService {
     }
 
     // Crear concepto y configuración en transacción
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx: any) => {
       // Crear concepto global
       const concept = await tx.payrollConcept.create({
         data: {

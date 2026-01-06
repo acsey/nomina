@@ -271,7 +271,7 @@ export class PacService {
     });
 
     // No devolver credenciales en la lista
-    return configs.map(config => ({
+    return configs.map((config: any) => ({
       ...config,
       credentials: undefined,
       hasCredentials: Object.keys(config.credentials as object || {}).length > 0,

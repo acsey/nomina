@@ -42,7 +42,7 @@ export class InfonavitService {
       },
     });
 
-    const report = credits.map((credit) => {
+    const report = credits.map((credit: any) => {
       const emp = credit.employee;
       const baseSalary = Number(emp.baseSalary);
 
@@ -80,7 +80,7 @@ export class InfonavitService {
       credits: report,
       totals: {
         totalCredits: report.length,
-        totalDiscount: report.reduce((sum, c) => sum + c.discountAmount, 0),
+        totalDiscount: report.reduce((sum: number, c: any) => sum + c.discountAmount, 0),
       },
     };
   }
@@ -89,7 +89,7 @@ export class InfonavitService {
     const report = await this.generateReport(companyId, periodId);
 
     // Formato de archivo para envío a INFONAVIT
-    const lines = report.credits.map((credit) => {
+    const lines = report.credits.map((credit: any) => {
       return [
         credit.nss?.padEnd(11, ' ') || ''.padEnd(11, ' '),
         credit.rfc?.padEnd(13, ' ') || ''.padEnd(13, ' '),

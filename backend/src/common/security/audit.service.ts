@@ -167,7 +167,7 @@ export class AuditService {
         action: entry.action,
         entity: entry.entity,
         entityId: entry.entityId,
-        oldValues: entry.oldValues || null,
+        oldValues: (entry.oldValues || undefined) as any,
         newValues: newValues as any,
         ipAddress: entry.ipAddress,
         createdAt,
