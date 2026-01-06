@@ -156,11 +156,11 @@ export class CompanyConceptService {
     });
 
     // Crear mapa de configuraciones
-    const configMap = new Map(companyConfigs.map(c => [c.conceptId, c]));
+    const configMap = new Map(companyConfigs.map((c: any) => [c.conceptId, c]));
 
     // Combinar conceptos globales con configuración de empresa
-    return globalConcepts.map(concept => {
-      const config = configMap.get(concept.id);
+    return globalConcepts.map((concept: any) => {
+      const config = configMap.get(concept.id) as any;
       return {
         id: concept.id,
         code: config?.customCode || concept.code,

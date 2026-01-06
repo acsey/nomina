@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { BenefitType, BenefitValueType, BenefitStatus } from '@prisma/client';
+import { BenefitType, BenefitValueType, BenefitStatus } from '@/common/types/prisma-enums';
 
 @Injectable()
 export class BenefitsService {

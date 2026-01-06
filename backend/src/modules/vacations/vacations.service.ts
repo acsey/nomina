@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { LeaveType } from '@prisma/client';
+import { LeaveType } from '@/common/types/prisma-enums';
 import * as dayjs from 'dayjs';
 
 // Type alias for schedule detail

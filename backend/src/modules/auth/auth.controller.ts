@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Query, UseGuards, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { MicrosoftAuthService } from './microsoft-auth.service';
@@ -20,6 +21,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @Throttle({ short: { ttl: 60000, limit: 5 } }) // Solo 5 intentos de login por minuto por IP
   @ApiOperation({ summary: 'Iniciar sesión' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
@@ -74,6 +76,7 @@ export class AuthController {
 
   @Public()
   @Get('microsoft/callback')
+  @Throttle({ short: { ttl: 60000, limit: 10 } }) // Límite moderado para OAuth callbacks
   @ApiOperation({ summary: 'Callback de autenticación con Microsoft' })
   @ApiQuery({ name: 'code', required: true })
   @ApiQuery({ name: 'state', required: false })
