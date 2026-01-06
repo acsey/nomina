@@ -30,6 +30,7 @@ import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { PacModule } from './modules/pac/pac.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     UploadsModule,
     PacModule,      // Módulo de configuración de PACs
     NotificationsModule, // Sistema de notificaciones in-app
+    EmailModule,    // Servicio de correo electrónico con SMTP
   ],
   controllers: [AppController],
   providers: [AppService],

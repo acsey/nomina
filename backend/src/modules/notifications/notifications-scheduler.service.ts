@@ -98,6 +98,7 @@ export class NotificationsSchedulerService {
           await this.notificationsService.notifyBirthday({
             employeeName: `${employee.firstName} ${employee.lastName}`,
             employeeId: employee.id,
+            birthDate: dayjs(employee.birthDate).format('DD/MM'),
             supervisorUserId: supervisorUserId || '',
             rhUserIds,
             companyId: employee.companyId,
@@ -178,6 +179,7 @@ export class NotificationsSchedulerService {
             employeeName: `${employee.firstName} ${employee.lastName}`,
             employeeId: employee.id,
             years,
+            anniversaryDate: today.format('DD/MM/YYYY'),
             supervisorUserId: supervisorUserId || '',
             rhUserIds,
             companyId: employee.companyId,

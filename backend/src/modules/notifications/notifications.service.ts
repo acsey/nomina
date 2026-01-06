@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { EmailService } from '@/modules/email/email.service';
+import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import {
   CreateNotificationDto,
   NotificationType,
@@ -8,7 +10,13 @@ import {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(NotificationsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly systemConfigService: SystemConfigService,
+  ) {}
 
   /**
    * Crear una notificación
@@ -231,6 +239,17 @@ export class NotificationsService {
       });
     }
 
+    // Enviar emails si está habilitado
+    const allRecipients = [data.supervisorUserId, ...data.rhUserIds];
+    await this.sendVacationEmailIfEnabled(
+      allRecipients,
+      data.employeeName,
+      data.startDate,
+      data.endDate,
+      data.totalDays,
+      'new',
+    );
+
     return this.createMany(notifications);
   }
 
@@ -243,6 +262,9 @@ export class NotificationsService {
     employeeUserId: string;
     requestId: string;
     supervisorName: string;
+    startDate: string;
+    endDate: string;
+    totalDays: number;
     rhUserIds: string[];
     companyId: string;
   }) {
@@ -281,6 +303,17 @@ export class NotificationsService {
         },
       });
     }
+
+    // Enviar emails si está habilitado
+    const allRecipients = [data.employeeUserId, ...data.rhUserIds];
+    await this.sendVacationEmailIfEnabled(
+      allRecipients,
+      data.employeeName,
+      data.startDate,
+      data.endDate,
+      data.totalDays,
+      'supervisor_approved',
+    );
 
     return this.createMany(notifications);
   }
@@ -334,6 +367,16 @@ export class NotificationsService {
       },
     });
 
+    // Enviar emails si está habilitado
+    await this.sendVacationEmailIfEnabled(
+      [data.employeeUserId, data.supervisorUserId],
+      data.employeeName,
+      data.startDate,
+      data.endDate,
+      data.totalDays,
+      'approved',
+    );
+
     return this.createMany(notifications);
   }
 
@@ -344,6 +387,9 @@ export class NotificationsService {
     employeeName: string;
     employeeUserId: string;
     requestId: string;
+    startDate: string;
+    endDate: string;
+    totalDays: number;
     reason: string;
     rejectedBy: string;
     rejectedStage: 'SUPERVISOR' | 'RH';
@@ -388,6 +434,20 @@ export class NotificationsService {
       });
     }
 
+    // Enviar emails si está habilitado
+    const recipients = [data.employeeUserId];
+    if (data.rejectedStage === 'RH' && data.supervisorUserId) {
+      recipients.push(data.supervisorUserId);
+    }
+    await this.sendVacationEmailIfEnabled(
+      recipients,
+      data.employeeName,
+      data.startDate,
+      data.endDate,
+      data.totalDays,
+      'rejected',
+    );
+
     return this.createMany(notifications);
   }
 
@@ -397,6 +457,7 @@ export class NotificationsService {
   async notifyBirthday(data: {
     employeeName: string;
     employeeId: string;
+    birthDate: string;
     supervisorUserId: string;
     rhUserIds: string[];
     companyId: string;
@@ -433,6 +494,14 @@ export class NotificationsService {
       });
     }
 
+    // Enviar emails si está habilitado
+    const allRecipients = [data.supervisorUserId, ...data.rhUserIds];
+    await this.sendBirthdayEmailIfEnabled(
+      allRecipients,
+      data.employeeName,
+      data.birthDate,
+    );
+
     return this.createMany(notifications);
   }
 
@@ -443,6 +512,7 @@ export class NotificationsService {
     employeeName: string;
     employeeId: string;
     years: number;
+    anniversaryDate: string;
     supervisorUserId: string;
     rhUserIds: string[];
     companyId: string;
@@ -480,6 +550,15 @@ export class NotificationsService {
         },
       });
     }
+
+    // Enviar emails si está habilitado
+    const allRecipients = [data.supervisorUserId, ...data.rhUserIds];
+    await this.sendAnniversaryEmailIfEnabled(
+      allRecipients,
+      data.employeeName,
+      data.years,
+      data.anniversaryDate,
+    );
 
     return this.createMany(notifications);
   }
@@ -525,5 +604,179 @@ export class NotificationsService {
     });
 
     return supervisorUser?.id || null;
+  }
+
+  // =========================================
+  // Métodos de email integrados con notificaciones
+  // =========================================
+
+  /**
+   * Obtener el email de un usuario por su ID
+   */
+  private async getUserEmail(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    return user?.email || null;
+  }
+
+  /**
+   * Enviar email si está habilitado en la configuración
+   */
+  private async sendEmailIfEnabled(
+    userIds: string[],
+    subject: string,
+    title: string,
+    message: string,
+  ): Promise<void> {
+    try {
+      const isEmailEnabled =
+        await this.systemConfigService.isEmailNotificationsEnabled();
+
+      if (!isEmailEnabled) {
+        this.logger.debug('Email notifications disabled, skipping email send');
+        return;
+      }
+
+      // Get emails for all users
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { email: true },
+      });
+
+      const emails = users.map((u) => u.email).filter(Boolean);
+
+      if (emails.length === 0) {
+        this.logger.warn('No valid emails found for notification');
+        return;
+      }
+
+      // Send email to all recipients
+      await this.emailService.sendGenericNotification(
+        emails.join(', '),
+        subject,
+        title,
+        message,
+      );
+
+      this.logger.log(`Email sent to ${emails.length} recipients`);
+    } catch (error) {
+      this.logger.error(`Failed to send email notification: ${error.message}`);
+      // Don't throw - email failure shouldn't break notification creation
+    }
+  }
+
+  /**
+   * Enviar email de vacaciones si está habilitado
+   */
+  private async sendVacationEmailIfEnabled(
+    userIds: string[],
+    employeeName: string,
+    startDate: string,
+    endDate: string,
+    days: number,
+    requestType: 'new' | 'supervisor_approved' | 'approved' | 'rejected',
+  ): Promise<void> {
+    try {
+      const isEmailEnabled =
+        await this.systemConfigService.isEmailNotificationsEnabled();
+
+      if (!isEmailEnabled) {
+        return;
+      }
+
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { email: true },
+      });
+
+      const emails = users.map((u) => u.email).filter(Boolean);
+
+      for (const email of emails) {
+        await this.emailService.sendVacationRequestNotification(
+          email,
+          employeeName,
+          startDate,
+          endDate,
+          days,
+          requestType,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send vacation email: ${error.message}`);
+    }
+  }
+
+  /**
+   * Enviar email de cumpleaños si está habilitado
+   */
+  private async sendBirthdayEmailIfEnabled(
+    userIds: string[],
+    employeeName: string,
+    birthDate: string,
+  ): Promise<void> {
+    try {
+      const isEmailEnabled =
+        await this.systemConfigService.isEmailNotificationsEnabled();
+
+      if (!isEmailEnabled) {
+        return;
+      }
+
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { email: true },
+      });
+
+      const emails = users.map((u) => u.email).filter(Boolean);
+
+      for (const email of emails) {
+        await this.emailService.sendBirthdayNotification(
+          email,
+          employeeName,
+          birthDate,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send birthday email: ${error.message}`);
+    }
+  }
+
+  /**
+   * Enviar email de aniversario si está habilitado
+   */
+  private async sendAnniversaryEmailIfEnabled(
+    userIds: string[],
+    employeeName: string,
+    years: number,
+    date: string,
+  ): Promise<void> {
+    try {
+      const isEmailEnabled =
+        await this.systemConfigService.isEmailNotificationsEnabled();
+
+      if (!isEmailEnabled) {
+        return;
+      }
+
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { email: true },
+      });
+
+      const emails = users.map((u) => u.email).filter(Boolean);
+
+      for (const email of emails) {
+        await this.emailService.sendAnniversaryNotification(
+          email,
+          employeeName,
+          years,
+          date,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send anniversary email: ${error.message}`);
+    }
   }
 }
