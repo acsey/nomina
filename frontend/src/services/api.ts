@@ -1,5 +1,6 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import i18n from '../i18n';
 
 export const api = axios.create({
   baseURL: '/api',
@@ -7,6 +8,12 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Helper to get translation
+const t = (key: string, fallback?: string) => {
+  const translation = i18n.t(key);
+  return translation !== key ? translation : (fallback || translation);
+};
 
 // Request interceptor
 api.interceptors.request.use(
@@ -43,7 +50,7 @@ const formatValidationError = (data: any): string => {
     }
   }
 
-  return 'Error de validación. Verifique los campos e intente de nuevo.';
+  return t('errors.validation');
 };
 
 // Response interceptor
@@ -59,18 +66,18 @@ api.interceptors.response.use(
           localStorage.removeItem('user');
           // Only redirect if not already on login page
           if (!window.location.pathname.includes('/login')) {
-            toast.error('Sesión expirada. Por favor inicie sesión nuevamente.');
+            toast.error(t('errors.sessionExpired'));
             window.location.href = '/login';
           }
           break;
         case 403:
-          toast.error(data.message || 'No tiene permisos para realizar esta acción');
+          toast.error(data.message || t('errors.forbidden'));
           break;
         case 404:
-          toast.error(data.message || 'El recurso solicitado no fue encontrado');
+          toast.error(data.message || t('errors.notFound'));
           break;
         case 409:
-          toast.error(data.message || 'Conflicto: el recurso ya existe o no puede ser modificado');
+          toast.error(data.message || t('errors.conflict'));
           break;
         case 422:
         case 400:
@@ -80,20 +87,20 @@ api.interceptors.response.use(
           // MFA required - don't show toast, let the component handle it
           break;
         case 500:
-          toast.error('Error interno del servidor. Intente de nuevo más tarde.');
+          toast.error(t('errors.serverError'));
           break;
         case 502:
         case 503:
         case 504:
-          toast.error('El servidor no está disponible. Intente de nuevo en unos momentos.');
+          toast.error(t('errors.serverUnavailable'));
           break;
         default:
-          toast.error(data.message || 'Ocurrió un error inesperado');
+          toast.error(data.message || t('errors.generic'));
       }
     } else if (error.request) {
-      toast.error('No se pudo conectar con el servidor. Verifique su conexión a internet.');
+      toast.error(t('errors.networkError'));
     } else {
-      toast.error('Error al procesar la solicitud');
+      toast.error(t('errors.generic'));
     }
 
     return Promise.reject(error);
