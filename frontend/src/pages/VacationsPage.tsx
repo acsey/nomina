@@ -321,7 +321,7 @@ export default function VacationsPage() {
     return 0;
   };
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'rh' || user?.role === 'manager';
+  const isAdmin = user?.role === 'admin' || user?.role === 'company_admin' || user?.role === 'rh' || user?.role === 'manager';
 
   return (
     <div>

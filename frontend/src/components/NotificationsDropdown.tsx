@@ -2,8 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { BellIcon, CheckIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { BellAlertIcon } from '@heroicons/react/24/solid';
 import { notificationsApi } from '../services/api';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/es';
+
+// Configure dayjs with Spanish locale and relative time plugin
+dayjs.extend(relativeTime);
+dayjs.locale('es');
 
 interface Notification {
   id: string;
@@ -201,10 +206,7 @@ export default function NotificationsDropdown() {
                           {notification.message}
                         </p>
                         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                          {formatDistanceToNow(new Date(notification.createdAt), {
-                            addSuffix: true,
-                            locale: es,
-                          })}
+                          {dayjs(notification.createdAt).fromNow()}
                         </p>
                       </div>
                       <div className="flex flex-col gap-0.5">
