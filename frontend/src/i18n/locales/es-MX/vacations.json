@@ -12,7 +12,14 @@
     "expiringDays": "Días por vencer",
     "expiresOn": "Vencen el {date}",
     "totalEntitled": "Días correspondientes",
-    "takenThisYear": "Tomados este año"
+    "takenThisYear": "Tomados este año",
+    "requestVacation": "Solicitar vacaciones"
+  },
+
+  "balance": {
+    "availableDays": "Días disponibles",
+    "usedDays": "Días usados",
+    "pendingApproval": "Pendiente de aprobación"
   },
 
   "types": {

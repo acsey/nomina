@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY } from '@/common/decorators';
+import { PERMISSIONS_KEY, normalizeRole } from '@/common/decorators';
+import { RoleName } from '@/common/constants/roles';
 
 /**
  * PermissionsGuard - Enforces granular permission checking
@@ -36,8 +37,10 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
 
-    // Super admin (admin role without companyId) has all permissions
-    if (user.role === 'admin' && !user.companyId) {
+    // Super admin (SYSTEM_ADMIN role without companyId) has all permissions
+    // Handles both legacy 'admin' and new 'SYSTEM_ADMIN' roles
+    const userRole = normalizeRole(user.role);
+    if (userRole === RoleName.SYSTEM_ADMIN && !user.companyId) {
       return true;
     }
 

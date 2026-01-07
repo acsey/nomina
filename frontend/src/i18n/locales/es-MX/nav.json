@@ -12,10 +12,14 @@
     "settings": "Configuración",
     "users": "Usuarios",
     "companies": "Empresas",
-    "audit": "Auditoría"
+    "audit": "Auditoría",
+    "systemSettings": "Configuración del sistema",
+    "webClock": "Checador Web",
+    "help": "Ayuda"
   },
 
   "portal": {
+    "home": "Inicio",
     "feed": "Muro",
     "news": "Noticias",
     "services": "Portal de servicios",
@@ -27,7 +31,10 @@
     "recognition": "Reconocimientos",
     "surveys": "Encuestas",
     "quickAccess": "Accesos rápidos",
-    "directory": "Directorio"
+    "directory": "Directorio",
+    "settings": "Configuración",
+    "attendance": "Asistencia",
+    "benefits": "Prestaciones"
   },
 
   "user": {
@@ -36,6 +43,14 @@
     "changePassword": "Cambiar contraseña",
     "notifications": "Notificaciones",
     "help": "Ayuda",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "switchToAdmin": "Ir a administración",
+    "switchToPortal": "Ir a Mi Portal"
+  },
+
+  "sections": {
+    "principal": "Principal",
+    "personal": "Personal",
+    "help": "Ayuda"
   }
 }
