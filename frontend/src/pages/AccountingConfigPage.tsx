@@ -9,8 +9,6 @@ import {
   CalculatorIcon,
   ChartBarIcon,
   PencilIcon,
-  CheckIcon,
-  XMarkIcon,
   PlusIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';

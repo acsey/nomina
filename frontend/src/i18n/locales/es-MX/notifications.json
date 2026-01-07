@@ -1,0 +1,50 @@
+{
+  "title": "Notificaciones",
+  "markAllRead": "Marcar todas como leídas",
+  "noNotifications": "No hay notificaciones",
+  "viewAll": "Ver todas",
+  "new": "Nueva",
+  "read": "Leída",
+
+  "types": {
+    "payroll": "Nómina",
+    "vacation": "Vacaciones",
+    "attendance": "Asistencia",
+    "document": "Documento",
+    "system": "Sistema",
+    "announcement": "Anuncio",
+    "birthday": "Cumpleaños",
+    "anniversary": "Aniversario"
+  },
+
+  "messages": {
+    "payrollAvailable": "Tu recibo de nómina del período {period} está disponible",
+    "vacationApproved": "Tu solicitud de vacaciones ha sido aprobada",
+    "vacationRejected": "Tu solicitud de vacaciones ha sido rechazada",
+    "vacationPending": "Tienes una solicitud de vacaciones pendiente de aprobar",
+    "documentUploaded": "Se ha subido un nuevo documento: {name}",
+    "birthdayToday": "¡Hoy es cumpleaños de {name}!",
+    "anniversaryToday": "¡Hoy {name} cumple {years} años en la empresa!",
+    "attendanceReminder": "Recuerda registrar tu entrada",
+    "checkoutReminder": "Recuerda registrar tu salida"
+  },
+
+  "settings": {
+    "title": "Preferencias de notificaciones",
+    "email": "Notificaciones por correo",
+    "push": "Notificaciones push",
+    "payrollNotifications": "Recibos de nómina",
+    "vacationNotifications": "Vacaciones y permisos",
+    "birthdayNotifications": "Cumpleaños de compañeros",
+    "anniversaryNotifications": "Aniversarios laborales",
+    "announcementNotifications": "Anuncios de la empresa"
+  },
+
+  "time": {
+    "justNow": "Justo ahora",
+    "minutesAgo": "Hace {minutes} minutos",
+    "hoursAgo": "Hace {hours} horas",
+    "daysAgo": "Hace {days} días",
+    "weeksAgo": "Hace {weeks} semanas"
+  }
+}

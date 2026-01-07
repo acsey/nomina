@@ -1,0 +1,138 @@
+{
+  "title": "Empleados",
+  "employee": "Empleado",
+  "newEmployee": "Nuevo empleado",
+  "editEmployee": "Editar empleado",
+  "employeeDetails": "Detalles del empleado",
+  "searchPlaceholder": "Buscar por nombre, RFC o número de empleado...",
+
+  "tabs": {
+    "all": "Todos",
+    "active": "Activos",
+    "inactive": "Inactivos",
+    "terminated": "Dados de baja"
+  },
+
+  "sections": {
+    "personal": "Datos personales",
+    "contact": "Contacto",
+    "fiscal": "Datos fiscales",
+    "address": "Dirección",
+    "work": "Datos laborales",
+    "payment": "Datos de pago",
+    "documents": "Documentos",
+    "timeline": "Historial"
+  },
+
+  "fields": {
+    "employeeNumber": "Número de empleado",
+    "firstName": "Nombre(s)",
+    "middleName": "Segundo nombre",
+    "lastName": "Apellido paterno",
+    "secondLastName": "Apellido materno",
+    "fullName": "Nombre completo",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "birthDate": "Fecha de nacimiento",
+    "age": "Edad",
+    "gender": "Género",
+    "maritalStatus": "Estado civil",
+    "rfc": "RFC",
+    "curp": "CURP",
+    "nss": "NSS (IMSS)",
+    "address": "Calle y número",
+    "colony": "Colonia",
+    "city": "Ciudad",
+    "state": "Estado",
+    "zipCode": "Código postal",
+    "country": "País",
+    "hireDate": "Fecha de ingreso",
+    "terminationDate": "Fecha de baja",
+    "seniority": "Antigüedad",
+    "company": "Empresa",
+    "department": "Departamento",
+    "position": "Puesto",
+    "workSchedule": "Horario",
+    "supervisor": "Jefe directo",
+    "contractType": "Tipo de contrato",
+    "employmentType": "Tipo de jornada",
+    "baseSalary": "Salario base",
+    "salaryType": "Tipo de salario",
+    "paymentMethod": "Forma de pago",
+    "bank": "Banco",
+    "bankAccount": "Número de cuenta",
+    "clabe": "CLABE interbancaria",
+    "photo": "Foto"
+  },
+
+  "gender": {
+    "male": "Masculino",
+    "female": "Femenino",
+    "other": "Otro"
+  },
+
+  "maritalStatus": {
+    "single": "Soltero(a)",
+    "married": "Casado(a)",
+    "divorced": "Divorciado(a)",
+    "widowed": "Viudo(a)",
+    "cohabiting": "Unión libre"
+  },
+
+  "contractType": {
+    "indefinite": "Indefinido",
+    "fixedTerm": "Tiempo determinado",
+    "seasonal": "Por temporada",
+    "trialPeriod": "Período de prueba",
+    "training": "Capacitación"
+  },
+
+  "employmentType": {
+    "fullTime": "Tiempo completo",
+    "partTime": "Medio tiempo",
+    "hourly": "Por horas"
+  },
+
+  "salaryType": {
+    "monthly": "Mensual",
+    "biweekly": "Quincenal",
+    "weekly": "Semanal",
+    "daily": "Diario",
+    "hourly": "Por hora"
+  },
+
+  "paymentMethod": {
+    "transfer": "Transferencia bancaria",
+    "check": "Cheque",
+    "cash": "Efectivo"
+  },
+
+  "actions": {
+    "terminate": "Dar de baja",
+    "reactivate": "Reactivar",
+    "updateSalary": "Actualizar salario",
+    "viewPayroll": "Ver nómina",
+    "viewAttendance": "Ver asistencia",
+    "viewVacations": "Ver vacaciones"
+  },
+
+  "messages": {
+    "created": "Empleado creado correctamente",
+    "updated": "Empleado actualizado correctamente",
+    "terminated": "Empleado dado de baja correctamente",
+    "reactivated": "Empleado reactivado correctamente",
+    "salaryUpdated": "Salario actualizado correctamente",
+    "photoUploaded": "Foto subida correctamente",
+    "photoDeleted": "Foto eliminada correctamente"
+  },
+
+  "timeline": {
+    "hired": "Ingreso a la empresa",
+    "promoted": "Promoción",
+    "salaryChange": "Cambio de salario",
+    "departmentChange": "Cambio de departamento",
+    "positionChange": "Cambio de puesto",
+    "terminated": "Baja de la empresa",
+    "reactivated": "Reingreso a la empresa"
+  }
+}

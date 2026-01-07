@@ -1,0 +1,71 @@
+{
+  "generic": "Ocurrió un error inesperado. Por favor intente de nuevo.",
+  "validation": "Por favor verifique los campos marcados e intente de nuevo.",
+  "notFound": "El recurso solicitado no fue encontrado.",
+  "unauthorized": "Su sesión ha expirado. Por favor inicie sesión nuevamente.",
+  "forbidden": "No tiene permisos para realizar esta acción.",
+  "serverError": "Error en el servidor. Por favor intente más tarde.",
+  "networkError": "No se pudo conectar con el servidor. Verifique su conexión a internet.",
+  "sessionExpired": "Su sesión ha expirado. Por favor inicie sesión nuevamente.",
+  "conflict": "El recurso ya existe o no puede ser modificado.",
+  "serverUnavailable": "El servidor no está disponible. Intente de nuevo en unos momentos.",
+  "timeout": "La operación tardó demasiado. Por favor intente de nuevo.",
+  "invalidFile": "El archivo seleccionado no es válido.",
+  "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es {size}.",
+  "requiredField": "Este campo es obligatorio.",
+  "invalidEmail": "Ingrese un correo electrónico válido.",
+  "invalidPhone": "Ingrese un número de teléfono válido.",
+  "invalidDate": "Ingrese una fecha válida en formato DD/MM/AAAA.",
+  "invalidNumber": "Ingrese un número válido.",
+  "minLength": "Debe tener al menos {min} caracteres.",
+  "maxLength": "No puede tener más de {max} caracteres.",
+  "passwordMismatch": "Las contraseñas no coinciden.",
+  "weakPassword": "La contraseña es muy débil. Use al menos 8 caracteres con mayúsculas, minúsculas y números.",
+
+  "employee": {
+    "notFound": "Empleado no encontrado.",
+    "alreadyExists": "Ya existe un empleado con este RFC o CURP.",
+    "cannotDelete": "No se puede eliminar el empleado porque tiene registros asociados.",
+    "invalidRfc": "El RFC no tiene un formato válido. Ejemplo: XAXX010101000",
+    "invalidCurp": "El CURP no tiene un formato válido. Ejemplo: XEXX010101HNEXXXA4",
+    "invalidNss": "El NSS debe tener exactamente 11 dígitos.",
+    "invalidBirthDate": "La fecha de nacimiento no es válida o es una fecha futura.",
+    "invalidHireDate": "La fecha de ingreso no puede ser anterior a la fecha de nacimiento.",
+    "invalidTerminationDate": "La fecha de baja no puede ser anterior a la fecha de ingreso.",
+    "requiredCompany": "Debe seleccionar una empresa.",
+    "requiredDepartment": "Debe seleccionar un departamento.",
+    "requiredPosition": "Debe seleccionar un puesto.",
+    "requiredSalary": "Debe ingresar el salario base.",
+    "invalidSalary": "El salario debe ser un número positivo.",
+    "invalidClabe": "La CLABE interbancaria debe tener exactamente 18 dígitos."
+  },
+
+  "auth": {
+    "invalidCredentials": "Correo electrónico o contraseña incorrectos.",
+    "accountLocked": "Su cuenta ha sido bloqueada. Contacte al administrador.",
+    "accountDisabled": "Su cuenta está deshabilitada.",
+    "mfaRequired": "Se requiere código de verificación.",
+    "invalidMfaCode": "Código de verificación incorrecto.",
+    "ssoRequired": "Debe iniciar sesión con su cuenta corporativa.",
+    "passwordExpired": "Su contraseña ha expirado. Debe cambiarla.",
+    "tooManyAttempts": "Demasiados intentos fallidos. Intente de nuevo en {minutes} minutos."
+  },
+
+  "payroll": {
+    "periodNotFound": "Período de nómina no encontrado.",
+    "periodClosed": "El período de nómina ya está cerrado.",
+    "periodNotCalculated": "El período de nómina no ha sido calculado.",
+    "alreadyStamped": "El recibo ya ha sido timbrado.",
+    "stampingFailed": "Error al timbrar el recibo. {reason}",
+    "insufficientBalance": "Saldo insuficiente para procesar la nómina.",
+    "missingFiscalData": "Faltan datos fiscales del empleado."
+  },
+
+  "vacation": {
+    "insufficientDays": "No tiene suficientes días disponibles.",
+    "invalidDateRange": "El rango de fechas no es válido.",
+    "overlappingRequest": "Ya tiene una solicitud para esas fechas.",
+    "cannotCancel": "No puede cancelar una solicitud ya aprobada.",
+    "approverRequired": "Se requiere un aprobador para esta solicitud."
+  }
+}

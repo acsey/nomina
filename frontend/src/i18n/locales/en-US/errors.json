@@ -1,0 +1,70 @@
+{
+  "generic": "An unexpected error occurred",
+  "validation": "Validation error. Please check the fields and try again.",
+  "notFound": "The requested resource was not found",
+  "unauthorized": "Unauthorized",
+  "forbidden": "You do not have permission to perform this action",
+  "serverError": "Internal server error. Please try again later.",
+  "networkError": "Could not connect to the server. Please check your internet connection.",
+  "sessionExpired": "Session expired. Please login again",
+  "conflict": "Conflict: the resource already exists or cannot be modified",
+  "serverUnavailable": "The server is unavailable. Please try again in a moment.",
+  "timeout": "The request timed out. Please try again.",
+  "badRequest": "Invalid request. Please check the entered data.",
+
+  "employee": {
+    "notFound": "Employee not found",
+    "duplicateEmail": "An employee with this email already exists",
+    "duplicateRfc": "An employee with this RFC already exists",
+    "duplicateCurp": "An employee with this CURP already exists",
+    "duplicateNss": "An employee with this NSS already exists",
+    "invalidRfc": "Invalid RFC format",
+    "invalidCurp": "Invalid CURP format",
+    "invalidNss": "Invalid NSS format",
+    "cannotDelete": "Cannot delete employee with active records",
+    "invalidHireDate": "The hire date cannot be in the future",
+    "invalidBirthDate": "Invalid birth date",
+    "departmentRequired": "You must assign a department",
+    "positionRequired": "You must assign a position",
+    "salaryRequired": "You must enter a salary"
+  },
+
+  "auth": {
+    "invalidCredentials": "Incorrect email or password",
+    "accountLocked": "Account locked due to multiple failed attempts",
+    "accountDisabled": "Account disabled. Contact the administrator",
+    "mfaRequired": "Authentication code required",
+    "mfaInvalid": "Invalid authentication code",
+    "mfaExpired": "Expired code. Request a new one",
+    "ssoRequired": "You must log in via corporate SSO",
+    "ssoFailed": "Could not connect to SSO. Try again",
+    "tokenExpired": "Session expired. Please log in again",
+    "tokenInvalid": "Invalid session",
+    "passwordTooWeak": "Password is too weak. Must contain uppercase, lowercase, numbers, and special characters",
+    "passwordReused": "You cannot use a recent password",
+    "passwordExpired": "Your password has expired. Please change it"
+  },
+
+  "payroll": {
+    "periodNotFound": "Payroll period not found",
+    "periodClosed": "This period is already closed",
+    "periodLocked": "Period locked for editing",
+    "calculationError": "Error calculating payroll",
+    "insufficientData": "Insufficient data to calculate payroll",
+    "stampingError": "Error stamping CFDI",
+    "satConnectionError": "Could not connect to SAT",
+    "invalidCertificate": "Invalid or expired certificate"
+  },
+
+  "vacation": {
+    "insufficientDays": "You do not have enough available days",
+    "overlappingRequest": "You already have a request for those dates",
+    "invalidDates": "Invalid dates. End date must be after start date",
+    "pastDates": "Cannot request vacations for past dates",
+    "minimumDays": "You must request at least {min} days",
+    "maximumDays": "Cannot request more than {max} consecutive days",
+    "requestNotFound": "Request not found",
+    "cannotModify": "You can no longer modify this request",
+    "approverRequired": "An approver is required"
+  }
+}

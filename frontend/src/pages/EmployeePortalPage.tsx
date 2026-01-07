@@ -6,7 +6,6 @@ import {
   CalendarDaysIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
   PlusIcon,
   CodeBracketIcon,
 } from '@heroicons/react/24/outline';

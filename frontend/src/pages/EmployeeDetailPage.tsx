@@ -222,13 +222,13 @@ export default function EmployeeDetailPage() {
               <dt className="text-sm text-gray-500">Estado civil</dt>
               <dd className="font-medium">
                 {
-                  {
+                  ({
                     SINGLE: 'Soltero/a',
                     MARRIED: 'Casado/a',
                     DIVORCED: 'Divorciado/a',
                     WIDOWED: 'Viudo/a',
                     COHABITING: 'Unión libre',
-                  }[employee.maritalStatus]
+                  } as Record<string, string>)[employee.maritalStatus]
                 }
               </dd>
             </div>
@@ -267,13 +267,13 @@ export default function EmployeeDetailPage() {
               <dt className="text-sm text-gray-500">Tipo de contrato</dt>
               <dd className="font-medium">
                 {
-                  {
+                  ({
                     INDEFINITE: 'Indefinido',
                     FIXED_TERM: 'Temporal',
                     SEASONAL: 'Por temporada',
                     TRIAL_PERIOD: 'Periodo de prueba',
                     TRAINING: 'Capacitación',
-                  }[employee.contractType]
+                  } as Record<string, string>)[employee.contractType]
                 }
               </dd>
             </div>
@@ -289,13 +289,13 @@ export default function EmployeeDetailPage() {
               <dt className="text-sm text-gray-500">Tipo de salario</dt>
               <dd className="font-medium">
                 {
-                  {
+                  ({
                     MONTHLY: 'Mensual',
                     BIWEEKLY: 'Quincenal',
                     WEEKLY: 'Semanal',
                     DAILY: 'Diario',
                     HOURLY: 'Por hora',
-                  }[employee.salaryType]
+                  } as Record<string, string>)[employee.salaryType]
                 }
               </dd>
             </div>
@@ -312,11 +312,11 @@ export default function EmployeeDetailPage() {
               <dt className="text-sm text-gray-500">Método de pago</dt>
               <dd className="font-medium">
                 {
-                  {
+                  ({
                     TRANSFER: 'Transferencia',
                     CHECK: 'Cheque',
                     CASH: 'Efectivo',
-                  }[employee.paymentMethod]
+                  } as Record<string, string>)[employee.paymentMethod]
                 }
               </dd>
             </div>

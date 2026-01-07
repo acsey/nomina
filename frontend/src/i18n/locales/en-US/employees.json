@@ -1,0 +1,185 @@
+{
+  "title": "Employees",
+  "subtitle": "Employee management",
+  "newEmployee": "New Employee",
+  "editEmployee": "Edit Employee",
+  "viewEmployee": "View Employee",
+  "deleteEmployee": "Delete Employee",
+  "searchPlaceholder": "Search by name, email or employee number...",
+
+  "tabs": {
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "onVacation": "On Vacation",
+    "onLeave": "On Leave"
+  },
+
+  "personal": {
+    "title": "Personal Information",
+    "subtitle": "Basic employee data",
+    "employeeNumber": "Employee Number",
+    "firstName": "First Name",
+    "middleName": "Middle Name",
+    "lastName": "Last Name",
+    "secondLastName": "Second Last Name",
+    "fullName": "Full Name",
+    "birthDate": "Birth Date",
+    "age": "Age",
+    "gender": "Gender",
+    "maritalStatus": "Marital Status",
+    "nationality": "Nationality",
+    "photo": "Photo",
+    "uploadPhoto": "Upload Photo",
+    "removePhoto": "Remove Photo"
+  },
+
+  "contact": {
+    "title": "Contact Information",
+    "subtitle": "Phones and emails",
+    "email": "Email",
+    "personalEmail": "Personal Email",
+    "phone": "Phone",
+    "mobile": "Mobile",
+    "emergencyContact": "Emergency Contact",
+    "emergencyPhone": "Emergency Phone"
+  },
+
+  "fiscal": {
+    "title": "Fiscal Documents",
+    "subtitle": "Tax and social security information",
+    "rfc": "RFC",
+    "curp": "CURP",
+    "nss": "NSS (Social Security)",
+    "taxRegime": "Tax Regime",
+    "infonavitCredit": "INFONAVIT Credit"
+  },
+
+  "address": {
+    "title": "Address",
+    "subtitle": "Current residence",
+    "street": "Street and Number",
+    "interior": "Interior Number",
+    "colony": "Colony/Neighborhood",
+    "city": "City",
+    "state": "State",
+    "zipCode": "Zip Code",
+    "country": "Country"
+  },
+
+  "work": {
+    "title": "Work Information",
+    "subtitle": "Position and department",
+    "company": "Company",
+    "department": "Department",
+    "position": "Position",
+    "hireDate": "Hire Date",
+    "seniorityDate": "Seniority Date",
+    "seniority": "Seniority",
+    "contractType": "Contract Type",
+    "employmentType": "Employment Type",
+    "workSchedule": "Work Schedule",
+    "supervisor": "Supervisor",
+    "directReports": "Direct Reports"
+  },
+
+  "payment": {
+    "title": "Payment Information",
+    "subtitle": "Salary and bank account",
+    "baseSalary": "Base Salary",
+    "dailySalary": "Daily Salary",
+    "salaryType": "Salary Type",
+    "paymentMethod": "Payment Method",
+    "paymentFrequency": "Payment Frequency",
+    "bank": "Bank",
+    "accountNumber": "Account Number",
+    "clabe": "CLABE",
+    "cardNumber": "Card Number"
+  },
+
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "onVacation": "On Vacation",
+    "onLeave": "On Leave",
+    "terminated": "Terminated",
+    "suspended": "Suspended"
+  },
+
+  "gender": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "preferNotToSay": "Prefer not to say"
+  },
+
+  "maritalStatus": {
+    "single": "Single",
+    "married": "Married",
+    "divorced": "Divorced",
+    "widowed": "Widowed",
+    "cohabiting": "Cohabiting"
+  },
+
+  "contractType": {
+    "indefinite": "Indefinite",
+    "fixedTerm": "Fixed Term",
+    "seasonal": "Seasonal",
+    "trial": "Trial Period",
+    "training": "Training"
+  },
+
+  "employmentType": {
+    "fullTime": "Full Time",
+    "partTime": "Part Time",
+    "hourly": "Hourly"
+  },
+
+  "salaryType": {
+    "monthly": "Monthly",
+    "biweekly": "Biweekly",
+    "weekly": "Weekly",
+    "daily": "Daily",
+    "hourly": "Hourly"
+  },
+
+  "paymentMethod": {
+    "transfer": "Bank Transfer",
+    "check": "Check",
+    "cash": "Cash"
+  },
+
+  "timeline": {
+    "title": "History",
+    "hired": "Hired",
+    "promoted": "Promoted",
+    "transferred": "Transferred",
+    "salaryChange": "Salary Change",
+    "vacation": "Vacation",
+    "leave": "Leave",
+    "returned": "Returned",
+    "terminated": "Terminated"
+  },
+
+  "documents": {
+    "title": "Documents",
+    "upload": "Upload Document",
+    "download": "Download",
+    "delete": "Delete",
+    "contract": "Contract",
+    "identification": "ID",
+    "proofOfAddress": "Proof of Address",
+    "diploma": "Diploma",
+    "certificate": "Certificate"
+  },
+
+  "messages": {
+    "created": "Employee created successfully",
+    "updated": "Employee updated successfully",
+    "deleted": "Employee deleted successfully",
+    "activated": "Employee activated",
+    "deactivated": "Employee deactivated",
+    "confirmDelete": "Are you sure you want to delete this employee?",
+    "confirmDeactivate": "Are you sure you want to deactivate this employee?"
+  }
+}
