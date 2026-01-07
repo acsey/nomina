@@ -288,7 +288,7 @@ export const PORTAL_ROLES: RoleName[] = [
 /**
  * Check if a role has a specific permission
  */
-export function hasPermission(role: RoleName, permission: string): boolean {
+export function roleHasPermission(role: RoleName, permission: string): boolean {
   const rolePermissions = ROLE_PERMISSIONS[role];
 
   // Check for wildcard

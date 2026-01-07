@@ -4,10 +4,44 @@ import { RoleName } from '../constants/roles';
 export const ROLES_KEY = 'roles';
 
 /**
- * Decorator to specify which roles can access a route
- * @param roles - Array of RoleName values
+ * Role type that accepts both new RoleName enum values and legacy string values
+ * This provides backward compatibility during migration
  */
-export const Roles = (...roles: RoleName[]) => SetMetadata(ROLES_KEY, roles);
+export type RoleType = RoleName | string;
+
+/**
+ * Mapping of legacy role names to new role names
+ */
+export const LEGACY_ROLE_MAP: Record<string, RoleName> = {
+  admin: RoleName.SYSTEM_ADMIN,
+  company_admin: RoleName.COMPANY_ADMIN,
+  rh: RoleName.HR_ADMIN,
+  manager: RoleName.MANAGER,
+  employee: RoleName.EMPLOYEE,
+};
+
+/**
+ * Normalize a role to the new RoleName format
+ */
+export const normalizeRole = (role: RoleType): RoleName | string => {
+  // If it's already a RoleName enum value, return as-is
+  if (Object.values(RoleName).includes(role as RoleName)) {
+    return role;
+  }
+  // If it's a legacy role name, map it to the new name
+  if (LEGACY_ROLE_MAP[role]) {
+    return LEGACY_ROLE_MAP[role];
+  }
+  // Return original for unknown roles
+  return role;
+};
+
+/**
+ * Decorator to specify which roles can access a route
+ * Accepts both new RoleName enum values and legacy string values for backward compatibility
+ * @param roles - Array of RoleName values or legacy role strings
+ */
+export const Roles = (...roles: RoleType[]) => SetMetadata(ROLES_KEY, roles);
 
 /**
  * Decorator for routes that require admin access

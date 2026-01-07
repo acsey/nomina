@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +59,6 @@ export default function PortalLayout() {
   const { isDark, toggleDarkMode } = useTheme();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Check if user has admin access to show switch option
   const canSwitchToAdmin = useMemo(() => {

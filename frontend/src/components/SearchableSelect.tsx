@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, Fragment } from 'react';
+import { useState, Fragment } from 'react';
 import { Combobox, Transition } from '@headlessui/react';
 import { ChevronUpDownIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -34,9 +34,6 @@ export default function SearchableSelect({
   className = '',
 }: SearchableSelectProps) {
   const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const selectedOption = options.find(opt => opt.value === value);
 
   const filteredOptions =
     query === ''
@@ -57,11 +54,10 @@ export default function SearchableSelect({
       {label && (
         <label className="label">{label}</label>
       )}
-      <Combobox value={value} onChange={onChange} disabled={disabled}>
+      <Combobox value={value} onChange={(val) => onChange(val || '')} disabled={disabled}>
         <div className="relative">
           <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500">
             <Combobox.Input
-              ref={inputRef}
               className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0 focus:outline-none disabled:bg-gray-100"
               displayValue={(val: string) => {
                 const opt = options.find(o => o.value === val);

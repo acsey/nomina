@@ -45,10 +45,8 @@ interface SystemConfig {
   isPublic: boolean;
 }
 
-type ThemeMode = 'light' | 'dark' | 'system';
-
 export default function SystemSettingsPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { refreshConfigs } = useSystemConfig();
   const { mode, setMode, isDark } = useTheme();

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { catalogsApi } from '../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -46,7 +45,6 @@ const DEFAULT_SCHEDULE_DETAILS: ScheduleDetail[] = DAYS_OF_WEEK.map((_, index) =
 }));
 
 export default function WorkSchedulesPage() {
-  const { user } = useAuth();
   const [schedules, setSchedules] = useState<WorkSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

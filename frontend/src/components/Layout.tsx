@@ -171,7 +171,7 @@ export default function Layout() {
     return items.some(item => location.pathname.startsWith(item.href));
   };
 
-  const renderNavItem = (item: NavItem, onClick?: () => void, compact?: boolean) => (
+  const renderNavItem = (item: NavItem, onClick?: () => void) => (
     <NavLink
       key={item.name}
       to={item.href}
