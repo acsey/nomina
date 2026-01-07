@@ -201,6 +201,69 @@ export class MicrosoftAuthService {
     }
   }
 
+  /**
+   * Test Azure AD configuration by attempting to get a discovery document
+   */
+  async testConnection(): Promise<{
+    success: boolean;
+    message: string;
+    details?: any;
+  }> {
+    try {
+      const { tenantId, clientId, redirectUri } = await this.getAuthConfig();
+
+      // Validate configuration
+      if (!tenantId) {
+        return { success: false, message: 'Tenant ID no configurado' };
+      }
+      if (!clientId) {
+        return { success: false, message: 'Client ID no configurado' };
+      }
+      if (!redirectUri) {
+        return { success: false, message: 'Redirect URI no configurado' };
+      }
+
+      // Test by fetching OpenID Connect discovery document
+      const discoveryUrl = `https://login.microsoftonline.com/${tenantId}/v2.0/.well-known/openid-configuration`;
+      const response = await fetch(discoveryUrl);
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: `Error al conectar con Azure AD: ${response.status} ${response.statusText}`,
+        };
+      }
+
+      const discovery = await response.json();
+
+      // Validate that the discovery document has the expected fields
+      if (!discovery.authorization_endpoint || !discovery.token_endpoint) {
+        return {
+          success: false,
+          message: 'Respuesta de Azure AD inválida: endpoints no encontrados',
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Conexión con Azure AD exitosa',
+        details: {
+          issuer: discovery.issuer,
+          authorizationEndpoint: discovery.authorization_endpoint,
+          tokenEndpoint: discovery.token_endpoint,
+          tenantId,
+          clientId,
+          redirectUri,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Error de conexión: ${error.message}`,
+      };
+    }
+  }
+
   private async findOrCreateUser(userInfo: MicrosoftUserInfo, accessToken: string) {
     const email = userInfo.mail || userInfo.userPrincipalName;
 

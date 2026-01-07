@@ -4,10 +4,12 @@ import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { MicrosoftAuthService } from './microsoft-auth.service';
+import { SystemConfigService } from '../system-config/system-config.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SuperAdminGuard } from './guards/super-admin.guard';
 import { CurrentUser } from '@/common/decorators';
 import { Public } from '@/common/decorators';
 
@@ -17,6 +19,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly microsoftAuthService: MicrosoftAuthService,
+    private readonly systemConfigService: SystemConfigService,
   ) {}
 
   @Public()
@@ -101,5 +104,28 @@ export class AuthController {
       const errorMessage = error.message || 'Error de autenticación';
       return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(errorMessage)}`);
     }
+  }
+
+  @Post('microsoft/test')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Probar conexión con Azure AD (solo super admin)' })
+  async testMicrosoftConnection() {
+    return this.microsoftAuthService.testConnection();
+  }
+
+  // Authentication Policies
+  @Public()
+  @Get('policies')
+  @ApiOperation({ summary: 'Obtener políticas de autenticación' })
+  async getAuthPolicies() {
+    const policies = await this.systemConfigService.getAuthPolicies();
+    return {
+      ssoEnabled: policies.azureAdEnabled,
+      ssoEnforced: policies.enforceSso,
+      classicLoginEnabled: policies.allowClassicLogin && !policies.enforceSso,
+      mfaEnabled: policies.mfaEnabled,
+      mfaEnforced: policies.enforceMfa,
+    };
   }
 }
