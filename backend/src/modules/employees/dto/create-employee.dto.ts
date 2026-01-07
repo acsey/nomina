@@ -10,8 +10,14 @@ import {
   Matches,
   IsNotEmpty,
   Min,
+  ValidateIf,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+// Helper to transform empty strings to undefined
+const EmptyToUndefined = () =>
+  Transform(({ value }) => (value === '' || value === null ? undefined : value));
 
 export class CreateEmployeeDto {
   @ApiProperty({ example: 'EMP001' })
@@ -149,12 +155,16 @@ export class CreateEmployeeDto {
   companyId: string;
 
   @ApiPropertyOptional({ description: 'ID del horario de trabajo' })
+  @EmptyToUndefined()
   @IsOptional()
+  @ValidateIf((o, value) => value !== undefined && value !== null)
   @IsUUID('4', { message: 'Seleccione un horario válido' })
   workScheduleId?: string;
 
   @ApiPropertyOptional({ description: 'ID del supervisor/jefe directo' })
+  @EmptyToUndefined()
   @IsOptional()
+  @ValidateIf((o, value) => value !== undefined && value !== null)
   @IsUUID('4', { message: 'Seleccione un supervisor válido' })
   supervisorId?: string;
 
@@ -179,7 +189,9 @@ export class CreateEmployeeDto {
   paymentMethod: string;
 
   @ApiPropertyOptional({ description: 'ID del banco' })
+  @EmptyToUndefined()
   @IsOptional()
+  @ValidateIf((o, value) => value !== undefined && value !== null)
   @IsUUID('4', { message: 'Seleccione un banco válido' })
   bankId?: string;
 
@@ -189,7 +201,9 @@ export class CreateEmployeeDto {
   bankAccount?: string;
 
   @ApiPropertyOptional({ description: 'CLABE interbancaria (18 dígitos)' })
+  @EmptyToUndefined()
   @IsOptional()
+  @ValidateIf((o, value) => value !== undefined && value !== null)
   @IsString({ message: 'La CLABE debe ser texto' })
   @Matches(/^\d{18}$/, { message: 'La CLABE debe tener exactamente 18 dígitos' })
   clabe?: string;

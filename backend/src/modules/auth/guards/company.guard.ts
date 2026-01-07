@@ -1,12 +1,14 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { normalizeRole } from '@/common/decorators';
+import { RoleName } from '@/common/constants/roles';
 
 /**
  * CompanyGuard - Ensures users can only access data from their own company
  *
  * This guard checks:
- * 1. Super admin (admin without companyId) - can access all companies
+ * 1. Super admin (SYSTEM_ADMIN without companyId) - can access all companies
  * 2. Company-bound users - can only access their own company's data
  *
  * It automatically injects companyId filter into requests for company-bound users.
@@ -26,8 +28,10 @@ export class CompanyGuard implements CanActivate {
       return false;
     }
 
-    // Super admin (admin role without companyId) can access all companies
-    if (user.role === 'admin' && !user.companyId) {
+    // Super admin (SYSTEM_ADMIN role without companyId) can access all companies
+    // Handles both legacy 'admin' and new 'SYSTEM_ADMIN' roles
+    const userRole = normalizeRole(user.role);
+    if (userRole === RoleName.SYSTEM_ADMIN && !user.companyId) {
       // Inject a flag to indicate super admin access
       request.isSuperAdmin = true;
       return true;

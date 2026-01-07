@@ -17,8 +17,15 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles, CurrentUser } from '@/common/decorators';
+import { Roles, CurrentUser, normalizeRole } from '@/common/decorators';
+import { RoleName } from '@/common/constants/roles';
 import { PrismaService } from '@/common/prisma/prisma.service';
+
+// Helper to check if user is super admin
+function isSuperAdmin(user: { role: string; companyId?: string | null }): boolean {
+  const normalizedRole = normalizeRole(user.role);
+  return normalizedRole === RoleName.SYSTEM_ADMIN && !user.companyId;
+}
 
 @ApiTags('employees')
 @Controller('employees')
@@ -31,16 +38,14 @@ export class EmployeesController {
   ) {}
 
   @Post()
-  @Roles('admin', 'company_admin', 'rh')
+  @Roles(RoleName.SYSTEM_ADMIN, RoleName.COMPANY_ADMIN, RoleName.HR_ADMIN, 'admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Crear nuevo empleado' })
   async create(
     @CurrentUser() user: any,
     @Body() createEmployeeDto: CreateEmployeeDto,
   ) {
     // Validate user can create employees for this company
-    const isSuperAdmin = user.role === 'admin' && !user.companyId;
-
-    if (!isSuperAdmin) {
+    if (!isSuperAdmin(user)) {
       // User must create employees for their own company only
       if (createEmployeeDto.companyId !== user.companyId) {
         throw new ForbiddenException('No puede crear empleados para otra empresa');
@@ -80,12 +85,12 @@ export class EmployeesController {
     @Query('companyId') companyIdQuery?: string,
   ) {
     // Only super admin (without companyId) can see all companies
-    const isSuperAdmin = user.role === 'admin' && !user.companyId;
+    const isSuper = isSuperAdmin(user);
 
     // Super admin can filter by any company, others see only their company
     let companyId: string | undefined;
 
-    if (isSuperAdmin) {
+    if (isSuper) {
       // Super admin can specify any company or see all
       companyId = companyIdQuery;
     } else {
@@ -132,7 +137,7 @@ export class EmployeesController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'company_admin', 'rh')
+  @Roles(RoleName.SYSTEM_ADMIN, RoleName.COMPANY_ADMIN, RoleName.HR_ADMIN, 'admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Actualizar empleado' })
   async update(
     @CurrentUser() user: any,
@@ -165,8 +170,7 @@ export class EmployeesController {
     }
 
     // Prevent changing employee's company (unless super admin)
-    const isSuperAdmin = user.role === 'admin' && !user.companyId;
-    if (updateEmployeeDto.companyId && updateEmployeeDto.companyId !== employee.companyId && !isSuperAdmin) {
+    if (updateEmployeeDto.companyId && updateEmployeeDto.companyId !== employee.companyId && !isSuperAdmin(user)) {
       throw new ForbiddenException('No puede cambiar la empresa del empleado');
     }
 
@@ -174,7 +178,7 @@ export class EmployeesController {
   }
 
   @Delete(':id')
-  @Roles('admin', 'company_admin')
+  @Roles(RoleName.SYSTEM_ADMIN, RoleName.COMPANY_ADMIN, 'admin', 'company_admin')
   @ApiOperation({ summary: 'Desactivar empleado' })
   async remove(
     @CurrentUser() user: any,
@@ -197,7 +201,7 @@ export class EmployeesController {
   }
 
   @Post(':id/terminate')
-  @Roles('admin', 'company_admin', 'rh')
+  @Roles(RoleName.SYSTEM_ADMIN, RoleName.COMPANY_ADMIN, RoleName.HR_ADMIN, 'admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Dar de baja a empleado' })
   async terminate(
     @CurrentUser() user: any,
@@ -221,7 +225,7 @@ export class EmployeesController {
   }
 
   @Post(':id/salary')
-  @Roles('admin', 'company_admin', 'rh')
+  @Roles(RoleName.SYSTEM_ADMIN, RoleName.COMPANY_ADMIN, RoleName.HR_ADMIN, 'admin', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Actualizar salario del empleado' })
   async updateSalary(
     @CurrentUser() user: any,
@@ -248,8 +252,7 @@ export class EmployeesController {
   // Helper method to validate user can access an employee's company
   private async validateEmployeeAccess(user: any, employeeCompanyId: string): Promise<void> {
     // Super admin can access all
-    const isSuperAdmin = user.role === 'admin' && !user.companyId;
-    if (isSuperAdmin) return;
+    if (isSuperAdmin(user)) return;
 
     // User must be from the same company
     if (user.companyId !== employeeCompanyId) {

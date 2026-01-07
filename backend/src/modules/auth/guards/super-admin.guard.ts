@@ -1,4 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { normalizeRole } from '@/common/decorators';
+import { RoleName } from '@/common/constants/roles';
 
 /**
  * SuperAdminGuard - Ensures only super admin (admin without companyId) can access
@@ -16,8 +18,12 @@ export class SuperAdminGuard implements CanActivate {
       return false;
     }
 
-    // Only admin role without companyId is considered super admin
-    if (user.role !== 'admin') {
+    // Normalize user role to handle both legacy and new role names
+    const userRole = normalizeRole(user.role);
+
+    // Only SYSTEM_ADMIN role without companyId is considered super admin
+    // Also accepts legacy 'admin' role for backward compatibility (normalizes to SYSTEM_ADMIN)
+    if (userRole !== RoleName.SYSTEM_ADMIN) {
       throw new ForbiddenException('Esta acción requiere permisos de Super Administrador');
     }
 
