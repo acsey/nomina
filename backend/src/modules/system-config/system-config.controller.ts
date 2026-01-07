@@ -3,8 +3,9 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SuperAdminGuard } from '../auth/guards/super-admin.guard';
 import { SystemConfigService } from './system-config.service';
-import { IsString, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsArray, ValidateNested, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CurrentUser } from '@/common/decorators';
 
 class UpdateConfigDto {
   @IsString()
@@ -19,6 +20,10 @@ class UpdateMultipleConfigsDto {
   @ValidateNested({ each: true })
   @Type(() => UpdateConfigDto)
   configs: UpdateConfigDto[];
+
+  @IsOptional()
+  @IsString()
+  justification?: string;
 }
 
 /**
@@ -61,15 +66,36 @@ export class SystemConfigController {
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar configuración (solo super admin)' })
-  async updateConfig(@Param('key') key: string, @Body() body: { value: string }) {
-    return this.systemConfigService.update(key, body.value);
+  async updateConfig(
+    @Param('key') key: string,
+    @Body() body: { value: string; justification?: string },
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.systemConfigService.update(key, body.value, userId, body.justification);
   }
 
   @Patch()
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar múltiples configuraciones (solo super admin)' })
-  async updateMultipleConfigs(@Body() body: UpdateMultipleConfigsDto) {
-    return this.systemConfigService.updateMultiple(body.configs);
+  async updateMultipleConfigs(
+    @Body() body: UpdateMultipleConfigsDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.systemConfigService.updateMultiple(body.configs, userId, body.justification);
+  }
+
+  @Get('auth-policies')
+  @ApiOperation({ summary: 'Obtener políticas de autenticación (público)' })
+  async getAuthPolicies() {
+    return this.systemConfigService.getAuthPolicies();
+  }
+
+  @Get('azure-ad/validate')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Validar configuración de Azure AD (solo super admin)' })
+  async validateAzureAdConfig() {
+    return this.systemConfigService.validateAzureAdConfig();
   }
 }

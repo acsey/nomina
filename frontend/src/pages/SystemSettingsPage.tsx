@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { systemConfigApi, emailApi } from '../services/api';
+import { systemConfigApi, emailApi, authApi } from '../services/api';
 import toast from 'react-hot-toast';
 import {
   Cog6ToothIcon,
@@ -19,7 +19,20 @@ import {
   EyeSlashIcon,
   EnvelopeIcon,
   BellIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  KeyIcon,
 } from '@heroicons/react/24/outline';
+
+// Keys that require confirmation before changing
+const CRITICAL_KEYS = [
+  'AZURE_AD_ENABLED',
+  'ENFORCE_SSO',
+  'ALLOW_CLASSIC_LOGIN',
+  'MFA_ENABLED',
+  'ENFORCE_MFA',
+];
 
 interface SystemConfig {
   id: string;
@@ -42,6 +55,14 @@ export default function SystemSettingsPage() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [testEmail, setTestEmail] = useState('');
+  const [testingAzure, setTestingAzure] = useState(false);
+  const [azureTestResult, setAzureTestResult] = useState<{
+    success: boolean;
+    message: string;
+    details?: any;
+  } | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [justification, setJustification] = useState('');
 
   const isAdmin = user?.role === 'admin';
 
@@ -71,18 +92,45 @@ export default function SystemSettingsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { key: string; value: string }[]) =>
-      systemConfigApi.updateMultiple(data),
+    mutationFn: (data: { configs: { key: string; value: string }[]; justification?: string }) =>
+      systemConfigApi.updateMultiple(data.configs, data.justification),
     onSuccess: () => {
       toast.success('Configuracion guardada');
       queryClient.invalidateQueries({ queryKey: ['system-configs'] });
       setPendingChanges({});
+      setJustification('');
+      setShowConfirmModal(false);
       refreshConfigs();
     },
     onError: () => {
       toast.error('Error al guardar configuracion');
     },
   });
+
+  const handleTestAzureConnection = async () => {
+    setTestingAzure(true);
+    setAzureTestResult(null);
+    try {
+      const response = await authApi.testMicrosoftConnection();
+      setAzureTestResult(response.data);
+      if (response.data.success) {
+        toast.success('Conexion con Azure AD exitosa');
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Error al probar conexion Azure AD';
+      setAzureTestResult({ success: false, message: errorMsg });
+      toast.error(errorMsg);
+    } finally {
+      setTestingAzure(false);
+    }
+  };
+
+  // Check if there are critical changes pending
+  const hasCriticalChanges = Object.keys(pendingChanges).some((key) =>
+    CRITICAL_KEYS.includes(key),
+  );
 
   const handleTestSmtpConnection = async () => {
     setTestingSmtp(true);
@@ -142,7 +190,38 @@ export default function SystemSettingsPage() {
       return;
     }
 
-    updateMutation.mutate(changes);
+    // If there are critical changes, show confirmation modal
+    if (hasCriticalChanges) {
+      setShowConfirmModal(true);
+      return;
+    }
+
+    // Otherwise, save directly
+    updateMutation.mutate({ configs: changes });
+  };
+
+  const handleConfirmedSave = () => {
+    if (!justification.trim() && hasCriticalChanges) {
+      toast.error('Se requiere justificacion para cambios criticos');
+      return;
+    }
+
+    const changes = Object.entries(pendingChanges).map(([key, value]) => ({
+      key,
+      value,
+    }));
+
+    updateMutation.mutate({ configs: changes, justification: justification.trim() });
+  };
+
+  const getCriticalChangesList = () => {
+    return Object.entries(pendingChanges)
+      .filter(([key]) => CRITICAL_KEYS.includes(key))
+      .map(([key, value]) => {
+        const config = configs?.find((c) => c.key === key);
+        const oldValue = config?.value || '';
+        return { key, oldValue, newValue: value };
+      });
   };
 
   const hasPendingChanges = Object.keys(pendingChanges).length > 0;
@@ -546,10 +625,171 @@ export default function SystemSettingsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Azure AD category: Test connection button */}
+                {category === 'azure_ad' && (
+                  <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50">
+                    <div className="flex flex-col gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                          Probar Conexion Azure AD
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                          Guarda los cambios antes de probar. Esto verificara que la configuracion de Azure AD es correcta.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-4">
+                        <button
+                          onClick={handleTestAzureConnection}
+                          disabled={testingAzure}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors w-fit"
+                        >
+                          {testingAzure ? (
+                            <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                          ) : (
+                            <CloudIcon className="h-4 w-4" />
+                          )}
+                          Probar Azure AD
+                        </button>
+
+                        {azureTestResult && (
+                          <div
+                            className={`p-4 rounded-lg ${
+                              azureTestResult.success
+                                ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                                : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              {azureTestResult.success ? (
+                                <CheckCircleIcon className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                              ) : (
+                                <XCircleIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                              )}
+                              <div>
+                                <p
+                                  className={`font-medium ${
+                                    azureTestResult.success
+                                      ? 'text-green-800 dark:text-green-200'
+                                      : 'text-red-800 dark:text-red-200'
+                                  }`}
+                                >
+                                  {azureTestResult.message}
+                                </p>
+                                {azureTestResult.details && (
+                                  <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <p>
+                                      <span className="font-medium">Issuer:</span>{' '}
+                                      {azureTestResult.details.issuer}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium">Tenant ID:</span>{' '}
+                                      {azureTestResult.details.tenantId}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Security category: Warning about MFA enforcement */}
+                {category === 'security' && (
+                  <div className="px-6 py-4 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800">
+                    <div className="flex items-start gap-3">
+                      <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                          Advertencia de Seguridad
+                        </p>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                          Cambiar estas configuraciones afectara como los usuarios acceden al sistema.
+                          Si habilita &quot;Forzar SSO&quot;, los usuarios solo podran iniciar sesion con Microsoft.
+                          Si habilita &quot;MFA Obligatorio&quot;, todos los usuarios deberan configurar autenticacion de dos factores.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
       </div>
+
+      {/* Confirmation Modal for Critical Changes */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+                  <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Confirmar Cambios Criticos
+                </h3>
+              </div>
+
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Esta a punto de modificar configuraciones de seguridad que afectaran el acceso de los usuarios al sistema.
+              </p>
+
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Cambios a realizar:
+                </p>
+                <ul className="space-y-1">
+                  {getCriticalChangesList().map((change) => (
+                    <li key={change.key} className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="font-medium">{change.key.replace(/_/g, ' ')}:</span>{' '}
+                      <span className="text-red-500">{change.oldValue || 'vacio'}</span>
+                      {' -> '}
+                      <span className="text-green-500">{change.newValue}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Justificacion (requerida)
+                </label>
+                <textarea
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                  placeholder="Explique el motivo de estos cambios..."
+                  className="input w-full h-24 resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    setJustification('');
+                  }}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmedSave}
+                  disabled={!justification.trim() || updateMutation.isPending}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {updateMutation.isPending ? 'Guardando...' : 'Confirmar Cambios'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

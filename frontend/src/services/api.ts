@@ -62,7 +62,7 @@ api.interceptors.response.use(
 
 // API endpoints
 export const authApi = {
-  login: (data: { email: string; password: string }) =>
+  login: (data: { email: string; password: string; mfaCode?: string }) =>
     api.post('/auth/login', data),
   getProfile: () => api.get('/auth/profile'),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
@@ -70,6 +70,9 @@ export const authApi = {
   // Microsoft Auth
   getMicrosoftStatus: () => api.get('/auth/microsoft/status'),
   getMicrosoftLoginUrl: () => api.get('/auth/microsoft/login'),
+  testMicrosoftConnection: () => api.post('/auth/microsoft/test'),
+  // Auth Policies
+  getAuthPolicies: () => api.get('/auth/policies'),
 };
 
 export const employeesApi = {
@@ -513,12 +516,17 @@ export const bulkUploadApi = {
 export const systemConfigApi = {
   // Public endpoint - no auth required
   getPublic: () => api.get('/system-config/public'),
+  // Auth policies (public)
+  getAuthPolicies: () => api.get('/system-config/auth-policies'),
   // Admin endpoints
   getAll: () => api.get('/system-config'),
   getByKey: (key: string) => api.get(`/system-config/${key}`),
-  update: (key: string, value: string) => api.patch(`/system-config/${key}`, { value }),
-  updateMultiple: (configs: { key: string; value: string }[]) =>
-    api.patch('/system-config', { configs }),
+  update: (key: string, value: string, justification?: string) =>
+    api.patch(`/system-config/${key}`, { value, justification }),
+  updateMultiple: (configs: { key: string; value: string }[], justification?: string) =>
+    api.patch('/system-config', { configs, justification }),
+  // Azure AD validation
+  validateAzureAd: () => api.get('/system-config/azure-ad/validate'),
 };
 
 export const hierarchyApi = {

@@ -23,7 +23,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, mfaCode?: string) => Promise<void>;
   logout: () => void;
   setAuthData: (user: User, token: string) => void;
 }
@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+  const login = async (email: string, password: string, mfaCode?: string) => {
+    const response = await api.post('/auth/login', { email, password, mfaCode });
     const { access_token, user: userData } = response.data;
 
     localStorage.setItem('token', access_token);
