@@ -1,5 +1,6 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import i18n from '../i18n';
 
 export const api = axios.create({
   baseURL: '/api',
@@ -7,6 +8,12 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Helper to get translation
+const t = (key: string, fallback?: string) => {
+  const translation = i18n.t(key);
+  return translation !== key ? translation : (fallback || translation);
+};
 
 // Request interceptor
 api.interceptors.request.use(
@@ -22,6 +29,30 @@ api.interceptors.request.use(
   }
 );
 
+// Helper to format validation error messages
+const formatValidationError = (data: any): string => {
+  // Handle NestJS validation pipe errors (array of messages)
+  if (Array.isArray(data.message)) {
+    // Return first message for toast, all messages are available in error.response.data
+    return data.message[0];
+  }
+
+  // Handle single message
+  if (typeof data.message === 'string') {
+    return data.message;
+  }
+
+  // Handle object with field-level errors
+  if (data.errors && typeof data.errors === 'object') {
+    const firstField = Object.keys(data.errors)[0];
+    if (firstField && Array.isArray(data.errors[firstField])) {
+      return data.errors[firstField][0];
+    }
+  }
+
+  return t('errors.validation');
+};
+
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
@@ -33,27 +64,43 @@ api.interceptors.response.use(
         case 401:
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          // Only redirect if not already on login page
+          if (!window.location.pathname.includes('/login')) {
+            toast.error(t('errors.sessionExpired'));
+            window.location.href = '/login';
+          }
           break;
         case 403:
-          toast.error('No tienes permisos para realizar esta acción');
+          toast.error(data.message || t('errors.forbidden'));
           break;
         case 404:
-          toast.error('Recurso no encontrado');
+          toast.error(data.message || t('errors.notFound'));
+          break;
+        case 409:
+          toast.error(data.message || t('errors.conflict'));
           break;
         case 422:
         case 400:
-          const message = data.message || 'Error de validación';
-          toast.error(Array.isArray(message) ? message[0] : message);
+          toast.error(formatValidationError(data));
+          break;
+        case 428:
+          // MFA required - don't show toast, let the component handle it
           break;
         case 500:
-          toast.error('Error del servidor. Intenta de nuevo más tarde.');
+          toast.error(t('errors.serverError'));
+          break;
+        case 502:
+        case 503:
+        case 504:
+          toast.error(t('errors.serverUnavailable'));
           break;
         default:
-          toast.error('Ocurrió un error inesperado');
+          toast.error(data.message || t('errors.generic'));
       }
     } else if (error.request) {
-      toast.error('No se pudo conectar con el servidor');
+      toast.error(t('errors.networkError'));
+    } else {
+      toast.error(t('errors.generic'));
     }
 
     return Promise.reject(error);

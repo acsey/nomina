@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { systemConfigApi, emailApi, authApi } from '../services/api';
+import { LANGUAGES, changeLanguage, getCurrentLanguage, type LanguageCode } from '../i18n';
 import toast from 'react-hot-toast';
 import {
   Cog6ToothIcon,
@@ -22,7 +24,6 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   XCircleIcon,
-  KeyIcon,
 } from '@heroicons/react/24/outline';
 
 // Keys that require confirmation before changing
@@ -47,6 +48,7 @@ interface SystemConfig {
 type ThemeMode = 'light' | 'dark' | 'system';
 
 export default function SystemSettingsPage() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { refreshConfigs } = useSystemConfig();
   const { mode, setMode, isDark } = useTheme();
@@ -63,8 +65,15 @@ export default function SystemSettingsPage() {
   } | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [justification, setJustification] = useState('');
+  const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage());
 
   const isAdmin = user?.role === 'admin';
+
+  const handleLanguageChange = (lang: LanguageCode) => {
+    changeLanguage(lang);
+    setCurrentLang(lang);
+    toast.success(lang === 'es-MX' ? 'Idioma cambiado a Español' : 'Language changed to English');
+  };
 
   // Redirect if not admin
   if (!isAdmin) {
@@ -516,6 +525,71 @@ export default function SystemSettingsPage() {
               Actualmente usando tema {isDark ? 'oscuro' : 'claro'} basado en la preferencia del sistema.
             </p>
           )}
+        </div>
+      </div>
+
+      {/* Language Settings Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+          <div className="text-primary-600">
+            <GlobeAltIcon className="h-5 w-5" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {t('settings.language')}
+          </h2>
+        </div>
+
+        <div className="p-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {t('settings.languageDescription')}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
+            {Object.values(LANGUAGES).map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => handleLanguageChange(lang.code as LanguageCode)}
+                className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                  currentLang === lang.code
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+              >
+                <span className="text-2xl">{lang.flag}</span>
+                <div className="text-left">
+                  <p className={`font-medium ${
+                    currentLang === lang.code
+                      ? 'text-primary-700 dark:text-primary-300'
+                      : 'text-gray-700 dark:text-gray-300'
+                  }`}>
+                    {lang.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {lang.code}
+                  </p>
+                </div>
+                {currentLang === lang.code && (
+                  <CheckCircleIcon className="h-5 w-5 text-primary-500 ml-auto" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-start gap-3">
+              <GlobeAltIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  {currentLang === 'es-MX' ? 'Agregar más idiomas' : 'Add more languages'}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  {currentLang === 'es-MX'
+                    ? 'Para agregar más idiomas, contacte al administrador del sistema o agregue archivos de traducción en /src/i18n/locales/'
+                    : 'To add more languages, contact the system administrator or add translation files in /src/i18n/locales/'}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

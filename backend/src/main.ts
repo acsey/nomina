@@ -124,7 +124,7 @@ async function bootstrap() {
   });
 
   // ============================================
-  // Validation Pipe con seguridad mejorada
+  // Validation Pipe con mensajes en español
   // ============================================
   app.useGlobalPipes(
     new ValidationPipe({
@@ -134,8 +134,9 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-      disableErrorMessages: process.env.NODE_ENV === 'production', // Ocultar detalles en producción
-      stopAtFirstError: true,       // Optimización
+      // Siempre mostrar mensajes de validación (ahora están en español)
+      disableErrorMessages: false,
+      stopAtFirstError: false,      // Mostrar todos los errores de validación
     }),
   );
 
