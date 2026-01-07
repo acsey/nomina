@@ -308,11 +308,13 @@ export class VacationsService {
   /**
    * PASO 1: Aprobación del Supervisor
    * Solo puede aprobar el supervisor directo o alguien en la cadena de supervisión
+   * @param skipHierarchyCheck - Si es true, omite la verificación de jerarquía (para admin/rh/company_admin)
    */
   async supervisorApproveRequest(
     requestId: string,
     supervisorId: string,
     comments?: string,
+    skipHierarchyCheck = false,
   ) {
     const request = await this.prisma.vacationRequest.findUnique({
       where: { id: requestId },
@@ -328,9 +330,12 @@ export class VacationsService {
     }
 
     // Verificar que el aprobador es el supervisor o está en la cadena
-    const canApprove = await this.canApproveRequest(supervisorId, request.employeeId);
-    if (!canApprove.allowed) {
-      throw new ForbiddenException('No tiene permiso para aprobar esta solicitud');
+    // Omitir verificación para admin/rh/company_admin
+    if (!skipHierarchyCheck) {
+      const canApprove = await this.canApproveRequest(supervisorId, request.employeeId);
+      if (!canApprove.allowed) {
+        throw new ForbiddenException('No tiene permiso para aprobar esta solicitud');
+      }
     }
 
     // Actualizar la cadena de aprobación
@@ -549,11 +554,11 @@ export class VacationsService {
     // Si está PENDING, es aprobación de supervisor
     if (request.status === 'PENDING') {
       if (!skipHierarchyCheck) {
-        return this.supervisorApproveRequest(requestId, approvedById);
+        return this.supervisorApproveRequest(requestId, approvedById, undefined, false);
       }
       // Si skipHierarchyCheck es true (admin/rh/company_admin), puede aprobar directamente
-      // Pero primero pasa por supervisor
-      await this.supervisorApproveRequest(requestId, approvedById);
+      // Pero primero pasa por supervisor (sin verificación de jerarquía)
+      await this.supervisorApproveRequest(requestId, approvedById, undefined, true);
       return this.rhApproveRequest(requestId, approvedById);
     }
 
