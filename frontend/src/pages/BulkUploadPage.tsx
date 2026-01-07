@@ -1,11 +1,9 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
-  ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   DocumentArrowDownIcon,
   CheckCircleIcon,
-  XCircleIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { bulkUploadApi, catalogsApi } from '../services/api';

@@ -11,7 +11,6 @@ import {
   DocumentArrowDownIcon,
   ChartBarIcon,
   BuildingOfficeIcon,
-  ArrowTrendingUpIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
@@ -24,8 +23,6 @@ import toast from 'react-hot-toast';
 import SearchableSelect from '../components/SearchableSelect';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const { multiCompanyEnabled } = useSystemConfig();
@@ -33,7 +30,7 @@ export default function DashboardPage() {
   const isAdmin = user?.role === 'admin';
 
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const selectedYear = new Date().getFullYear();
 
   // Get companies for admin
   const { data: companiesData } = useQuery({

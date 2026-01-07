@@ -1,0 +1,69 @@
+{
+  "title": "Notifications",
+  "markAllRead": "Mark all as read",
+  "clearAll": "Clear all",
+  "noNotifications": "No notifications",
+  "viewAll": "View all",
+  "settings": "Notification settings",
+
+  "types": {
+    "info": "Information",
+    "success": "Success",
+    "warning": "Warning",
+    "error": "Error",
+    "reminder": "Reminder"
+  },
+
+  "categories": {
+    "payroll": "Payroll",
+    "vacations": "Vacations",
+    "attendance": "Attendance",
+    "documents": "Documents",
+    "system": "System",
+    "approvals": "Approvals"
+  },
+
+  "messages": {
+    "payrollReady": "Your paystub is ready",
+    "payrollPending": "Payroll pending approval",
+    "vacationApproved": "Your vacation was approved",
+    "vacationRejected": "Your vacation was rejected",
+    "vacationPending": "You have vacation requests pending approval",
+    "documentExpiring": "Your {document} expires soon",
+    "documentExpired": "Your {document} has expired",
+    "attendanceReminder": "Remember to clock in",
+    "missedClockIn": "You haven't clocked in today",
+    "overtimeAlert": "You have overtime hours pending approval",
+    "birthdayReminder": "{name} has their birthday today",
+    "anniversaryReminder": "{name} completes {years} years today",
+    "policyUpdate": "Company policies have been updated",
+    "systemMaintenance": "System maintenance scheduled for {date}"
+  },
+
+  "actions": {
+    "view": "View",
+    "dismiss": "Dismiss",
+    "snooze": "Snooze",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+
+  "preferences": {
+    "title": "Notification Preferences",
+    "email": "Email notifications",
+    "push": "Push notifications",
+    "inApp": "In-app notifications",
+    "frequency": "Notification frequency",
+    "immediately": "Immediately",
+    "daily": "Daily summary",
+    "weekly": "Weekly summary"
+  },
+
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{minutes} minutes ago",
+    "hoursAgo": "{hours} hours ago",
+    "yesterday": "Yesterday",
+    "daysAgo": "{days} days ago"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "title": "Nómina",
+  "myPayroll": "Mi nómina",
+  "periods": "Períodos de nómina",
+  "receipts": "Recibos",
+
+  "employee": {
+    "title": "Mi nómina",
+    "subtitle": "Consulta tus recibos de pago y detalles de tu nómina",
+    "latestPayment": "Último pago",
+    "netPay": "Pago neto",
+    "payDate": "Fecha de pago",
+    "period": "Período",
+    "viewDetails": "Ver detalles",
+    "downloadPdf": "Descargar PDF",
+    "downloadXml": "Descargar XML",
+    "history": "Historial de pagos",
+    "noReceipts": "No hay recibos disponibles",
+    "earnings": "Percepciones",
+    "deductions": "Deducciones",
+    "earningsVsDeductions": "Percepciones vs Deducciones",
+    "yearSummary": "Resumen del año",
+    "totalEarnings": "Total percepciones",
+    "totalDeductions": "Total deducciones",
+    "totalNetPay": "Total pagado",
+    "avgNetPay": "Promedio por período"
+  },
+
+  "concepts": {
+    "salary": "Sueldo",
+    "baseSalary": "Salario base",
+    "overtime": "Horas extra",
+    "overtimeDouble": "Horas extra dobles",
+    "overtimeTriple": "Horas extra triples",
+    "bonus": "Bono",
+    "christmasBonus": "Aguinaldo",
+    "vacationBonus": "Prima vacacional",
+    "vacationPay": "Pago de vacaciones",
+    "sundayBonus": "Prima dominical",
+    "commission": "Comisión",
+    "productivity": "Productividad",
+    "foodVouchers": "Vales de despensa",
+    "savingsFund": "Fondo de ahorro",
+    "ptuProfit": "PTU",
+    "severance": "Indemnización",
+    "seniorityPremium": "Prima de antigüedad",
+
+    "isr": "ISR (Impuesto sobre la renta)",
+    "imss": "IMSS",
+    "infonavit": "INFONAVIT",
+    "savingsFundDeduction": "Aportación fondo de ahorro",
+    "loan": "Préstamo",
+    "advance": "Anticipo",
+    "absence": "Ausencia",
+    "tardiness": "Retardo",
+    "unionDues": "Cuota sindical",
+    "other": "Otros"
+  },
+
+  "tooltips": {
+    "salary": "Tu sueldo base por el período trabajado",
+    "overtime": "Pago adicional por horas trabajadas después de tu horario normal",
+    "christmasBonus": "Prestación anual equivalente a 15 días de salario mínimo",
+    "vacationBonus": "25% adicional sobre tu salario durante tus vacaciones",
+    "isr": "Impuesto que se calcula según tu nivel de ingresos",
+    "imss": "Aportación para tu seguridad social (salud, pensión, guardería)",
+    "infonavit": "Aportación para tu crédito de vivienda",
+    "netPay": "Cantidad que recibirás después de deducciones"
+  },
+
+  "period": {
+    "title": "Período de nómina",
+    "type": "Tipo de período",
+    "startDate": "Fecha inicio",
+    "endDate": "Fecha fin",
+    "paymentDate": "Fecha de pago",
+    "status": "Estado",
+    "employees": "Empleados",
+    "totalGross": "Total bruto",
+    "totalDeductions": "Total deducciones",
+    "totalNet": "Total neto"
+  },
+
+  "status": {
+    "draft": "Borrador",
+    "calculated": "Calculado",
+    "approved": "Aprobado",
+    "closed": "Cerrado",
+    "cancelled": "Cancelado"
+  },
+
+  "periodType": {
+    "weekly": "Semanal",
+    "biweekly": "Quincenal",
+    "monthly": "Mensual",
+    "bonus": "Aguinaldo",
+    "ptu": "PTU",
+    "settlement": "Finiquito"
+  },
+
+  "actions": {
+    "calculate": "Calcular nómina",
+    "preview": "Vista previa",
+    "approve": "Aprobar",
+    "close": "Cerrar período",
+    "stampAll": "Timbrar todos",
+    "downloadReport": "Descargar reporte",
+    "downloadDispersion": "Descargar dispersión"
+  },
+
+  "messages": {
+    "calculated": "Nómina calculada correctamente",
+    "approved": "Nómina aprobada correctamente",
+    "closed": "Período cerrado correctamente",
+    "stampingInProgress": "Timbrado en proceso...",
+    "stampingComplete": "Timbrado completado",
+    "downloadStarted": "Descarga iniciada"
+  },
+
+  "chart": {
+    "earnings": "Percepciones",
+    "deductions": "Deducciones",
+    "netPay": "Pago neto",
+    "monthly": "Mensual",
+    "yearly": "Anual"
+  }
+}

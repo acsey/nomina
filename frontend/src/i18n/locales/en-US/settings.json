@@ -1,0 +1,133 @@
+{
+  "title": "Settings",
+  "subtitle": "System configuration",
+
+  "tabs": {
+    "general": "General",
+    "security": "Security",
+    "email": "Email",
+    "notifications": "Notifications",
+    "integrations": "Integrations",
+    "advanced": "Advanced"
+  },
+
+  "general": {
+    "title": "General Settings",
+    "companyName": "Company Name",
+    "companyLogo": "Company Logo",
+    "uploadLogo": "Upload Logo",
+    "timezone": "Timezone",
+    "dateFormat": "Date Format",
+    "currency": "Currency",
+    "language": "Language",
+    "languageDescription": "System interface language"
+  },
+
+  "security": {
+    "title": "Security",
+    "subtitle": "Authentication and access settings",
+    "passwordPolicy": "Password Policy",
+    "minLength": "Minimum length",
+    "requireUppercase": "Require uppercase",
+    "requireLowercase": "Require lowercase",
+    "requireNumbers": "Require numbers",
+    "requireSpecial": "Require special characters",
+    "passwordExpiration": "Password expiration (days)",
+    "sessionTimeout": "Session timeout (minutes)",
+    "maxLoginAttempts": "Maximum login attempts",
+    "lockoutDuration": "Lockout duration (minutes)"
+  },
+
+  "sso": {
+    "title": "Single Sign-On (SSO)",
+    "subtitle": "Azure AD / Microsoft configuration",
+    "enabled": "SSO Enabled",
+    "clientId": "Client ID",
+    "tenantId": "Tenant ID",
+    "clientSecret": "Client Secret",
+    "redirectUri": "Redirect URI",
+    "testConnection": "Test Connection",
+    "connectionSuccess": "Connection successful",
+    "connectionFailed": "Connection failed"
+  },
+
+  "mfa": {
+    "title": "Multi-Factor Authentication",
+    "subtitle": "Two-step verification settings",
+    "enabled": "MFA Enabled",
+    "enforceForAll": "Enforce for all users",
+    "allowRememberDevice": "Allow 'Remember this device'",
+    "rememberDuration": "Remember duration (days)",
+    "methods": "Allowed methods",
+    "authenticatorApp": "Authenticator App",
+    "sms": "SMS",
+    "email": "Email"
+  },
+
+  "email": {
+    "title": "Email Settings",
+    "subtitle": "SMTP server configuration",
+    "smtpHost": "SMTP Host",
+    "smtpPort": "SMTP Port",
+    "smtpUser": "SMTP User",
+    "smtpPassword": "SMTP Password",
+    "smtpFrom": "From Address",
+    "smtpFromName": "From Name",
+    "useTls": "Use TLS",
+    "testEmail": "Send Test Email",
+    "testEmailSent": "Test email sent",
+    "testEmailFailed": "Failed to send test email"
+  },
+
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Notification preferences",
+    "emailNotifications": "Email notifications",
+    "payrollNotifications": "Payroll notifications",
+    "vacationNotifications": "Vacation notifications",
+    "attendanceNotifications": "Attendance notifications",
+    "systemNotifications": "System notifications"
+  },
+
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "External service connections",
+    "sat": "SAT (CFDI)",
+    "imss": "IMSS",
+    "infonavit": "INFONAVIT",
+    "banks": "Banks",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "configure": "Configure",
+    "disconnect": "Disconnect"
+  },
+
+  "advanced": {
+    "title": "Advanced",
+    "subtitle": "Advanced settings",
+    "debugMode": "Debug mode",
+    "maintenanceMode": "Maintenance mode",
+    "exportData": "Export data",
+    "importData": "Import data",
+    "clearCache": "Clear cache",
+    "systemLogs": "System logs"
+  },
+
+  "actions": {
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "reset": "Reset to Defaults",
+    "export": "Export Settings",
+    "import": "Import Settings"
+  },
+
+  "messages": {
+    "saved": "Settings saved successfully",
+    "saveError": "Error saving settings",
+    "confirmReset": "Are you sure you want to reset to default settings?",
+    "resetSuccess": "Settings reset successfully",
+    "justification": "Change justification",
+    "justificationRequired": "Please provide a justification for this change",
+    "securityWarning": "Security configuration changes are critical. Are you sure?"
+  }
+}

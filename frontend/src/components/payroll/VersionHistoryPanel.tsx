@@ -4,8 +4,6 @@ import {
   ClockIcon,
   ArrowsRightLeftIcon,
   DocumentDuplicateIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   MinusIcon,
