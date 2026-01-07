@@ -38,21 +38,18 @@ export class HierarchyController {
       if (companyId) {
         return this.hierarchyService.getOrganizationalChart(companyId);
       }
-      // If no companyId specified, return charts for all companies
+      // If no companyId specified, return flat array of all employees from all companies
       const companies = await this.prisma.company.findMany({
         select: { id: true, name: true },
       });
 
-      const results = [];
+      // Flatten all charts into a single array for frontend compatibility
+      const allCharts: any[] = [];
       for (const company of companies) {
         const chart = await this.hierarchyService.getOrganizationalChart(company.id);
-        results.push({
-          companyId: company.id,
-          companyName: company.name,
-          chart,
-        });
+        allCharts.push(...chart);
       }
-      return results;
+      return allCharts;
     }
 
     // Other users can only see their company
