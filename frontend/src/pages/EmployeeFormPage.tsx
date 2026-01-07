@@ -210,6 +210,10 @@ export default function EmployeeFormPage() {
   const preparePayload = (data: EmployeeFormData) => ({
     ...data,
     baseSalary: Number(data.baseSalary),
+    // Convert empty strings to undefined for UUID fields to avoid validation errors
+    jobPositionId: data.jobPositionId || undefined,
+    departmentId: data.departmentId || undefined,
+    companyId: data.companyId || undefined,
     bankId: data.bankId || undefined,
     workScheduleId: data.workScheduleId || undefined,
     supervisorId: data.supervisorId || null,
