@@ -263,13 +263,23 @@ export class IncidentsService {
     value: number;
     description?: string;
     documentPath?: string;
+    // These fields are passed from controller but not stored in DB
+    createdByRole?: string;
+    createdByEmail?: string;
   }) {
     const date = typeof data.date === 'string' ? new Date(data.date) : data.date;
 
+    // Extract only the fields that exist in the schema
+    const { employeeId, incidentTypeId, value, description, documentPath } = data;
+
     return this.prisma.employeeIncident.create({
       data: {
-        ...data,
+        employeeId,
+        incidentTypeId,
         date,
+        value,
+        description,
+        documentPath,
         status: IncidentStatus.PENDING,
       },
       include: {
