@@ -8,12 +8,15 @@
 
   "clock": {
     "title": "Reloj de asistencia",
+    "clockIn": "Registrar entrada",
+    "clockOut": "Registrar salida",
     "checkIn": "Registrar entrada",
     "checkOut": "Registrar salida",
     "breakStart": "Iniciar descanso",
     "breakEnd": "Terminar descanso",
     "status": {
       "notStarted": "Sin iniciar",
+      "notClockedIn": "Sin registrar entrada",
       "working": "Trabajando",
       "onBreak": "En descanso",
       "finished": "Jornada terminada"
@@ -25,6 +28,12 @@
     "totalHours": "{hours}h {minutes}m"
   },
 
+  "widgets": {
+    "vacationBalance": "Saldo de vacaciones",
+    "nextPayday": "Próximo día de pago",
+    "todaySchedule": "Mi horario hoy"
+  },
+
   "feed": {
     "title": "Muro",
     "writePost": "¿Qué quieres compartir?",
@@ -33,7 +42,9 @@
     "comment": "Comentar",
     "share": "Compartir",
     "noPostsYet": "No hay publicaciones aún",
-    "loadMore": "Cargar más"
+    "loadMore": "Cargar más",
+    "whatsNew": "Novedades",
+    "newHires": "Nuevo ingreso"
   },
 
   "news": {
@@ -118,6 +129,7 @@
     "title": "Accesos rápidos",
     "requestVacation": "Solicitar vacaciones",
     "viewPayroll": "Ver mi nómina",
+    "viewPaystub": "Ver recibo de nómina",
     "updateProfile": "Actualizar perfil",
     "viewBenefits": "Ver prestaciones",
     "directory": "Directorio"

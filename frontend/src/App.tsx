@@ -32,7 +32,7 @@ import AuthCallbackPage from './pages/AuthCallbackPage';
 import WebTimeclockPage from './pages/WebTimeclockPage';
 
 // Employee Portal pages
-import { PortalHomePage, MyPayrollPage, VacationsDashboardPage } from './pages/portal';
+import { MyPayrollPage, VacationsDashboardPage, FeedPage } from './pages/portal';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -46,6 +46,19 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   }
 
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+}
+
+// Determines where to redirect based on user role
+function RoleBasedRedirect() {
+  const { user } = useAuth();
+
+  // Employees should go directly to portal feed (Muro)
+  if (user?.role === 'EMPLOYEE' || user?.role === 'employee') {
+    return <Navigate to="/portal/feed" replace />;
+  }
+
+  // Admins and other roles go to dashboard
+  return <Navigate to="/dashboard" replace />;
 }
 
 function App() {
@@ -66,7 +79,7 @@ function App() {
                   </PrivateRoute>
                 }
               >
-              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route index element={<RoleBasedRedirect />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="employees" element={<EmployeesPage />} />
               <Route path="employees/new" element={<EmployeeFormPage />} />
@@ -103,7 +116,7 @@ function App() {
                   </PrivateRoute>
                 }
               >
-                <Route index element={<PortalHomePage />} />
+                <Route index element={<Navigate to="/portal/feed" replace />} />
                 <Route path="my-payroll" element={<MyPayrollPage />} />
                 <Route path="vacations" element={<VacationsDashboardPage />} />
                 <Route path="attendance" element={<AttendancePage />} />
@@ -114,7 +127,7 @@ function App() {
                 <Route path="benefits" element={<BenefitsPage />} />
                 <Route path="recognition" element={<EmployeePortalPage />} />
                 <Route path="surveys" element={<EmployeePortalPage />} />
-                <Route path="feed" element={<EmployeePortalPage />} />
+                <Route path="feed" element={<FeedPage />} />
                 <Route path="settings" element={<SystemSettingsPage />} />
               </Route>
             </Routes>
