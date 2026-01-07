@@ -329,10 +329,33 @@ export class VacationsService {
       throw new BadRequestException('Solo se pueden aprobar solicitudes en estado PENDING');
     }
 
+    // Buscar el empleado del supervisor/aprobador
+    // El supervisorId puede ser un employeeId o un userId, necesitamos el employeeId
+    let supervisorEmployee = await this.prisma.employee.findUnique({
+      where: { id: supervisorId },
+    });
+
+    // Si no se encontró como employeeId, buscar por userId
+    if (!supervisorEmployee) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: supervisorId },
+      });
+      if (user?.email) {
+        supervisorEmployee = await this.prisma.employee.findFirst({
+          where: { email: user.email },
+        });
+      }
+    }
+
+    const resolvedSupervisorId = supervisorEmployee?.id;
+
     // Verificar que el aprobador es el supervisor o está en la cadena
     // Omitir verificación para admin/rh/company_admin
     if (!skipHierarchyCheck) {
-      const canApprove = await this.canApproveRequest(supervisorId, request.employeeId);
+      if (!resolvedSupervisorId) {
+        throw new ForbiddenException('No tiene registro de empleado para aprobar solicitudes');
+      }
+      const canApprove = await this.canApproveRequest(resolvedSupervisorId, request.employeeId);
       if (!canApprove.allowed) {
         throw new ForbiddenException('No tiene permiso para aprobar esta solicitud');
       }
@@ -342,7 +365,7 @@ export class VacationsService {
     const approvalChain = (request.approvalChain as any[]) || [];
     approvalChain.push({
       level: 1,
-      employeeId: supervisorId,
+      employeeId: resolvedSupervisorId || supervisorId,
       role: 'SUPERVISOR',
       status: 'APPROVED',
       timestamp: new Date().toISOString(),
@@ -353,7 +376,7 @@ export class VacationsService {
       where: { id: requestId },
       data: {
         status: 'SUPERVISOR_APPROVED',
-        supervisorApprovedById: supervisorId,
+        supervisorApprovedById: resolvedSupervisorId,
         supervisorApprovedAt: new Date(),
         supervisorComments: comments,
         approvalChain,
@@ -374,13 +397,9 @@ export class VacationsService {
 
     // Enviar notificaciones al empleado y RH
     try {
-      // Obtener nombre del supervisor
-      const supervisor = await this.prisma.employee.findUnique({
-        where: { id: supervisorId },
-        select: { firstName: true, lastName: true },
-      });
-      const supervisorName = supervisor
-        ? `${supervisor.firstName} ${supervisor.lastName}`
+      // Usar los datos del supervisor ya obtenidos
+      const supervisorName = supervisorEmployee
+        ? `${supervisorEmployee.firstName} ${supervisorEmployee.lastName}`
         : 'Supervisor';
 
       // Obtener userId del empleado (solo si tiene email)

@@ -1612,13 +1612,15 @@ async function main() {
   // CREAR REGISTROS DE ASISTENCIA
   // ============================================
 
-  // Crear registros de asistencia para los últimos 5 días hábiles
+  // Crear registros de asistencia para los últimos 15 días hábiles + hoy
   const todayDate = new Date();
   const attendanceRecords: Array<{
     employeeId: string;
     date: Date;
     checkIn: Date;
     checkOut: Date | null;
+    breakStart: Date | null;
+    breakEnd: Date | null;
     status: 'PRESENT' | 'LATE' | 'EARLY_LEAVE';
     hoursWorked: number | null;
   }> = [];
@@ -1628,6 +1630,12 @@ async function main() {
     const workdays: Date[] = [];
     let current = new Date(todayDate);
     current.setHours(0, 0, 0, 0);
+
+    // Incluir hoy si es día hábil
+    const todayDayOfWeek = current.getDay();
+    if (todayDayOfWeek !== 0 && todayDayOfWeek !== 6) {
+      workdays.push(new Date(current));
+    }
 
     while (workdays.length < count) {
       current.setDate(current.getDate() - 1);
@@ -1639,38 +1647,63 @@ async function main() {
     return workdays.reverse();
   };
 
-  const recentWorkdays = getRecentWorkdays(5);
+  const recentWorkdays = getRecentWorkdays(15);
 
   // Generar asistencia para todos los empleados
   for (const emp of allEmployees) {
-    for (const workday of recentWorkdays) {
-      // Simular hora de entrada (entre 7:45 y 8:15)
-      const checkInHour = 8;
-      const checkInMinute = Math.floor(Math.random() * 30) - 15; // -15 a +15 minutos
-      const checkIn = new Date(workday);
-      checkIn.setHours(checkInHour, checkInMinute < 0 ? 60 + checkInMinute : checkInMinute, 0, 0);
-      if (checkInMinute < 0) checkIn.setHours(7);
-
-      // Simular hora de salida (entre 17:00 y 18:00) - solo si no es hoy
-      let checkOut: Date | null = null;
-      let hoursWorked: number | null = null;
+    for (let i = 0; i < recentWorkdays.length; i++) {
+      const workday = recentWorkdays[i];
       const isToday = workday.toDateString() === todayDate.toDateString();
 
+      // 10% probabilidad de faltar (excepto hoy)
+      if (!isToday && Math.random() < 0.1) {
+        continue; // Simular falta
+      }
+
+      // Simular hora de entrada (entre 7:45 y 8:20)
+      const baseHour = 8;
+      const minuteVariation = Math.floor(Math.random() * 35) - 15; // -15 a +20 minutos
+      const checkIn = new Date(workday);
+
+      if (minuteVariation < 0) {
+        checkIn.setHours(7, 60 + minuteVariation, Math.floor(Math.random() * 60), 0);
+      } else {
+        checkIn.setHours(baseHour, minuteVariation, Math.floor(Math.random() * 60), 0);
+      }
+
+      // Simular hora de salida (entre 17:00 y 18:30) - solo si no es hoy
+      let checkOut: Date | null = null;
+      let breakStart: Date | null = null;
+      let breakEnd: Date | null = null;
+      let hoursWorked: number | null = null;
+
       if (!isToday) {
+        // Hora de comida (13:00-14:00 aproximadamente)
+        breakStart = new Date(workday);
+        breakStart.setHours(13, Math.floor(Math.random() * 15), 0, 0);
+
+        breakEnd = new Date(workday);
+        breakEnd.setHours(14, Math.floor(Math.random() * 15), 0, 0);
+
+        // Hora de salida
         checkOut = new Date(workday);
         const checkOutHour = 17 + Math.floor(Math.random() * 2);
         const checkOutMinute = Math.floor(Math.random() * 60);
         checkOut.setHours(checkOutHour, checkOutMinute, 0, 0);
 
-        // Calcular horas trabajadas
-        const diffMs = checkOut.getTime() - checkIn.getTime();
-        hoursWorked = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+        // Calcular horas trabajadas (restando hora de comida)
+        const totalMs = checkOut.getTime() - checkIn.getTime();
+        const breakMs = breakEnd.getTime() - breakStart.getTime();
+        hoursWorked = Math.round(((totalMs - breakMs) / (1000 * 60 * 60)) * 100) / 100;
       }
 
       // Determinar estado
       let status: 'PRESENT' | 'LATE' | 'EARLY_LEAVE' = 'PRESENT';
-      if (checkIn.getHours() >= 8 && checkIn.getMinutes() > 5) {
+      if (checkIn.getHours() > 8 || (checkIn.getHours() === 8 && checkIn.getMinutes() > 5)) {
         status = 'LATE';
+      }
+      if (checkOut && checkOut.getHours() < 17) {
+        status = 'EARLY_LEAVE';
       }
 
       attendanceRecords.push({
@@ -1678,6 +1711,8 @@ async function main() {
         date: workday,
         checkIn,
         checkOut,
+        breakStart,
+        breakEnd,
         status,
         hoursWorked,
       });
@@ -1693,19 +1728,28 @@ async function main() {
           date: record.date,
         },
       },
-      update: {},
+      update: {
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+        breakStart: record.breakStart,
+        breakEnd: record.breakEnd,
+        status: record.status,
+        hoursWorked: record.hoursWorked,
+      },
       create: {
         employeeId: record.employeeId,
         date: record.date,
         checkIn: record.checkIn,
         checkOut: record.checkOut,
+        breakStart: record.breakStart,
+        breakEnd: record.breakEnd,
         status: record.status,
         hoursWorked: record.hoursWorked,
       },
     });
   }
 
-  console.log(`✅ ${attendanceRecords.length} registros de asistencia creados (últimos 5 días hábiles)`);
+  console.log(`✅ ${attendanceRecords.length} registros de asistencia creados (últimos 15 días hábiles + hoy)`);
 
   // ============================================
   // RESUMEN FINAL
