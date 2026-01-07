@@ -274,14 +274,14 @@ export class CatalogsController {
   }
 
   @Patch('companies/:id')
-  @Roles('admin', 'rh')
-  @ApiOperation({ summary: 'Actualizar empresa (admin puede todas, rh solo la suya)' })
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Actualizar empresa (admin puede todas, company_admin y rh solo la suya)' })
   async updateCompany(
     @Param('id') id: string,
     @Body() data: UpdateCompanyDto,
     @CurrentUser() user: any,
   ) {
-    // RH solo puede editar su propia empresa
+    // company_admin y RH solo pueden editar su propia empresa
     if (user.role !== 'admin' && user.companyId !== id) {
       throw new ForbiddenException('Solo puedes editar tu propia empresa');
     }
