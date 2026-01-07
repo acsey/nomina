@@ -1489,6 +1489,189 @@ async function main() {
   console.log(`✅ Catálogo de PACs creado (${pacProviders.length} proveedores)`);
 
   // ============================================
+  // CONFIGURAR JERARQUÍAS DE EMPLEADOS
+  // ============================================
+
+  // Obtener empleados por número para configurar jerarquías
+  const getEmployeeByNumber = async (empNumber: string) => {
+    return prisma.employee.findUnique({ where: { employeeNumber: empNumber } });
+  };
+
+  // BFS: Estructura jerárquica
+  // Patricia González (BFS002 - Gerente RH) es top level de RH
+  // David Sánchez (BFS001 - Dev Sr) es top level de Tech, supervisa a Ana
+  // Ana Martínez (BFS004 - Dev Jr) reporta a David
+  // Miguel Herrera (BFS005 - Contador) reporta a Patricia
+  // Luis Ramírez (BFS003 - Soporte) es independiente en Ops
+  const bfs001 = await getEmployeeByNumber('BFS001'); // David - Dev Sr
+  const bfs002 = await getEmployeeByNumber('BFS002'); // Patricia - Gerente RH
+  const bfs003 = await getEmployeeByNumber('BFS003'); // Luis - Soporte
+  const bfs004 = await getEmployeeByNumber('BFS004'); // Ana - Dev Jr
+  const bfs005 = await getEmployeeByNumber('BFS005'); // Miguel - Contador
+
+  if (bfs001 && bfs004) {
+    await prisma.employee.update({
+      where: { id: bfs004.id },
+      data: { supervisorId: bfs001.id, hierarchyLevel: 1 },
+    });
+  }
+  if (bfs002 && bfs005) {
+    await prisma.employee.update({
+      where: { id: bfs005.id },
+      data: { supervisorId: bfs002.id, hierarchyLevel: 1 },
+    });
+  }
+  if (bfs001) {
+    await prisma.employee.update({
+      where: { id: bfs001.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+  if (bfs002) {
+    await prisma.employee.update({
+      where: { id: bfs002.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+  if (bfs003) {
+    await prisma.employee.update({
+      where: { id: bfs003.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+
+  // Tech Solutions: Estructura jerárquica
+  // Andrea Ramírez (TECH001 - Gerente People) es top level
+  // Fernando Castro (TECH002 - Dev Sr) es top level de Dev, supervisa a Alejandro y Sofía
+  // Gabriela Morales (TECH003 - QA) reporta a Andrea
+  // Alejandro Núñez (TECH004 - Dev Jr) reporta a Fernando
+  // Sofía Vargas (TECH005 - PM Jr) reporta a Andrea
+  const tech001 = await getEmployeeByNumber('TECH001'); // Andrea - Gerente
+  const tech002 = await getEmployeeByNumber('TECH002'); // Fernando - Dev Sr
+  const tech003 = await getEmployeeByNumber('TECH003'); // Gabriela - QA
+  const tech004 = await getEmployeeByNumber('TECH004'); // Alejandro - Dev Jr
+  const tech005 = await getEmployeeByNumber('TECH005'); // Sofía - PM
+
+  if (tech001) {
+    await prisma.employee.update({
+      where: { id: tech001.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+  if (tech002) {
+    await prisma.employee.update({
+      where: { id: tech002.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+  if (tech001 && tech003) {
+    await prisma.employee.update({
+      where: { id: tech003.id },
+      data: { supervisorId: tech001.id, hierarchyLevel: 1 },
+    });
+  }
+  if (tech002 && tech004) {
+    await prisma.employee.update({
+      where: { id: tech004.id },
+      data: { supervisorId: tech002.id, hierarchyLevel: 1 },
+    });
+  }
+  if (tech001 && tech005) {
+    await prisma.employee.update({
+      where: { id: tech005.id },
+      data: { supervisorId: tech001.id, hierarchyLevel: 1 },
+    });
+  }
+
+  // Comercializadora del Norte: Estructura jerárquica
+  // Monica Villarreal (NTE001 - RH) es top level
+  // Jorge Treviño (NTE002 - Gerente General Ventas) es top level, supervisa a Lucía
+  // Lucía Cantú (NTE003 - Vendedor) reporta a Jorge
+  // Roberto Guajardo (NTE004 - Almacenista) reporta a Jorge
+  // Diana Elizondo (NTE005 - Finanzas) reporta a Monica
+  const nte001 = await getEmployeeByNumber('NTE001'); // Monica - RH
+  const nte002 = await getEmployeeByNumber('NTE002'); // Jorge - Gerente
+  const nte003 = await getEmployeeByNumber('NTE003'); // Lucía - Vendedor
+  const nte004 = await getEmployeeByNumber('NTE004'); // Roberto - Almacenista
+  const nte005 = await getEmployeeByNumber('NTE005'); // Diana - Finanzas
+
+  if (nte001) {
+    await prisma.employee.update({
+      where: { id: nte001.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+  if (nte002) {
+    await prisma.employee.update({
+      where: { id: nte002.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+  if (nte002 && nte003) {
+    await prisma.employee.update({
+      where: { id: nte003.id },
+      data: { supervisorId: nte002.id, hierarchyLevel: 1 },
+    });
+  }
+  if (nte002 && nte004) {
+    await prisma.employee.update({
+      where: { id: nte004.id },
+      data: { supervisorId: nte002.id, hierarchyLevel: 1 },
+    });
+  }
+  if (nte001 && nte005) {
+    await prisma.employee.update({
+      where: { id: nte005.id },
+      data: { supervisorId: nte001.id, hierarchyLevel: 1 },
+    });
+  }
+
+  // INSABI (Gobierno): Estructura jerárquica
+  // Carlos Hernández (ISB001 - Director General) es top level de todos
+  // Laura Martínez (ISB002 - Jefe RH) reporta a Carlos
+  // Ricardo Pérez (ISB003 - Médico) reporta a Carlos
+  // Ana López (ISB004 - Enfermera) reporta a Ricardo
+  // José García (ISB005 - Sistemas) reporta a Laura
+  const isb001 = await getEmployeeByNumber('ISB001'); // Carlos - Director
+  const isb002 = await getEmployeeByNumber('ISB002'); // Laura - Jefe RH
+  const isb003 = await getEmployeeByNumber('ISB003'); // Ricardo - Médico
+  const isb004 = await getEmployeeByNumber('ISB004'); // Ana - Enfermera
+  const isb005 = await getEmployeeByNumber('ISB005'); // José - Sistemas
+
+  if (isb001) {
+    await prisma.employee.update({
+      where: { id: isb001.id },
+      data: { hierarchyLevel: 0 },
+    });
+  }
+  if (isb001 && isb002) {
+    await prisma.employee.update({
+      where: { id: isb002.id },
+      data: { supervisorId: isb001.id, hierarchyLevel: 1 },
+    });
+  }
+  if (isb001 && isb003) {
+    await prisma.employee.update({
+      where: { id: isb003.id },
+      data: { supervisorId: isb001.id, hierarchyLevel: 1 },
+    });
+  }
+  if (isb003 && isb004) {
+    await prisma.employee.update({
+      where: { id: isb004.id },
+      data: { supervisorId: isb003.id, hierarchyLevel: 2 },
+    });
+  }
+  if (isb002 && isb005) {
+    await prisma.employee.update({
+      where: { id: isb005.id },
+      data: { supervisorId: isb002.id, hierarchyLevel: 2 },
+    });
+  }
+
+  console.log('✅ Jerarquías de empleados configuradas');
+
+  // ============================================
   // RESUMEN FINAL
   // ============================================
 
