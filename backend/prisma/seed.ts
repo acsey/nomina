@@ -591,41 +591,63 @@ async function main() {
   // CREAR EMPLEADOS POR EMPRESA
   // ============================================
 
-  // EMPLEADOS BFS INGENIERÍA (5 empleados)
+  // EMPLEADOS BFS INGENIERÍA (7 empleados - incluyendo admin, RH, gerente con emails que coinciden)
   const bfsEmployees = [
-    { employeeNumber: 'BFS001', firstName: 'David', lastName: 'Sánchez', secondLastName: 'Correa', email: 'david.sc@bfs.com.mx', rfc: 'SACD8201146R9', curp: 'SACD820114HDFNRV06', nss: '90028219179', birthDate: new Date('1982-01-14'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2025-09-05'), baseSalary: 49903, departmentId: bfsDepts.ti.id, jobPositionId: puestos[2].id },
-    { employeeNumber: 'BFS002', firstName: 'Patricia', lastName: 'González', secondLastName: 'Ruiz', email: 'patricia.g@bfs.com.mx', rfc: 'GORP850322ABC', curp: 'GORP850322MASNZR01', nss: '90028219180', birthDate: new Date('1985-03-22'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2023-01-15'), baseSalary: 45000, departmentId: bfsDepts.rh.id, jobPositionId: puestos[1].id },
-    { employeeNumber: 'BFS003', firstName: 'Ricardo', lastName: 'Mendoza', secondLastName: 'López', email: 'ricardo.m@bfs.com.mx', rfc: 'MELR880510DEF', curp: 'MELR880510HASNZR02', nss: '90028219181', birthDate: new Date('1988-05-10'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2022-06-01'), baseSalary: 52000, departmentId: bfsDepts.ops.id, jobPositionId: puestos[7].id },
-    { employeeNumber: 'BFS004', firstName: 'Carmen', lastName: 'Torres', secondLastName: 'Vega', email: 'carmen.t@bfs.com.mx', rfc: 'TOVC900815GHI', curp: 'TOVC900815MASNZR03', nss: '90028219182', birthDate: new Date('1990-08-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-02-20'), baseSalary: 28000, departmentId: bfsDepts.ti.id, jobPositionId: puestos[3].id },
+    // Admin de empresa - email coincide con usuario admin@bfs.com.mx
+    { employeeNumber: 'BFS000', firstName: 'Roberto', lastName: 'García', secondLastName: 'Méndez', email: 'admin@bfs.com.mx', rfc: 'GAMR780215XYZ', curp: 'GAMR780215HASNRB01', nss: '90028219177', birthDate: new Date('1978-02-15'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2018-01-15'), baseSalary: 75000, departmentId: bfsDepts.admin.id, jobPositionId: puestos[0].id },
+    // RH - email coincide con usuario rh@bfs.com.mx
+    { employeeNumber: 'BFS001', firstName: 'Patricia', lastName: 'González', secondLastName: 'Ruiz', email: 'rh@bfs.com.mx', rfc: 'GORP850322ABC', curp: 'GORP850322MASNZR01', nss: '90028219180', birthDate: new Date('1985-03-22'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2020-01-15'), baseSalary: 45000, departmentId: bfsDepts.rh.id, jobPositionId: puestos[1].id },
+    // Gerente - email coincide con usuario gerente@bfs.com.mx
+    { employeeNumber: 'BFS002', firstName: 'Ricardo', lastName: 'Mendoza', secondLastName: 'López', email: 'gerente@bfs.com.mx', rfc: 'MELR880510DEF', curp: 'MELR880510HASNZR02', nss: '90028219181', birthDate: new Date('1988-05-10'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2019-06-01'), baseSalary: 52000, departmentId: bfsDepts.ops.id, jobPositionId: puestos[7].id },
+    // Empleados regulares
+    { employeeNumber: 'BFS003', firstName: 'David', lastName: 'Sánchez', secondLastName: 'Correa', email: 'david.sc@bfs.com.mx', rfc: 'SACD8201146R9', curp: 'SACD820114HDFNRV06', nss: '90028219179', birthDate: new Date('1982-01-14'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2022-09-05'), baseSalary: 49903, departmentId: bfsDepts.ti.id, jobPositionId: puestos[2].id },
+    { employeeNumber: 'BFS004', firstName: 'Carmen', lastName: 'Torres', secondLastName: 'Vega', email: 'carmen.t@bfs.com.mx', rfc: 'TOVC900815GHI', curp: 'TOVC900815MASNZR03', nss: '90028219182', birthDate: new Date('1990-08-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2023-02-20'), baseSalary: 28000, departmentId: bfsDepts.ti.id, jobPositionId: puestos[3].id },
     { employeeNumber: 'BFS005', firstName: 'Miguel', lastName: 'Herrera', secondLastName: 'Soto', email: 'miguel.h@bfs.com.mx', rfc: 'HESM920420JKL', curp: 'HESM920420HASNZR04', nss: '90028219183', birthDate: new Date('1992-04-20'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-08-01'), baseSalary: 25000, departmentId: bfsDepts.admin.id, jobPositionId: puestos[4].id },
+    { employeeNumber: 'BFS006', firstName: 'Ana', lastName: 'Ruiz', secondLastName: 'Pérez', email: 'ana.r@bfs.com.mx', rfc: 'RUPA950112MNO', curp: 'RUPA950112MASNZR05', nss: '90028219184', birthDate: new Date('1995-01-12'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-03-01'), baseSalary: 22000, departmentId: bfsDepts.ops.id, jobPositionId: puestos[3].id },
   ];
 
-  // EMPLEADOS TECH SOLUTIONS (5 empleados)
+  // EMPLEADOS TECH SOLUTIONS (7 empleados - incluyendo admin, RH, gerente con emails que coinciden)
   const techEmployees = [
-    { employeeNumber: 'TECH001', firstName: 'Andrea', lastName: 'Ramírez', secondLastName: 'Castro', email: 'andrea.r@techsolutions.mx', rfc: 'RACA870612MNO', curp: 'RACA870612MDFRMS01', nss: '80028219184', birthDate: new Date('1987-06-12'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2021-03-01'), baseSalary: 48000, departmentId: techDepts.rh.id, jobPositionId: puestos[1].id },
-    { employeeNumber: 'TECH002', firstName: 'Fernando', lastName: 'Castro', secondLastName: 'Reyes', email: 'fernando.c@techsolutions.mx', rfc: 'CARF850928PQR', curp: 'CARF850928HDFRSY02', nss: '80028219185', birthDate: new Date('1985-09-28'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2020-08-15'), baseSalary: 65000, departmentId: techDepts.dev.id, jobPositionId: puestos[2].id },
+    // Admin de empresa - email coincide con usuario admin@techsolutions.mx
+    { employeeNumber: 'TECH000', firstName: 'María', lastName: 'López', secondLastName: 'Fernández', email: 'admin@techsolutions.mx', rfc: 'LOFM800320ABC', curp: 'LOFM800320MDFPRL01', nss: '80028219183', birthDate: new Date('1980-03-20'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2017-05-01'), baseSalary: 80000, departmentId: techDepts.rh.id, jobPositionId: puestos[0].id },
+    // RH - email coincide con usuario rh@techsolutions.mx
+    { employeeNumber: 'TECH001', firstName: 'Andrea', lastName: 'Ramírez', secondLastName: 'Castro', email: 'rh@techsolutions.mx', rfc: 'RACA870612MNO', curp: 'RACA870612MDFRMS01', nss: '80028219184', birthDate: new Date('1987-06-12'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2019-03-01'), baseSalary: 48000, departmentId: techDepts.rh.id, jobPositionId: puestos[1].id },
+    // Gerente - email coincide con usuario gerente@techsolutions.mx
+    { employeeNumber: 'TECH002', firstName: 'Fernando', lastName: 'Castro', secondLastName: 'Reyes', email: 'gerente@techsolutions.mx', rfc: 'CARF850928PQR', curp: 'CARF850928HDFRSY02', nss: '80028219185', birthDate: new Date('1985-09-28'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2018-08-15'), baseSalary: 65000, departmentId: techDepts.dev.id, jobPositionId: puestos[2].id },
+    // Empleados regulares
     { employeeNumber: 'TECH003', firstName: 'Gabriela', lastName: 'Morales', secondLastName: 'Díaz', email: 'gabriela.m@techsolutions.mx', rfc: 'MODG910305STU', curp: 'MODG910305MDFRLS03', nss: '80028219186', birthDate: new Date('1991-03-05'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2022-01-10'), baseSalary: 42000, departmentId: techDepts.qa.id, jobPositionId: puestos[7].id },
     { employeeNumber: 'TECH004', firstName: 'Alejandro', lastName: 'Núñez', secondLastName: 'Ibarra', email: 'alejandro.n@techsolutions.mx', rfc: 'NUIA930720VWX', curp: 'NUIA930720HDFXRB04', nss: '80028219187', birthDate: new Date('1993-07-20'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2023-05-01'), baseSalary: 35000, departmentId: techDepts.dev.id, jobPositionId: puestos[3].id },
     { employeeNumber: 'TECH005', firstName: 'Sofía', lastName: 'Vargas', secondLastName: 'Luna', email: 'sofia.v@techsolutions.mx', rfc: 'VALS950215YZA', curp: 'VALS950215MDFRGS05', nss: '80028219188', birthDate: new Date('1995-02-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-01-15'), baseSalary: 22000, departmentId: techDepts.pm.id, jobPositionId: puestos[3].id },
+    { employeeNumber: 'TECH006', firstName: 'Carlos', lastName: 'Reyes', secondLastName: 'Sánchez', email: 'carlos.r@techsolutions.mx', rfc: 'RESC920610PQR', curp: 'RESC920610HDFRSC06', nss: '80028219189', birthDate: new Date('1992-06-10'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2024-02-01'), baseSalary: 28000, departmentId: techDepts.dev.id, jobPositionId: puestos[3].id },
   ];
 
-  // EMPLEADOS COMERCIALIZADORA DEL NORTE (5 empleados)
+  // EMPLEADOS COMERCIALIZADORA DEL NORTE (6 empleados - incluyendo admin, RH con emails que coinciden)
   const norteEmployees = [
-    { employeeNumber: 'NTE001', firstName: 'Monica', lastName: 'Villarreal', secondLastName: 'Garza', email: 'monica.v@comnorte.mx', rfc: 'VIGM860418BCD', curp: 'VIGM860418MNLRLR01', nss: '70028219189', birthDate: new Date('1986-04-18'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2019-02-01'), baseSalary: 42000, departmentId: norteDepts.rh.id, jobPositionId: puestos[1].id },
+    // Admin de empresa - email coincide con usuario admin@comnorte.mx
+    { employeeNumber: 'NTE000', firstName: 'Juan', lastName: 'Treviño', secondLastName: 'García', email: 'admin@comnorte.mx', rfc: 'TEGJ750315ABC', curp: 'TEGJ750315HNLRVN01', nss: '70028219188', birthDate: new Date('1975-03-15'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2015-01-10'), baseSalary: 70000, departmentId: norteDepts.finanzas.id, jobPositionId: puestos[0].id },
+    // RH - email coincide con usuario rh@comnorte.mx
+    { employeeNumber: 'NTE001', firstName: 'Monica', lastName: 'Villarreal', secondLastName: 'Garza', email: 'rh@comnorte.mx', rfc: 'VIGM860418BCD', curp: 'VIGM860418MNLRLR01', nss: '70028219189', birthDate: new Date('1986-04-18'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2017-02-01'), baseSalary: 42000, departmentId: norteDepts.rh.id, jobPositionId: puestos[1].id },
+    // Empleados regulares
     { employeeNumber: 'NTE002', firstName: 'Jorge', lastName: 'Trevino', secondLastName: 'Salinas', email: 'jorge.t@comnorte.mx', rfc: 'TESJ840725EFG', curp: 'TESJ840725HNLRVR02', nss: '70028219190', birthDate: new Date('1984-07-25'), gender: 'MALE' as const, maritalStatus: 'DIVORCED' as const, hireDate: new Date('2018-06-15'), baseSalary: 55000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[0].id },
     { employeeNumber: 'NTE003', firstName: 'Lucia', lastName: 'Cantu', secondLastName: 'Lozano', email: 'lucia.c@comnorte.mx', rfc: 'CALL890112HIJ', curp: 'CALL890112MNLNZC03', nss: '70028219191', birthDate: new Date('1989-01-12'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2021-09-01'), baseSalary: 18000, departmentId: norteDepts.ventas.id, jobPositionId: puestos[5].id },
     { employeeNumber: 'NTE004', firstName: 'Roberto', lastName: 'Guajardo', secondLastName: 'Hinojosa', email: 'roberto.g@comnorte.mx', rfc: 'GUHR910830KLM', curp: 'GUHR910830HNLJRB04', nss: '70028219192', birthDate: new Date('1991-08-30'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2022-04-01'), baseSalary: 14000, departmentId: norteDepts.almacen.id, jobPositionId: puestos[6].id },
     { employeeNumber: 'NTE005', firstName: 'Diana', lastName: 'Elizondo', secondLastName: 'Cavazos', email: 'diana.e@comnorte.mx', rfc: 'EICD930605NOP', curp: 'EICD930605MNLLZN05', nss: '70028219193', birthDate: new Date('1993-06-05'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2023-11-01'), baseSalary: 28000, departmentId: norteDepts.finanzas.id, jobPositionId: puestos[4].id },
   ];
 
-  // EMPLEADOS INSABI - Instituto de Salud (5 empleados de gobierno)
+  // EMPLEADOS INSABI - Instituto de Salud (7 empleados de gobierno - incluyendo admin, RH, director)
   // Prestaciones tipicas de gobierno: Aguinaldo 40 dias, Prima Vacacional 50%, Estimulos, Seguro de Vida
   const insabiEmployees = [
-    { employeeNumber: 'ISB001', firstName: 'Carlos', lastName: 'Hernandez', secondLastName: 'Rojas', email: 'carlos.h@insabi.gob.mx', rfc: 'HERC750210QRS', curp: 'HERC750210HDFRNR01', nss: '60028219194', birthDate: new Date('1975-02-10'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2010-03-15'), baseSalary: 85000, departmentId: insabiDepts.admin.id, jobPositionId: puestos[8].id },
-    { employeeNumber: 'ISB002', firstName: 'Laura', lastName: 'Martinez', secondLastName: 'Solis', email: 'laura.m@insabi.gob.mx', rfc: 'MASL800515TUV', curp: 'MASL800515MDFRTL02', nss: '60028219195', birthDate: new Date('1980-05-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2015-08-01'), baseSalary: 45000, departmentId: insabiDepts.rh.id, jobPositionId: puestos[10].id },
+    // Admin de empresa - email coincide con usuario admin@insabi.gob.mx
+    { employeeNumber: 'ISB000', firstName: 'Pedro', lastName: 'Ramírez', secondLastName: 'Torres', email: 'admin@insabi.gob.mx', rfc: 'RATP720510ABC', curp: 'RATP720510HDFMRD01', nss: '60028219193', birthDate: new Date('1972-05-10'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2008-01-15'), baseSalary: 95000, departmentId: insabiDepts.admin.id, jobPositionId: puestos[8].id },
+    // RH - email coincide con usuario rh@insabi.gob.mx
+    { employeeNumber: 'ISB001', firstName: 'Laura', lastName: 'Martinez', secondLastName: 'Solis', email: 'rh@insabi.gob.mx', rfc: 'MASL800515TUV', curp: 'MASL800515MDFRTL02', nss: '60028219195', birthDate: new Date('1980-05-15'), gender: 'FEMALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2013-08-01'), baseSalary: 45000, departmentId: insabiDepts.rh.id, jobPositionId: puestos[10].id },
+    // Director - email coincide con usuario director@insabi.gob.mx
+    { employeeNumber: 'ISB002', firstName: 'Carlos', lastName: 'Hernandez', secondLastName: 'Rojas', email: 'director@insabi.gob.mx', rfc: 'HERC750210QRS', curp: 'HERC750210HDFRNR01', nss: '60028219194', birthDate: new Date('1975-02-10'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2010-03-15'), baseSalary: 85000, departmentId: insabiDepts.admin.id, jobPositionId: puestos[9].id },
+    // Empleados regulares
     { employeeNumber: 'ISB003', firstName: 'Ricardo', lastName: 'Perez', secondLastName: 'Vega', email: 'ricardo.p@insabi.gob.mx', rfc: 'PEVR780820WXY', curp: 'PEVR780820HDFRGC03', nss: '60028219196', birthDate: new Date('1978-08-20'), gender: 'MALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2012-01-16'), baseSalary: 38000, departmentId: insabiDepts.medico.id, jobPositionId: puestos[11].id },
     { employeeNumber: 'ISB004', firstName: 'Ana', lastName: 'Lopez', secondLastName: 'Cruz', email: 'ana.l@insabi.gob.mx', rfc: 'LOCA850930ZAB', curp: 'LOCA850930MDFPRN04', nss: '60028219197', birthDate: new Date('1985-09-30'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2018-06-01'), baseSalary: 22000, departmentId: insabiDepts.medico.id, jobPositionId: puestos[12].id },
     { employeeNumber: 'ISB005', firstName: 'Jose', lastName: 'Garcia', secondLastName: 'Mendez', email: 'jose.g@insabi.gob.mx', rfc: 'GAMJ900115CDE', curp: 'GAMJ900115HDFRRN05', nss: '60028219198', birthDate: new Date('1990-01-15'), gender: 'MALE' as const, maritalStatus: 'SINGLE' as const, hireDate: new Date('2020-02-01'), baseSalary: 25000, departmentId: insabiDepts.sistemas.id, jobPositionId: puestos[13].id },
+    { employeeNumber: 'ISB006', firstName: 'Elena', lastName: 'Gómez', secondLastName: 'Ruiz', email: 'elena.g@insabi.gob.mx', rfc: 'GORE880215DEF', curp: 'GORE880215MDFMZL06', nss: '60028219199', birthDate: new Date('1988-02-15'), gender: 'FEMALE' as const, maritalStatus: 'MARRIED' as const, hireDate: new Date('2019-04-01'), baseSalary: 28000, departmentId: insabiDepts.juridico.id, jobPositionId: puestos[13].id },
   ];
 
   // Insertar empleados
@@ -726,7 +748,7 @@ async function main() {
     });
   }
 
-  console.log('✅ 20 Empleados creados (5 por empresa)');
+  console.log('✅ 26 Empleados creados (6-7 por empresa, incluyendo admin/RH/gerente)');
 
   // ============================================
   // CREAR USUARIOS EMPLEADOS
@@ -1498,178 +1520,192 @@ async function main() {
   };
 
   // BFS: Estructura jerárquica
-  // Patricia González (BFS002 - Gerente RH) es top level de RH
-  // David Sánchez (BFS001 - Dev Sr) es top level de Tech, supervisa a Ana
-  // Ana Martínez (BFS004 - Dev Jr) reporta a David
-  // Miguel Herrera (BFS005 - Contador) reporta a Patricia
-  // Luis Ramírez (BFS003 - Soporte) es independiente en Ops
-  const bfs001 = await getEmployeeByNumber('BFS001'); // David - Dev Sr
-  const bfs002 = await getEmployeeByNumber('BFS002'); // Patricia - Gerente RH
-  const bfs003 = await getEmployeeByNumber('BFS003'); // Luis - Soporte
-  const bfs004 = await getEmployeeByNumber('BFS004'); // Ana - Dev Jr
-  const bfs005 = await getEmployeeByNumber('BFS005'); // Miguel - Contador
+  // BFS000 = Admin Roberto (top level admin)
+  // BFS001 = RH Patricia (top level RH)
+  // BFS002 = Gerente Ricardo (top level operaciones, supervisa a empleados)
+  // BFS003-BFS006 = Empleados regulares que reportan al gerente
+  const bfs000 = await getEmployeeByNumber('BFS000'); // Roberto - Admin
+  const bfs001 = await getEmployeeByNumber('BFS001'); // Patricia - RH
+  const bfs002 = await getEmployeeByNumber('BFS002'); // Ricardo - Gerente
+  const bfs003 = await getEmployeeByNumber('BFS003'); // David - Dev
+  const bfs004 = await getEmployeeByNumber('BFS004'); // Carmen - Dev
+  const bfs005 = await getEmployeeByNumber('BFS005'); // Miguel - Admin
+  const bfs006 = await getEmployeeByNumber('BFS006'); // Ana - Ops
 
-  if (bfs001 && bfs004) {
-    await prisma.employee.update({
-      where: { id: bfs004.id },
-      data: { supervisorId: bfs001.id, hierarchyLevel: 1 },
-    });
-  }
-  if (bfs002 && bfs005) {
-    await prisma.employee.update({
-      where: { id: bfs005.id },
-      data: { supervisorId: bfs002.id, hierarchyLevel: 1 },
-    });
-  }
-  if (bfs001) {
-    await prisma.employee.update({
-      where: { id: bfs001.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
-  if (bfs002) {
-    await prisma.employee.update({
-      where: { id: bfs002.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
-  if (bfs003) {
-    await prisma.employee.update({
-      where: { id: bfs003.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
+  // Admin y RH son top level
+  if (bfs000) await prisma.employee.update({ where: { id: bfs000.id }, data: { hierarchyLevel: 0 } });
+  if (bfs001) await prisma.employee.update({ where: { id: bfs001.id }, data: { hierarchyLevel: 0 } });
+  if (bfs002) await prisma.employee.update({ where: { id: bfs002.id }, data: { hierarchyLevel: 0 } });
+
+  // Empleados reportan al gerente
+  if (bfs002 && bfs003) await prisma.employee.update({ where: { id: bfs003.id }, data: { supervisorId: bfs002.id, hierarchyLevel: 1 } });
+  if (bfs002 && bfs004) await prisma.employee.update({ where: { id: bfs004.id }, data: { supervisorId: bfs002.id, hierarchyLevel: 1 } });
+  if (bfs001 && bfs005) await prisma.employee.update({ where: { id: bfs005.id }, data: { supervisorId: bfs001.id, hierarchyLevel: 1 } });
+  if (bfs002 && bfs006) await prisma.employee.update({ where: { id: bfs006.id }, data: { supervisorId: bfs002.id, hierarchyLevel: 1 } });
 
   // Tech Solutions: Estructura jerárquica
-  // Andrea Ramírez (TECH001 - Gerente People) es top level
-  // Fernando Castro (TECH002 - Dev Sr) es top level de Dev, supervisa a Alejandro y Sofía
-  // Gabriela Morales (TECH003 - QA) reporta a Andrea
-  // Alejandro Núñez (TECH004 - Dev Jr) reporta a Fernando
-  // Sofía Vargas (TECH005 - PM Jr) reporta a Andrea
-  const tech001 = await getEmployeeByNumber('TECH001'); // Andrea - Gerente
-  const tech002 = await getEmployeeByNumber('TECH002'); // Fernando - Dev Sr
+  // TECH000 = Admin María (top level admin)
+  // TECH001 = RH Andrea (top level RH)
+  // TECH002 = Gerente Fernando (top level dev, supervisa desarrolladores)
+  // TECH003-TECH006 = Empleados regulares
+  const tech000 = await getEmployeeByNumber('TECH000'); // María - Admin
+  const tech001 = await getEmployeeByNumber('TECH001'); // Andrea - RH
+  const tech002 = await getEmployeeByNumber('TECH002'); // Fernando - Gerente Dev
   const tech003 = await getEmployeeByNumber('TECH003'); // Gabriela - QA
-  const tech004 = await getEmployeeByNumber('TECH004'); // Alejandro - Dev Jr
+  const tech004 = await getEmployeeByNumber('TECH004'); // Alejandro - Dev
   const tech005 = await getEmployeeByNumber('TECH005'); // Sofía - PM
+  const tech006 = await getEmployeeByNumber('TECH006'); // Carlos - Dev
 
-  if (tech001) {
-    await prisma.employee.update({
-      where: { id: tech001.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
-  if (tech002) {
-    await prisma.employee.update({
-      where: { id: tech002.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
-  if (tech001 && tech003) {
-    await prisma.employee.update({
-      where: { id: tech003.id },
-      data: { supervisorId: tech001.id, hierarchyLevel: 1 },
-    });
-  }
-  if (tech002 && tech004) {
-    await prisma.employee.update({
-      where: { id: tech004.id },
-      data: { supervisorId: tech002.id, hierarchyLevel: 1 },
-    });
-  }
-  if (tech001 && tech005) {
-    await prisma.employee.update({
-      where: { id: tech005.id },
-      data: { supervisorId: tech001.id, hierarchyLevel: 1 },
-    });
-  }
+  if (tech000) await prisma.employee.update({ where: { id: tech000.id }, data: { hierarchyLevel: 0 } });
+  if (tech001) await prisma.employee.update({ where: { id: tech001.id }, data: { hierarchyLevel: 0 } });
+  if (tech002) await prisma.employee.update({ where: { id: tech002.id }, data: { hierarchyLevel: 0 } });
+
+  if (tech001 && tech003) await prisma.employee.update({ where: { id: tech003.id }, data: { supervisorId: tech001.id, hierarchyLevel: 1 } });
+  if (tech002 && tech004) await prisma.employee.update({ where: { id: tech004.id }, data: { supervisorId: tech002.id, hierarchyLevel: 1 } });
+  if (tech001 && tech005) await prisma.employee.update({ where: { id: tech005.id }, data: { supervisorId: tech001.id, hierarchyLevel: 1 } });
+  if (tech002 && tech006) await prisma.employee.update({ where: { id: tech006.id }, data: { supervisorId: tech002.id, hierarchyLevel: 1 } });
 
   // Comercializadora del Norte: Estructura jerárquica
-  // Monica Villarreal (NTE001 - RH) es top level
-  // Jorge Treviño (NTE002 - Gerente General Ventas) es top level, supervisa a Lucía
-  // Lucía Cantú (NTE003 - Vendedor) reporta a Jorge
-  // Roberto Guajardo (NTE004 - Almacenista) reporta a Jorge
-  // Diana Elizondo (NTE005 - Finanzas) reporta a Monica
+  // NTE000 = Admin Juan (top level admin)
+  // NTE001 = RH Monica (top level RH)
+  // NTE002-NTE005 = Empleados regulares
+  const nte000 = await getEmployeeByNumber('NTE000'); // Juan - Admin
   const nte001 = await getEmployeeByNumber('NTE001'); // Monica - RH
-  const nte002 = await getEmployeeByNumber('NTE002'); // Jorge - Gerente
-  const nte003 = await getEmployeeByNumber('NTE003'); // Lucía - Vendedor
-  const nte004 = await getEmployeeByNumber('NTE004'); // Roberto - Almacenista
+  const nte002 = await getEmployeeByNumber('NTE002'); // Jorge - Ventas
+  const nte003 = await getEmployeeByNumber('NTE003'); // Lucia - Ventas
+  const nte004 = await getEmployeeByNumber('NTE004'); // Roberto - Almacén
   const nte005 = await getEmployeeByNumber('NTE005'); // Diana - Finanzas
 
-  if (nte001) {
-    await prisma.employee.update({
-      where: { id: nte001.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
-  if (nte002) {
-    await prisma.employee.update({
-      where: { id: nte002.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
-  if (nte002 && nte003) {
-    await prisma.employee.update({
-      where: { id: nte003.id },
-      data: { supervisorId: nte002.id, hierarchyLevel: 1 },
-    });
-  }
-  if (nte002 && nte004) {
-    await prisma.employee.update({
-      where: { id: nte004.id },
-      data: { supervisorId: nte002.id, hierarchyLevel: 1 },
-    });
-  }
-  if (nte001 && nte005) {
-    await prisma.employee.update({
-      where: { id: nte005.id },
-      data: { supervisorId: nte001.id, hierarchyLevel: 1 },
-    });
-  }
+  if (nte000) await prisma.employee.update({ where: { id: nte000.id }, data: { hierarchyLevel: 0 } });
+  if (nte001) await prisma.employee.update({ where: { id: nte001.id }, data: { hierarchyLevel: 0 } });
+  if (nte002) await prisma.employee.update({ where: { id: nte002.id }, data: { hierarchyLevel: 0 } }); // Jorge es jefe de ventas
+
+  if (nte002 && nte003) await prisma.employee.update({ where: { id: nte003.id }, data: { supervisorId: nte002.id, hierarchyLevel: 1 } });
+  if (nte002 && nte004) await prisma.employee.update({ where: { id: nte004.id }, data: { supervisorId: nte002.id, hierarchyLevel: 1 } });
+  if (nte001 && nte005) await prisma.employee.update({ where: { id: nte005.id }, data: { supervisorId: nte001.id, hierarchyLevel: 1 } });
 
   // INSABI (Gobierno): Estructura jerárquica
-  // Carlos Hernández (ISB001 - Director General) es top level de todos
-  // Laura Martínez (ISB002 - Jefe RH) reporta a Carlos
-  // Ricardo Pérez (ISB003 - Médico) reporta a Carlos
-  // Ana López (ISB004 - Enfermera) reporta a Ricardo
-  // José García (ISB005 - Sistemas) reporta a Laura
-  const isb001 = await getEmployeeByNumber('ISB001'); // Carlos - Director
-  const isb002 = await getEmployeeByNumber('ISB002'); // Laura - Jefe RH
+  // ISB000 = Admin Pedro (top level admin)
+  // ISB001 = RH Laura (top level RH)
+  // ISB002 = Director Carlos (top level médico)
+  // ISB003-ISB006 = Empleados regulares
+  const isb000 = await getEmployeeByNumber('ISB000'); // Pedro - Admin
+  const isb001 = await getEmployeeByNumber('ISB001'); // Laura - RH
+  const isb002 = await getEmployeeByNumber('ISB002'); // Carlos - Director
   const isb003 = await getEmployeeByNumber('ISB003'); // Ricardo - Médico
   const isb004 = await getEmployeeByNumber('ISB004'); // Ana - Enfermera
   const isb005 = await getEmployeeByNumber('ISB005'); // José - Sistemas
+  const isb006 = await getEmployeeByNumber('ISB006'); // Elena - Jurídico
 
-  if (isb001) {
-    await prisma.employee.update({
-      where: { id: isb001.id },
-      data: { hierarchyLevel: 0 },
-    });
-  }
-  if (isb001 && isb002) {
-    await prisma.employee.update({
-      where: { id: isb002.id },
-      data: { supervisorId: isb001.id, hierarchyLevel: 1 },
-    });
-  }
-  if (isb001 && isb003) {
-    await prisma.employee.update({
-      where: { id: isb003.id },
-      data: { supervisorId: isb001.id, hierarchyLevel: 1 },
-    });
-  }
-  if (isb003 && isb004) {
-    await prisma.employee.update({
-      where: { id: isb004.id },
-      data: { supervisorId: isb003.id, hierarchyLevel: 2 },
-    });
-  }
-  if (isb002 && isb005) {
-    await prisma.employee.update({
-      where: { id: isb005.id },
-      data: { supervisorId: isb002.id, hierarchyLevel: 2 },
-    });
-  }
+  if (isb000) await prisma.employee.update({ where: { id: isb000.id }, data: { hierarchyLevel: 0 } });
+  if (isb001) await prisma.employee.update({ where: { id: isb001.id }, data: { hierarchyLevel: 0 } });
+  if (isb002) await prisma.employee.update({ where: { id: isb002.id }, data: { hierarchyLevel: 0 } });
+
+  if (isb002 && isb003) await prisma.employee.update({ where: { id: isb003.id }, data: { supervisorId: isb002.id, hierarchyLevel: 1 } });
+  if (isb003 && isb004) await prisma.employee.update({ where: { id: isb004.id }, data: { supervisorId: isb003.id, hierarchyLevel: 2 } });
+  if (isb001 && isb005) await prisma.employee.update({ where: { id: isb005.id }, data: { supervisorId: isb001.id, hierarchyLevel: 1 } });
+  if (isb001 && isb006) await prisma.employee.update({ where: { id: isb006.id }, data: { supervisorId: isb001.id, hierarchyLevel: 1 } });
 
   console.log('✅ Jerarquías de empleados configuradas');
+
+  // ============================================
+  // CREAR REGISTROS DE ASISTENCIA
+  // ============================================
+
+  // Crear registros de asistencia para los últimos 5 días hábiles
+  const todayDate = new Date();
+  const attendanceRecords: Array<{
+    employeeId: string;
+    date: Date;
+    checkIn: Date;
+    checkOut: Date | null;
+    status: 'PRESENT' | 'LATE' | 'EARLY_LEAVE';
+    hoursWorked: number | null;
+  }> = [];
+
+  // Función para obtener días hábiles recientes (excluyendo fines de semana)
+  const getRecentWorkdays = (count: number): Date[] => {
+    const workdays: Date[] = [];
+    let current = new Date(todayDate);
+    current.setHours(0, 0, 0, 0);
+
+    while (workdays.length < count) {
+      current.setDate(current.getDate() - 1);
+      const dayOfWeek = current.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // No domingo ni sábado
+        workdays.push(new Date(current));
+      }
+    }
+    return workdays.reverse();
+  };
+
+  const recentWorkdays = getRecentWorkdays(5);
+
+  // Generar asistencia para todos los empleados
+  for (const emp of allEmployees) {
+    for (const workday of recentWorkdays) {
+      // Simular hora de entrada (entre 7:45 y 8:15)
+      const checkInHour = 8;
+      const checkInMinute = Math.floor(Math.random() * 30) - 15; // -15 a +15 minutos
+      const checkIn = new Date(workday);
+      checkIn.setHours(checkInHour, checkInMinute < 0 ? 60 + checkInMinute : checkInMinute, 0, 0);
+      if (checkInMinute < 0) checkIn.setHours(7);
+
+      // Simular hora de salida (entre 17:00 y 18:00) - solo si no es hoy
+      let checkOut: Date | null = null;
+      let hoursWorked: number | null = null;
+      const isToday = workday.toDateString() === todayDate.toDateString();
+
+      if (!isToday) {
+        checkOut = new Date(workday);
+        const checkOutHour = 17 + Math.floor(Math.random() * 2);
+        const checkOutMinute = Math.floor(Math.random() * 60);
+        checkOut.setHours(checkOutHour, checkOutMinute, 0, 0);
+
+        // Calcular horas trabajadas
+        const diffMs = checkOut.getTime() - checkIn.getTime();
+        hoursWorked = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+      }
+
+      // Determinar estado
+      let status: 'PRESENT' | 'LATE' | 'EARLY_LEAVE' = 'PRESENT';
+      if (checkIn.getHours() >= 8 && checkIn.getMinutes() > 5) {
+        status = 'LATE';
+      }
+
+      attendanceRecords.push({
+        employeeId: emp.id,
+        date: workday,
+        checkIn,
+        checkOut,
+        status,
+        hoursWorked,
+      });
+    }
+  }
+
+  // Insertar registros de asistencia
+  for (const record of attendanceRecords) {
+    await prisma.attendanceRecord.upsert({
+      where: {
+        employeeId_date: {
+          employeeId: record.employeeId,
+          date: record.date,
+        },
+      },
+      update: {},
+      create: {
+        employeeId: record.employeeId,
+        date: record.date,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+        status: record.status,
+        hoursWorked: record.hoursWorked,
+      },
+    });
+  }
+
+  console.log(`✅ ${attendanceRecords.length} registros de asistencia creados (últimos 5 días hábiles)`);
 
   // ============================================
   // RESUMEN FINAL
@@ -1710,12 +1746,14 @@ async function main() {
   console.log('\n' + '='.repeat(60));
   console.log('📊 RESUMEN:');
   console.log('   - 4 Empresas con diferentes colores/configuraciones');
-  console.log('   - 20 Empleados (5 por empresa)');
-  console.log('   - 1 Super Admin + 4 Admin Empresa + 7 usuarios RH/Gerente + 20 empleados');
+  console.log('   - 26 Empleados (6-7 por empresa, incluyendo admin/RH/gerente)');
+  console.log('   - 1 Super Admin + 4 Admin Empresa + 4 RH + 4 Gerentes/Directores + empleados');
+  console.log('   - Emails de usuarios coinciden con emails de empleados para pruebas');
   console.log('   - Cada empresa tiene su Admin que aprueba nóminas de SU empresa');
   console.log('   - Prestaciones LFT: Aguinaldo, Prima Vacacional, Vales, etc.');
   console.log('   - Prestaciones Gobierno: ISSSTE, FOVISSSTE, SAR, Estímulos');
   console.log('   - Vacaciones según LFT Art. 76 (0 días primer año, 12 días al cumplir 1 año)');
+  console.log('   - Registros de asistencia de los últimos 5 días hábiles');
   console.log('='.repeat(60));
   console.log('\n💼 CONFIGURACIÓN FISCAL:');
   console.log('   - 32 estados con tasas ISN (Impuesto Sobre Nómina)');
