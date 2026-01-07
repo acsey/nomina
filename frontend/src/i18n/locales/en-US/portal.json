@@ -1,0 +1,124 @@
+{
+  "welcome": {
+    "greeting": "Hello, {name}",
+    "goodMorning": "Good morning, {name}",
+    "goodAfternoon": "Good afternoon, {name}",
+    "goodEvening": "Good evening, {name}"
+  },
+
+  "clock": {
+    "title": "Time Clock",
+    "clockIn": "Clock In",
+    "clockOut": "Clock Out",
+    "breakStart": "Start Break",
+    "breakEnd": "End Break",
+    "status": {
+      "notClockedIn": "Not clocked in",
+      "working": "Working",
+      "onBreak": "On break",
+      "clockedOut": "Clocked out"
+    },
+    "todayHours": "Hours today",
+    "weekHours": "Hours this week",
+    "overtime": "Overtime",
+    "lastClockIn": "Last clock in",
+    "lastClockOut": "Last clock out",
+    "confirmClockOut": "Are you sure you want to clock out?"
+  },
+
+  "feed": {
+    "title": "Feed",
+    "whatsNew": "What's New",
+    "announcements": "Announcements",
+    "birthdays": "Birthdays",
+    "anniversaries": "Work Anniversaries",
+    "newHires": "Welcome New Team Members",
+    "noPosts": "No news right now"
+  },
+
+  "services": {
+    "title": "Services",
+    "requestDocument": "Request Document",
+    "requestLetter": "Request Letter",
+    "updateInfo": "Update Information",
+    "reportIssue": "Report Issue",
+    "askHR": "Ask HR",
+    "itSupport": "IT Support"
+  },
+
+  "documents": {
+    "title": "My Documents",
+    "paystubs": "Paystubs",
+    "taxDocuments": "Tax Documents",
+    "contracts": "Contracts",
+    "letters": "Letters",
+    "certificates": "Certificates",
+    "download": "Download",
+    "requestNew": "Request Document"
+  },
+
+  "people": {
+    "title": "People",
+    "searchPeople": "Search people...",
+    "directory": "Directory",
+    "myTeam": "My Team",
+    "colleagues": "Colleagues",
+    "viewProfile": "View Profile",
+    "sendMessage": "Send Message"
+  },
+
+  "orgChart": {
+    "title": "Org Chart",
+    "viewFullChart": "View Full Chart",
+    "myPosition": "My Position",
+    "supervisor": "My Supervisor",
+    "directReports": "Direct Reports",
+    "peers": "Peers"
+  },
+
+  "recognition": {
+    "title": "Recognition",
+    "giveRecognition": "Give Recognition",
+    "myRecognitions": "My Recognitions",
+    "teamRecognitions": "Team Recognitions",
+    "recentRecognitions": "Recent Recognitions",
+    "badges": "Badges",
+    "points": "Points",
+    "leaderboard": "Leaderboard",
+    "categories": {
+      "teamwork": "Teamwork",
+      "innovation": "Innovation",
+      "leadership": "Leadership",
+      "customerService": "Customer Service",
+      "goingExtraMile": "Going the Extra Mile"
+    }
+  },
+
+  "surveys": {
+    "title": "Surveys",
+    "activeSurveys": "Active Surveys",
+    "completedSurveys": "Completed",
+    "pendingSurveys": "Pending",
+    "takeNow": "Take Now",
+    "dueDate": "Due",
+    "anonymous": "Anonymous",
+    "required": "Required"
+  },
+
+  "quickAccess": {
+    "title": "Quick Access",
+    "requestVacation": "Request Vacation",
+    "viewPaystub": "View Paystub",
+    "updateProfile": "Update Profile",
+    "viewBenefits": "View Benefits",
+    "contactHR": "Contact HR"
+  },
+
+  "widgets": {
+    "vacationBalance": "Vacation Balance",
+    "nextPayday": "Next Payday",
+    "todaySchedule": "Today's Schedule",
+    "pendingApprovals": "Pending Approvals",
+    "upcomingEvents": "Upcoming Events"
+  }
+}

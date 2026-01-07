@@ -1,0 +1,134 @@
+{
+  "welcome": {
+    "greeting": "¡Hola, {name}!",
+    "goodMorning": "Buenos días, {name}",
+    "goodAfternoon": "Buenas tardes, {name}",
+    "goodEvening": "Buenas noches, {name}"
+  },
+
+  "clock": {
+    "title": "Reloj de asistencia",
+    "checkIn": "Registrar entrada",
+    "checkOut": "Registrar salida",
+    "breakStart": "Iniciar descanso",
+    "breakEnd": "Terminar descanso",
+    "status": {
+      "notStarted": "Sin iniciar",
+      "working": "Trabajando",
+      "onBreak": "En descanso",
+      "finished": "Jornada terminada"
+    },
+    "todayHours": "Hoy",
+    "weekHours": "Esta semana",
+    "checkedInAt": "Entrada: {time}",
+    "checkedOutAt": "Salida: {time}",
+    "totalHours": "{hours}h {minutes}m"
+  },
+
+  "feed": {
+    "title": "Muro",
+    "writePost": "¿Qué quieres compartir?",
+    "post": "Publicar",
+    "like": "Me gusta",
+    "comment": "Comentar",
+    "share": "Compartir",
+    "noPostsYet": "No hay publicaciones aún",
+    "loadMore": "Cargar más"
+  },
+
+  "news": {
+    "title": "Noticias",
+    "latest": "Últimas noticias",
+    "featured": "Destacadas",
+    "readMore": "Leer más",
+    "noNews": "No hay noticias disponibles"
+  },
+
+  "services": {
+    "title": "Portal de servicios",
+    "categories": "Categorías",
+    "request": "Solicitar",
+    "myRequests": "Mis solicitudes",
+    "constancy": "Constancia laboral",
+    "incomeProof": "Comprobante de ingresos",
+    "vacationLetter": "Carta de vacaciones",
+    "recommendation": "Carta de recomendación",
+    "customRequest": "Otra solicitud"
+  },
+
+  "documents": {
+    "title": "Mis documentos",
+    "payrollReceipts": "Recibos de nómina",
+    "contracts": "Contratos",
+    "constancies": "Constancias",
+    "other": "Otros documentos",
+    "upload": "Subir documento",
+    "download": "Descargar",
+    "noDocuments": "No hay documentos disponibles"
+  },
+
+  "people": {
+    "title": "Personas",
+    "search": "Buscar personas...",
+    "departments": "Por departamento",
+    "positions": "Por puesto",
+    "viewProfile": "Ver perfil",
+    "sendMessage": "Enviar mensaje",
+    "call": "Llamar"
+  },
+
+  "orgChart": {
+    "title": "Organigrama",
+    "viewBy": "Ver por",
+    "department": "Departamento",
+    "hierarchy": "Jerarquía",
+    "expand": "Expandir todo",
+    "collapse": "Colapsar todo"
+  },
+
+  "recognition": {
+    "title": "Reconocimientos",
+    "give": "Dar reconocimiento",
+    "received": "Recibidos",
+    "given": "Otorgados",
+    "leaderboard": "Tabla de líderes",
+    "badges": "Insignias",
+    "categories": {
+      "teamwork": "Trabajo en equipo",
+      "innovation": "Innovación",
+      "leadership": "Liderazgo",
+      "excellence": "Excelencia",
+      "customerService": "Servicio al cliente"
+    }
+  },
+
+  "surveys": {
+    "title": "Encuestas",
+    "pending": "Pendientes",
+    "completed": "Completadas",
+    "anonymous": "Anónima",
+    "dueDate": "Fecha límite",
+    "start": "Comenzar",
+    "continue": "Continuar",
+    "submit": "Enviar respuestas",
+    "thankYou": "¡Gracias por responder!"
+  },
+
+  "quickAccess": {
+    "title": "Accesos rápidos",
+    "requestVacation": "Solicitar vacaciones",
+    "viewPayroll": "Ver mi nómina",
+    "updateProfile": "Actualizar perfil",
+    "viewBenefits": "Ver prestaciones",
+    "directory": "Directorio"
+  },
+
+  "profile": {
+    "title": "Mi perfil",
+    "edit": "Editar perfil",
+    "personalInfo": "Información personal",
+    "contactInfo": "Información de contacto",
+    "emergencyContact": "Contacto de emergencia",
+    "preferences": "Preferencias"
+  }
+}

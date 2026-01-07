@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
+import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 
 const logger = new Logger('Bootstrap');
 
@@ -122,6 +123,12 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'x-correlation-id'],
     exposedHeaders: ['x-correlation-id'],
   });
+
+  // ============================================
+  // Global Exception Filter con soporte i18n
+  // Retorna: { code, message, i18nKey, details?, timestamp, path }
+  // ============================================
+  app.useGlobalFilters(new ApiExceptionFilter());
 
   // ============================================
   // Validation Pipe con mensajes en español

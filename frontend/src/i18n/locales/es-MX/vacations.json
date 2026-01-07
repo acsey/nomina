@@ -1,0 +1,98 @@
+{
+  "title": "Vacaciones y permisos",
+  "myVacations": "Mis vacaciones",
+  "requests": "Solicitudes",
+  "calendar": "Calendario",
+
+  "dashboard": {
+    "title": "Mi saldo de vacaciones",
+    "availableDays": "Días disponibles",
+    "usedDays": "Días utilizados",
+    "pendingDays": "Días pendientes de aprobación",
+    "expiringDays": "Días por vencer",
+    "expiresOn": "Vencen el {date}",
+    "totalEntitled": "Días correspondientes",
+    "takenThisYear": "Tomados este año"
+  },
+
+  "types": {
+    "vacation": "Vacaciones",
+    "permission": "Permiso",
+    "sickLeave": "Incapacidad",
+    "maternityLeave": "Incapacidad por maternidad",
+    "paternityLeave": "Permiso de paternidad",
+    "bereavement": "Permiso por fallecimiento",
+    "marriage": "Permiso por matrimonio",
+    "personal": "Permiso personal",
+    "medical": "Cita médica",
+    "other": "Otro"
+  },
+
+  "status": {
+    "pending": "Pendiente",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    "cancelled": "Cancelado",
+    "taken": "Tomado"
+  },
+
+  "request": {
+    "new": "Nueva solicitud",
+    "edit": "Editar solicitud",
+    "type": "Tipo de ausencia",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "days": "Días solicitados",
+    "workingDays": "Días hábiles",
+    "reason": "Motivo",
+    "reasonPlaceholder": "Describa el motivo de su solicitud...",
+    "attachments": "Adjuntos",
+    "addAttachment": "Agregar archivo",
+    "submit": "Enviar solicitud",
+    "submitting": "Enviando...",
+    "cancel": "Cancelar solicitud"
+  },
+
+  "approval": {
+    "title": "Solicitudes pendientes",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "approving": "Aprobando...",
+    "rejecting": "Rechazando...",
+    "rejectReason": "Motivo del rechazo",
+    "rejectReasonPlaceholder": "Indique el motivo del rechazo...",
+    "approvedBy": "Aprobado por",
+    "rejectedBy": "Rechazado por",
+    "approvedOn": "Aprobado el",
+    "rejectedOn": "Rechazado el"
+  },
+
+  "messages": {
+    "requestSubmitted": "Solicitud enviada correctamente",
+    "requestApproved": "Solicitud aprobada correctamente",
+    "requestRejected": "Solicitud rechazada",
+    "requestCancelled": "Solicitud cancelada",
+    "insufficientDays": "No tiene suficientes días disponibles",
+    "invalidDates": "Las fechas seleccionadas no son válidas",
+    "overlapping": "Ya tiene una solicitud para estas fechas"
+  },
+
+  "history": {
+    "title": "Historial de solicitudes",
+    "noRequests": "No hay solicitudes registradas",
+    "filter": {
+      "all": "Todas",
+      "thisYear": "Este año",
+      "lastYear": "Año pasado"
+    }
+  },
+
+  "policy": {
+    "title": "Política de vacaciones",
+    "daysPerYear": "Días de vacaciones al año",
+    "accumulationLimit": "Límite de acumulación",
+    "advanceNotice": "Días de anticipación requeridos",
+    "minConsecutive": "Mínimo de días consecutivos",
+    "maxConsecutive": "Máximo de días consecutivos"
+  }
+}

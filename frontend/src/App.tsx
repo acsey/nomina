@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SystemConfigProvider } from './contexts/SystemConfigContext';
 import Layout from './components/Layout';
+import PortalLayout from './components/PortalLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
@@ -29,6 +30,9 @@ import HelpPage from './pages/HelpPage';
 import OrgChartPage from './pages/OrgChartPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import WebTimeclockPage from './pages/WebTimeclockPage';
+
+// Employee Portal pages
+import { PortalHomePage, MyPayrollPage, VacationsDashboardPage } from './pages/portal';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -88,6 +92,30 @@ function App() {
               <Route path="help" element={<HelpPage />} />
               <Route path="org-chart" element={<OrgChartPage />} />
               <Route path="timeclock" element={<WebTimeclockPage />} />
+              </Route>
+
+              {/* Employee Portal Routes */}
+              <Route
+                path="/portal"
+                element={
+                  <PrivateRoute>
+                    <PortalLayout />
+                  </PrivateRoute>
+                }
+              >
+                <Route index element={<PortalHomePage />} />
+                <Route path="my-payroll" element={<MyPayrollPage />} />
+                <Route path="vacations" element={<VacationsDashboardPage />} />
+                <Route path="attendance" element={<AttendancePage />} />
+                <Route path="documents" element={<EmployeePortalPage />} />
+                <Route path="people" element={<UsersPage />} />
+                <Route path="org-chart" element={<OrgChartPage />} />
+                <Route path="services" element={<HelpPage />} />
+                <Route path="benefits" element={<BenefitsPage />} />
+                <Route path="recognition" element={<EmployeePortalPage />} />
+                <Route path="surveys" element={<EmployeePortalPage />} />
+                <Route path="feed" element={<EmployeePortalPage />} />
+                <Route path="settings" element={<SystemSettingsPage />} />
               </Route>
             </Routes>
           </ThemeProvider>

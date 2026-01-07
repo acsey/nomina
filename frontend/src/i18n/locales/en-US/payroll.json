@@ -1,0 +1,135 @@
+{
+  "title": "Payroll",
+  "subtitle": "Payroll processing and management",
+  "currentPeriod": "Current Period",
+  "history": "History",
+  "reports": "Reports",
+
+  "period": {
+    "title": "Payroll Period",
+    "biweekly": "Biweekly",
+    "monthly": "Monthly",
+    "weekly": "Weekly",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "paymentDate": "Payment Date",
+    "status": "Status",
+    "open": "Open",
+    "processing": "Processing",
+    "closed": "Closed",
+    "paid": "Paid"
+  },
+
+  "myPayroll": {
+    "title": "My Payroll",
+    "subtitle": "Your payments and earnings",
+    "currentPaystub": "Current Paystub",
+    "payHistory": "Payment History",
+    "netPay": "Net Pay",
+    "netPayTooltip": "This is the amount you will receive in your bank account after all deductions",
+    "grossPay": "Gross Pay",
+    "grossPayTooltip": "Total earnings before deductions",
+    "deductions": "Deductions",
+    "deductionsTooltip": "Discounts applied to your salary such as taxes and benefits",
+    "downloadPaystub": "Download Paystub",
+    "downloadXml": "Download XML",
+    "viewDetails": "View Details"
+  },
+
+  "earnings": {
+    "title": "Earnings",
+    "subtitle": "What you receive",
+    "baseSalary": "Base Salary",
+    "baseSalaryTooltip": "Your agreed salary as specified in your contract",
+    "overtimePay": "Overtime Pay",
+    "overtimeTooltip": "Additional payment for hours worked beyond your regular schedule",
+    "bonus": "Bonus",
+    "bonusTooltip": "Additional compensation for performance or special reasons",
+    "commission": "Commission",
+    "commissionTooltip": "Payment based on sales or results achieved",
+    "holidayPay": "Holiday Pay",
+    "holidayTooltip": "Extra pay for working on official holidays",
+    "sundayPremium": "Sunday Premium",
+    "sundayPremiumTooltip": "Additional 25% for working on Sundays",
+    "vacationBonus": "Vacation Bonus",
+    "vacationBonusTooltip": "At least 25% additional over vacation days according to law",
+    "christmasBonus": "Christmas Bonus",
+    "christmasBonusTooltip": "Equivalent to at least 15 days of salary, paid before December 20",
+    "profitSharing": "Profit Sharing",
+    "profitSharingTooltip": "Your share of company profits, paid between May and June",
+    "savingsFund": "Savings Fund",
+    "savingsFundTooltip": "Employer contribution to your savings fund",
+    "foodVouchers": "Food Vouchers",
+    "foodVouchersTooltip": "Support for food expenses, may come on card or vouchers",
+    "transportAllowance": "Transport Allowance",
+    "transportTooltip": "Support for transportation expenses"
+  },
+
+  "deductions": {
+    "title": "Deductions",
+    "subtitle": "What is deducted",
+    "isr": "ISR",
+    "isrTooltip": "Income tax. It's calculated based on your income level",
+    "imss": "IMSS",
+    "imssTooltip": "Your contribution to Social Security. It gives you access to medical services",
+    "retirementSavings": "Retirement Savings",
+    "retirementTooltip": "Your contribution to your retirement fund (AFORE)",
+    "infonavit": "INFONAVIT",
+    "infonavitTooltip": "Contribution for housing. You may have a credit discount here",
+    "infonavitCredit": "INFONAVIT Credit",
+    "infonavitCreditTooltip": "Monthly payment for your INFONAVIT housing loan",
+    "loan": "Loan",
+    "loanTooltip": "Discount for personal loans or advances",
+    "unionDues": "Union Dues",
+    "unionTooltip": "Contribution to the labor union, if applicable",
+    "savingsFundEmployee": "Savings Fund",
+    "savingsFundTooltip": "Your voluntary contribution to the savings fund",
+    "absence": "Absence",
+    "absenceTooltip": "Discount for days not worked without permission",
+    "other": "Other Deductions",
+    "otherTooltip": "Other concepts applied as deductions"
+  },
+
+  "summary": {
+    "title": "Payment Summary",
+    "totalEarnings": "Total Earnings",
+    "totalDeductions": "Total Deductions",
+    "netPayment": "Net Payment",
+    "paymentMethod": "Payment Method",
+    "paymentDate": "Payment Date",
+    "periodWorked": "Period Worked"
+  },
+
+  "details": {
+    "title": "Paystub Details",
+    "fiscalData": "Fiscal Data",
+    "stampDate": "Stamp Date",
+    "uuid": "Fiscal Folio (UUID)",
+    "employerRfc": "Employer RFC",
+    "employeeRfc": "Employee RFC"
+  },
+
+  "actions": {
+    "calculate": "Calculate Payroll",
+    "recalculate": "Recalculate",
+    "approve": "Approve",
+    "reject": "Reject",
+    "process": "Process",
+    "close": "Close Period",
+    "stamp": "Stamp CFDI",
+    "cancel": "Cancel",
+    "export": "Export",
+    "print": "Print"
+  },
+
+  "messages": {
+    "calculated": "Payroll calculated successfully",
+    "approved": "Payroll approved",
+    "processed": "Payroll processed successfully",
+    "closed": "Period closed",
+    "stamped": "Paystubs stamped successfully",
+    "cancelled": "Paystub cancelled",
+    "confirmClose": "Are you sure you want to close this period? This action cannot be undone.",
+    "confirmCancel": "Are you sure you want to cancel this paystub?"
+  }
+}

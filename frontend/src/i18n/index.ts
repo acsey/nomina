@@ -2,8 +2,9 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-import esMX from './locales/es-MX.json';
-import enUS from './locales/en-US.json';
+// Import modular locales
+import esMX from './locales/es-MX';
+import enUS from './locales/en-US';
 
 // Available languages
 export const LANGUAGES = {

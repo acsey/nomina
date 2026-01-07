@@ -1,0 +1,52 @@
+{
+  "main": {
+    "dashboard": "Dashboard",
+    "employees": "Employees",
+    "departments": "Departments",
+    "positions": "Positions",
+    "companies": "Companies",
+    "payroll": "Payroll",
+    "attendance": "Attendance",
+    "vacations": "Vacations",
+    "benefits": "Benefits",
+    "reports": "Reports",
+    "settings": "Settings",
+    "users": "Users",
+    "audit": "Audit Logs",
+    "help": "Help"
+  },
+
+  "portal": {
+    "home": "Home",
+    "feed": "Feed",
+    "news": "News",
+    "services": "Services",
+    "myPayroll": "My Payroll",
+    "vacations": "Vacations",
+    "attendance": "Attendance",
+    "documents": "My Documents",
+    "people": "People",
+    "orgChart": "Org Chart",
+    "recognition": "Recognition",
+    "surveys": "Surveys",
+    "benefits": "My Benefits",
+    "requests": "Requests",
+    "profile": "My Profile",
+    "settings": "Settings"
+  },
+
+  "user": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "help": "Help",
+    "logout": "Logout",
+    "switchToAdmin": "Switch to Admin",
+    "switchToPortal": "Switch to Employee Portal"
+  },
+
+  "breadcrumb": {
+    "home": "Home",
+    "back": "Back"
+  }
+}

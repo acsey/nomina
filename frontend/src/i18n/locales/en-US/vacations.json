@@ -1,0 +1,126 @@
+{
+  "title": "Vacations",
+  "subtitle": "Vacation management and requests",
+  "myVacations": "My Vacations",
+  "teamVacations": "Team Vacations",
+  "calendar": "Calendar",
+
+  "dashboard": {
+    "title": "My Vacations",
+    "availableDays": "Available Days",
+    "usedDays": "Used Days",
+    "pendingDays": "Pending Days",
+    "expiringSoon": "Days Expiring Soon",
+    "requestVacation": "Request Vacation",
+    "viewHistory": "View History"
+  },
+
+  "balance": {
+    "title": "Vacation Balance",
+    "earnedDays": "Earned Days",
+    "earnedTooltip": "Total days you've earned based on your seniority",
+    "usedDays": "Used Days",
+    "usedTooltip": "Days you've already taken",
+    "availableDays": "Available Days",
+    "availableTooltip": "Days you can still request",
+    "pendingApproval": "Pending Approval",
+    "pendingTooltip": "Days waiting for supervisor approval",
+    "expiring": "About to Expire",
+    "expiringTooltip": "Days that will expire if not used soon",
+    "seniorityYears": "Years of Seniority",
+    "vacationPeriod": "Vacation Period"
+  },
+
+  "request": {
+    "title": "Request Vacation",
+    "editTitle": "Edit Request",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "days": "Days",
+    "reason": "Reason (optional)",
+    "reasonPlaceholder": "Explain the reason for your request...",
+    "submit": "Submit Request",
+    "save": "Save Changes",
+    "cancel": "Cancel Request"
+  },
+
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled",
+    "inProgress": "In Progress",
+    "completed": "Completed"
+  },
+
+  "types": {
+    "vacation": "Vacation",
+    "personal": "Personal Day",
+    "medical": "Medical Leave",
+    "maternity": "Maternity Leave",
+    "paternity": "Paternity Leave",
+    "bereavement": "Bereavement",
+    "unpaid": "Unpaid Leave",
+    "compensatory": "Compensatory Time"
+  },
+
+  "approval": {
+    "title": "Pending Approvals",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveAll": "Approve All",
+    "rejectReason": "Reason for rejection",
+    "approvedBy": "Approved by",
+    "rejectedBy": "Rejected by",
+    "approvedOn": "Approved on",
+    "rejectedOn": "Rejected on",
+    "comments": "Comments"
+  },
+
+  "history": {
+    "title": "Request History",
+    "noRecords": "You have no vacation records",
+    "viewDetails": "View Details"
+  },
+
+  "calendar": {
+    "title": "Vacation Calendar",
+    "myVacations": "My Vacations",
+    "teamVacations": "Team Vacations",
+    "companyHolidays": "Company Holidays",
+    "legend": "Legend"
+  },
+
+  "entitlement": {
+    "title": "Vacation Entitlement",
+    "byLaw": "By Law (Mexico)",
+    "year1": "Year 1: 12 days",
+    "year2": "Year 2: 14 days",
+    "year3": "Year 3: 16 days",
+    "year4": "Year 4: 18 days",
+    "year5": "Year 5: 20 days",
+    "year6to10": "Years 6-10: 22 days",
+    "year11to15": "Years 11-15: 24 days",
+    "year16plus": "Year 16+: 26 days"
+  },
+
+  "policy": {
+    "title": "Vacation Policy",
+    "minDays": "Minimum days per request",
+    "maxDays": "Maximum consecutive days",
+    "advanceNotice": "Advance notice",
+    "carryOver": "Days that can be carried over",
+    "expiration": "Expiration of unused days"
+  },
+
+  "messages": {
+    "requested": "Vacation requested successfully",
+    "updated": "Request updated",
+    "cancelled": "Request cancelled",
+    "approved": "Vacation approved",
+    "rejected": "Vacation rejected",
+    "confirmCancel": "Are you sure you want to cancel this request?",
+    "confirmApprove": "Are you sure you want to approve these vacations?",
+    "confirmReject": "Are you sure you want to reject these vacations?"
+  }
+}

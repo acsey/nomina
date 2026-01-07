@@ -29,77 +29,97 @@ api.interceptors.request.use(
   }
 );
 
-// Helper to format validation error messages
-const formatValidationError = (data: any): string => {
-  // Handle NestJS validation pipe errors (array of messages)
-  if (Array.isArray(data.message)) {
-    // Return first message for toast, all messages are available in error.response.data
-    return data.message[0];
-  }
+/**
+ * API Error Response structure from backend
+ * { code, message, i18nKey, details?, timestamp, path }
+ */
+interface ApiErrorResponse {
+  code: string;
+  message: string;
+  i18nKey: string;
+  details?: Record<string, unknown>;
+  timestamp: string;
+  path?: string;
+}
 
-  // Handle single message
-  if (typeof data.message === 'string') {
-    return data.message;
-  }
-
-  // Handle object with field-level errors
-  if (data.errors && typeof data.errors === 'object') {
-    const firstField = Object.keys(data.errors)[0];
-    if (firstField && Array.isArray(data.errors[firstField])) {
-      return data.errors[firstField][0];
+/**
+ * Get the translated error message
+ * Priority: i18nKey translation > message > fallback
+ */
+const getErrorMessage = (data: ApiErrorResponse | any): string => {
+  // If data has i18nKey, try to get translation
+  if (data?.i18nKey) {
+    const translated = t(data.i18nKey);
+    // If translation exists (not same as key), use it
+    if (translated !== data.i18nKey) {
+      return translated;
     }
   }
 
-  return t('errors.validation');
+  // Handle validation errors (array of messages)
+  if (data?.details?.errors && Array.isArray(data.details.errors)) {
+    return data.details.errors[0];
+  }
+
+  // Handle NestJS validation pipe errors (array of messages)
+  if (Array.isArray(data?.message)) {
+    return data.message[0];
+  }
+
+  // Use backend message as fallback
+  if (typeof data?.message === 'string') {
+    return data.message;
+  }
+
+  return t('errors.generic');
 };
 
-// Response interceptor
+// Response interceptor with i18n support
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
       const { status, data } = error.response;
 
-      switch (status) {
-        case 401:
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          // Only redirect if not already on login page
-          if (!window.location.pathname.includes('/login')) {
-            toast.error(t('errors.sessionExpired'));
-            window.location.href = '/login';
-          }
-          break;
-        case 403:
-          toast.error(data.message || t('errors.forbidden'));
-          break;
-        case 404:
-          toast.error(data.message || t('errors.notFound'));
-          break;
-        case 409:
-          toast.error(data.message || t('errors.conflict'));
-          break;
-        case 422:
-        case 400:
-          toast.error(formatValidationError(data));
-          break;
-        case 428:
-          // MFA required - don't show toast, let the component handle it
-          break;
-        case 500:
-          toast.error(t('errors.serverError'));
-          break;
-        case 502:
-        case 503:
-        case 504:
-          toast.error(t('errors.serverUnavailable'));
-          break;
-        default:
-          toast.error(data.message || t('errors.generic'));
+      // Special handling for 401 - session expired
+      if (status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Only redirect if not already on login page
+        if (!window.location.pathname.includes('/login')) {
+          toast.error(getErrorMessage(data) || t('errors.sessionExpired'));
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
       }
+
+      // Special handling for 428 - MFA required (don't show toast)
+      if (status === 428 || data?.code === 'MFA_REQUIRED') {
+        return Promise.reject(error);
+      }
+
+      // For all other errors, show translated message
+      const errorMessage = getErrorMessage(data);
+
+      // Log error details for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', {
+          status,
+          code: data?.code,
+          i18nKey: data?.i18nKey,
+          message: data?.message,
+          details: data?.details,
+        });
+      }
+
+      // Show toast with translated message
+      toast.error(errorMessage);
+
     } else if (error.request) {
+      // Network error - no response received
       toast.error(t('errors.networkError'));
     } else {
+      // Error setting up request
       toast.error(t('errors.generic'));
     }
 

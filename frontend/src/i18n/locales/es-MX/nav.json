@@ -1,0 +1,41 @@
+{
+  "main": {
+    "dashboard": "Dashboard",
+    "employees": "Empleados",
+    "departments": "Departamentos",
+    "payroll": "Nómina",
+    "attendance": "Asistencia",
+    "vacations": "Vacaciones",
+    "benefits": "Prestaciones",
+    "incidents": "Incidencias",
+    "reports": "Reportes",
+    "settings": "Configuración",
+    "users": "Usuarios",
+    "companies": "Empresas",
+    "audit": "Auditoría"
+  },
+
+  "portal": {
+    "feed": "Muro",
+    "news": "Noticias",
+    "services": "Portal de servicios",
+    "vacations": "Vacaciones y permisos",
+    "myPayroll": "Mi nómina",
+    "documents": "Mis documentos",
+    "people": "Personas",
+    "orgChart": "Organigrama",
+    "recognition": "Reconocimientos",
+    "surveys": "Encuestas",
+    "quickAccess": "Accesos rápidos",
+    "directory": "Directorio"
+  },
+
+  "user": {
+    "profile": "Mi perfil",
+    "settings": "Configuración",
+    "changePassword": "Cambiar contraseña",
+    "notifications": "Notificaciones",
+    "help": "Ayuda",
+    "logout": "Cerrar sesión"
+  }
+}

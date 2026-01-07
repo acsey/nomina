@@ -1,0 +1,112 @@
+{
+  "title": "Configuración del Sistema",
+  "subtitle": "Administra la configuración global del sistema",
+
+  "tabs": {
+    "general": "General",
+    "security": "Seguridad",
+    "email": "Correo",
+    "notifications": "Notificaciones",
+    "integrations": "Integraciones",
+    "appearance": "Apariencia"
+  },
+
+  "general": {
+    "companyName": "Nombre de la empresa",
+    "timezone": "Zona horaria",
+    "dateFormat": "Formato de fecha",
+    "currency": "Moneda",
+    "multiCompany": "Modo multi-empresa"
+  },
+
+  "language": {
+    "title": "Idioma",
+    "description": "Idioma de la interfaz del sistema",
+    "system": "Idioma del sistema",
+    "systemDescription": "Idioma por defecto para todos los usuarios",
+    "user": "Idioma del usuario",
+    "userDescription": "Cada usuario puede elegir su idioma preferido",
+    "addMore": "Agregar más idiomas",
+    "addMoreDescription": "Para agregar más idiomas, contacte al administrador del sistema"
+  },
+
+  "theme": {
+    "title": "Tema de la interfaz",
+    "description": "Selecciona el tema visual",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Según sistema",
+    "currentlyUsing": "Actualmente usando tema {theme} basado en la preferencia del sistema"
+  },
+
+  "security": {
+    "title": "Seguridad",
+    "sso": {
+      "title": "Single Sign-On (SSO)",
+      "enabled": "SSO Habilitado",
+      "enforced": "Forzar solo SSO",
+      "enforcedWarning": "Si habilita esta opción, los usuarios solo podrán iniciar sesión con SSO"
+    },
+    "mfa": {
+      "title": "Autenticación de dos factores (MFA)",
+      "enabled": "MFA Habilitado",
+      "enforced": "MFA Obligatorio",
+      "enforcedWarning": "Si habilita esta opción, todos los usuarios deberán configurar MFA"
+    },
+    "password": {
+      "title": "Políticas de contraseña",
+      "allowClassic": "Permitir login con contraseña",
+      "minLength": "Longitud mínima",
+      "requireUppercase": "Requerir mayúsculas",
+      "requireNumbers": "Requerir números",
+      "requireSpecial": "Requerir caracteres especiales",
+      "expirationDays": "Expiración (días)",
+      "maxAttempts": "Máximo de intentos fallidos"
+    },
+    "session": {
+      "title": "Sesiones",
+      "timeout": "Tiempo de inactividad (minutos)",
+      "singleSession": "Permitir solo una sesión activa"
+    }
+  },
+
+  "azure": {
+    "title": "Microsoft Azure AD / Entra ID",
+    "enabled": "Azure AD Habilitado",
+    "clientId": "Client ID",
+    "tenantId": "Tenant ID",
+    "clientSecret": "Client Secret",
+    "testConnection": "Probar conexión",
+    "testSuccess": "Conexión exitosa",
+    "testFailed": "Error de conexión"
+  },
+
+  "smtp": {
+    "title": "Configuración de correo (SMTP)",
+    "host": "Servidor SMTP",
+    "port": "Puerto",
+    "user": "Usuario",
+    "password": "Contraseña",
+    "fromEmail": "Correo de origen",
+    "fromName": "Nombre de origen",
+    "encryption": "Encriptación",
+    "testConnection": "Probar conexión",
+    "sendTest": "Enviar correo de prueba"
+  },
+
+  "actions": {
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "saved": "Configuración guardada",
+    "cancel": "Cancelar",
+    "reset": "Restablecer valores"
+  },
+
+  "warnings": {
+    "criticalChange": "Cambio crítico",
+    "criticalChangeDescription": "Está a punto de modificar configuraciones de seguridad que afectarán el acceso de los usuarios",
+    "justification": "Justificación",
+    "justificationRequired": "Por favor ingrese una justificación para este cambio",
+    "confirm": "Confirmar cambios"
+  }
+}

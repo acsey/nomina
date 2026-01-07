@@ -7,24 +7,25 @@ async function main() {
   console.log('🌱 Iniciando seed de datos...');
 
   // ============================================
-  // CREAR ROLES CON PERMISOS GRANULARES
+  // CREAR 7 ROLES CON PERMISOS GRANULARES
   // ============================================
   // RBAC: Role-Based Access Control
-  // - admin (super_admin): Solo configuración del sistema, sin empresa asociada
-  // - company_admin: Administrador de empresa, aprueba nóminas/incidencias de SU empresa
-  // - rh: Procesa incidencias, vacaciones, nómina, gestión de empleados
-  // - manager: Registra incidencias de su equipo, aprueba vacaciones de subordinados
-  // - employee: Solicita vacaciones y permisos (con/sin goce de sueldo)
+  // - SYSTEM_ADMIN: Administrador del sistema, acceso total
+  // - COMPANY_ADMIN: Administrador de empresa, aprueba nóminas/incidencias de SU empresa
+  // - HR_ADMIN: Administrador de RH, gestión de empleados y RH
+  // - PAYROLL_ADMIN: Administrador de nómina, procesamiento de nómina
+  // - MANAGER: Gerente, gestión de equipo y aprobación de vacaciones
+  // - EMPLOYEE: Empleado, acceso a información propia
+  // - AUDITOR: Auditor, acceso de solo lectura para auditoría
 
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'admin' },
+  const systemAdminRole = await prisma.role.upsert({
+    where: { name: 'SYSTEM_ADMIN' },
     update: {
-      description: 'Super Administrador del Sistema',
+      description: 'Administrador del Sistema - Acceso total al sistema',
       permissions: JSON.stringify([
-        // Full system access
         '*',
-        // Explicit permissions for clarity
         'system:config',
+        'system:maintenance',
         'companies:*',
         'users:*',
         'employees:*',
@@ -34,14 +35,16 @@ async function main() {
         'benefits:*',
         'reports:*',
         'settings:*',
+        'audit:*',
       ]),
     },
     create: {
-      name: 'admin',
-      description: 'Super Administrador del Sistema',
+      name: 'SYSTEM_ADMIN',
+      description: 'Administrador del Sistema - Acceso total al sistema',
       permissions: JSON.stringify([
         '*',
         'system:config',
+        'system:maintenance',
         'companies:*',
         'users:*',
         'employees:*',
@@ -51,18 +54,17 @@ async function main() {
         'benefits:*',
         'reports:*',
         'settings:*',
+        'audit:*',
       ]),
     },
   });
 
-  // Rol de Administrador por Empresa (puede aprobar nóminas de su empresa)
   const companyAdminRole = await prisma.role.upsert({
-    where: { name: 'company_admin' },
+    where: { name: 'COMPANY_ADMIN' },
     update: {
-      description: 'Administrador de Empresa - Aprueba nóminas, incidencias y gestiona su empresa',
+      description: 'Administrador de Empresa - Gestión completa de la empresa',
       permissions: JSON.stringify([
-        // Company-scoped access
-        'users:read:company', 'users:write:company',
+        'users:read:company', 'users:write:company', 'users:create:company',
         'employees:*:company',
         'payroll:*:company', 'payroll:approve',
         'incidents:*:company', 'incidents:approve',
@@ -70,13 +72,14 @@ async function main() {
         'benefits:*:company', 'benefits:approve',
         'reports:*:company',
         'settings:read:company', 'settings:write:company',
+        'audit:read:company',
       ]),
     },
     create: {
-      name: 'company_admin',
-      description: 'Administrador de Empresa - Aprueba nóminas, incidencias y gestiona su empresa',
+      name: 'COMPANY_ADMIN',
+      description: 'Administrador de Empresa - Gestión completa de la empresa',
       permissions: JSON.stringify([
-        'users:read:company', 'users:write:company',
+        'users:read:company', 'users:write:company', 'users:create:company',
         'employees:*:company',
         'payroll:*:company', 'payroll:approve',
         'incidents:*:company', 'incidents:approve',
@@ -84,115 +87,200 @@ async function main() {
         'benefits:*:company', 'benefits:approve',
         'reports:*:company',
         'settings:read:company', 'settings:write:company',
+        'audit:read:company',
       ]),
     },
   });
 
-  const rhRole = await prisma.role.upsert({
-    where: { name: 'rh' },
+  const hrAdminRole = await prisma.role.upsert({
+    where: { name: 'HR_ADMIN' },
     update: {
-      description: 'Recursos Humanos - Procesa incidencias, vacaciones, nómina y empleados',
+      description: 'Administrador de RH - Gestión de empleados y RH',
       permissions: JSON.stringify([
-        // Employee management
-        'employees:read:company', 'employees:write:company',
-        // Payroll processing (no approval)
-        'payroll:read:company', 'payroll:write:company', 'payroll:preview:company',
-        // Incident management
+        'employees:read:company', 'employees:write:company', 'employees:create:company', 'employees:deactivate:company',
         'incidents:*:company',
-        // Vacation/Leave management
-        'vacations:*:company',
-        // Benefits management
+        'vacations:*:company', 'vacations:approve:company',
         'benefits:read:company', 'benefits:write:company', 'benefits:assign:company',
-        // Reports
         'reports:read:company', 'reports:export:company',
+        'profile:read:own', 'profile:write:own',
+        'attendance:*:company',
       ]),
     },
     create: {
-      name: 'rh',
-      description: 'Recursos Humanos - Procesa incidencias, vacaciones, nómina y empleados',
+      name: 'HR_ADMIN',
+      description: 'Administrador de RH - Gestión de empleados y RH',
       permissions: JSON.stringify([
-        'employees:read:company', 'employees:write:company',
-        'payroll:read:company', 'payroll:write:company', 'payroll:preview:company',
+        'employees:read:company', 'employees:write:company', 'employees:create:company', 'employees:deactivate:company',
         'incidents:*:company',
-        'vacations:*:company',
+        'vacations:*:company', 'vacations:approve:company',
         'benefits:read:company', 'benefits:write:company', 'benefits:assign:company',
         'reports:read:company', 'reports:export:company',
+        'profile:read:own', 'profile:write:own',
+        'attendance:*:company',
+      ]),
+    },
+  });
+
+  const payrollAdminRole = await prisma.role.upsert({
+    where: { name: 'PAYROLL_ADMIN' },
+    update: {
+      description: 'Administrador de Nómina - Procesamiento de nómina',
+      permissions: JSON.stringify([
+        'employees:read:company',
+        'payroll:read:company', 'payroll:write:company', 'payroll:calculate:company',
+        'payroll:preview:company', 'payroll:stamp:company', 'payroll:cancel:company',
+        'incidents:read:company',
+        'vacations:read:company',
+        'benefits:read:company',
+        'reports:read:company', 'reports:export:company',
+        'profile:read:own', 'profile:write:own',
+      ]),
+    },
+    create: {
+      name: 'PAYROLL_ADMIN',
+      description: 'Administrador de Nómina - Procesamiento de nómina',
+      permissions: JSON.stringify([
+        'employees:read:company',
+        'payroll:read:company', 'payroll:write:company', 'payroll:calculate:company',
+        'payroll:preview:company', 'payroll:stamp:company', 'payroll:cancel:company',
+        'incidents:read:company',
+        'vacations:read:company',
+        'benefits:read:company',
+        'reports:read:company', 'reports:export:company',
+        'profile:read:own', 'profile:write:own',
       ]),
     },
   });
 
   const managerRole = await prisma.role.upsert({
-    where: { name: 'manager' },
+    where: { name: 'MANAGER' },
     update: {
-      description: 'Gerente/Jefe - Registra incidencias y aprueba vacaciones de su equipo',
+      description: 'Gerente - Gestión de equipo',
       permissions: JSON.stringify([
-        // Read employees in their scope
         'employees:read:subordinates',
-        // Create incidents for subordinates
         'incidents:read:subordinates', 'incidents:create:subordinates',
-        // Approve vacations for subordinates
         'vacations:read:subordinates', 'vacations:approve:subordinates',
-        // View payroll for their team (read-only)
         'payroll:read:subordinates',
-        // View reports for their team
         'reports:read:subordinates',
-        // Own profile
+        'attendance:read:subordinates', 'attendance:approve:subordinates',
         'profile:read:own', 'profile:write:own',
-        // Own vacation requests
+        'payroll:read:own',
         'vacations:create:own', 'vacations:read:own',
+        'incidents:read:own',
+        'benefits:read:own',
+        'attendance:read:own', 'attendance:clock:own',
       ]),
     },
     create: {
-      name: 'manager',
-      description: 'Gerente/Jefe - Registra incidencias y aprueba vacaciones de su equipo',
+      name: 'MANAGER',
+      description: 'Gerente - Gestión de equipo',
       permissions: JSON.stringify([
         'employees:read:subordinates',
         'incidents:read:subordinates', 'incidents:create:subordinates',
         'vacations:read:subordinates', 'vacations:approve:subordinates',
         'payroll:read:subordinates',
         'reports:read:subordinates',
+        'attendance:read:subordinates', 'attendance:approve:subordinates',
         'profile:read:own', 'profile:write:own',
+        'payroll:read:own',
         'vacations:create:own', 'vacations:read:own',
+        'incidents:read:own',
+        'benefits:read:own',
+        'attendance:read:own', 'attendance:clock:own',
       ]),
     },
   });
 
   const employeeRole = await prisma.role.upsert({
-    where: { name: 'employee' },
+    where: { name: 'EMPLOYEE' },
     update: {
-      description: 'Empleado - Solicita vacaciones y permisos',
+      description: 'Empleado - Acceso a información propia',
       permissions: JSON.stringify([
-        // Own profile
         'profile:read:own', 'profile:write:own',
-        // Own payroll (view receipts)
         'payroll:read:own',
-        // Request vacations and leave permissions
-        'vacations:create:own', 'vacations:read:own',
-        // View own incidents
+        'vacations:create:own', 'vacations:read:own', 'vacations:cancel:own',
         'incidents:read:own',
-        // View own benefits
         'benefits:read:own',
+        'attendance:read:own', 'attendance:clock:own',
+        'documents:read:own', 'documents:download:own',
       ]),
     },
     create: {
-      name: 'employee',
-      description: 'Empleado - Solicita vacaciones y permisos',
+      name: 'EMPLOYEE',
+      description: 'Empleado - Acceso a información propia',
       permissions: JSON.stringify([
         'profile:read:own', 'profile:write:own',
         'payroll:read:own',
-        'vacations:create:own', 'vacations:read:own',
+        'vacations:create:own', 'vacations:read:own', 'vacations:cancel:own',
         'incidents:read:own',
         'benefits:read:own',
+        'attendance:read:own', 'attendance:clock:own',
+        'documents:read:own', 'documents:download:own',
       ]),
     },
   });
 
+  const auditorRole = await prisma.role.upsert({
+    where: { name: 'AUDITOR' },
+    update: {
+      description: 'Auditor - Acceso de solo lectura para auditoría',
+      permissions: JSON.stringify([
+        'employees:read:company',
+        'payroll:read:company',
+        'incidents:read:company',
+        'vacations:read:company',
+        'benefits:read:company',
+        'reports:read:company', 'reports:export:company',
+        'audit:read:company', 'audit:export:company',
+        'settings:read:company',
+      ]),
+    },
+    create: {
+      name: 'AUDITOR',
+      description: 'Auditor - Acceso de solo lectura para auditoría',
+      permissions: JSON.stringify([
+        'employees:read:company',
+        'payroll:read:company',
+        'incidents:read:company',
+        'vacations:read:company',
+        'benefits:read:company',
+        'reports:read:company', 'reports:export:company',
+        'audit:read:company', 'audit:export:company',
+        'settings:read:company',
+      ]),
+    },
+  });
+
+  // Backward compatibility: Also create/update old role names pointing to new roles
+  // This ensures existing users with old role names still work
+  await prisma.role.upsert({
+    where: { name: 'admin' },
+    update: { description: 'DEPRECATED: Use SYSTEM_ADMIN instead' },
+    create: {
+      name: 'admin',
+      description: 'DEPRECATED: Use SYSTEM_ADMIN instead',
+      permissions: JSON.stringify(['*']),
+    },
+  });
+
+  await prisma.role.upsert({
+    where: { name: 'rh' },
+    update: { description: 'DEPRECATED: Use HR_ADMIN instead' },
+    create: {
+      name: 'rh',
+      description: 'DEPRECATED: Use HR_ADMIN instead',
+      permissions: JSON.stringify(['employees:read:company']),
+    },
+  });
+
   console.log('✅ Roles creados con permisos RBAC granulares:');
-  console.log('   - admin: Super Admin (sin empresa, acceso total al sistema)');
-  console.log('   - company_admin: Admin de Empresa (aprueba nóminas/incidencias)');
-  console.log('   - rh: Recursos Humanos (procesa nóminas/incidencias/vacaciones)');
-  console.log('   - manager: Gerente (registra incidencias, aprueba vacaciones de su equipo)');
-  console.log('   - employee: Empleado (solicita vacaciones/permisos)');
+  console.log('   - SYSTEM_ADMIN: Administrador del Sistema (acceso total)');
+  console.log('   - COMPANY_ADMIN: Administrador de Empresa (gestión completa de empresa)');
+  console.log('   - HR_ADMIN: Administrador de RH (gestión de empleados)');
+  console.log('   - PAYROLL_ADMIN: Administrador de Nómina (procesamiento de nómina)');
+  console.log('   - MANAGER: Gerente (gestión de equipo)');
+  console.log('   - EMPLOYEE: Empleado (acceso a información propia)');
+  console.log('   - AUDITOR: Auditor (solo lectura para auditoría)');
 
   const hashedPassword = await bcrypt.hash('admin123', 10);
 
@@ -205,7 +293,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'Super',
       lastName: 'Administrador',
-      roleId: adminRole.id,
+      roleId: systemAdminRole.id,
     },
   });
 
@@ -320,7 +408,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'Patricia',
       lastName: 'González',
-      roleId: rhRole.id,
+      roleId: hrAdminRole.id,
       companyId: bfsCompany.id,
     },
   });
@@ -347,7 +435,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'Andrea',
       lastName: 'Ramírez',
-      roleId: rhRole.id,
+      roleId: hrAdminRole.id,
       companyId: techCompany.id,
     },
   });
@@ -374,7 +462,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'Monica',
       lastName: 'Villarreal',
-      roleId: rhRole.id,
+      roleId: hrAdminRole.id,
       companyId: norteCompany.id,
     },
   });
@@ -388,7 +476,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'Laura',
       lastName: 'Martinez',
-      roleId: rhRole.id,
+      roleId: hrAdminRole.id,
       companyId: insabiCompany.id,
     },
   });
