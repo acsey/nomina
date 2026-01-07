@@ -102,7 +102,9 @@ export class VacationsController {
     const userEmployee = await this.vacationsService.getEmployeeByEmail(user.email);
     const approverId = userEmployee?.id || user.sub;
 
-    return this.vacationsService.supervisorApproveRequest(id, approverId, comments);
+    // RH/Admin pueden saltar la verificación de jerarquía
+    const isRHOrAdmin = ['admin', 'company_admin', 'rh'].includes(user.role);
+    return this.vacationsService.supervisorApproveRequest(id, approverId, comments, isRHOrAdmin);
   }
 
   /**
@@ -164,13 +166,13 @@ export class VacationsController {
 
     if (request.status === 'PENDING') {
       if (isRHOrAdmin) {
-        // RH/Admin puede aprobar directamente ambos pasos
-        await this.vacationsService.supervisorApproveRequest(id, user.sub, comments);
+        // RH/Admin puede aprobar directamente ambos pasos (sin verificación de jerarquía)
+        await this.vacationsService.supervisorApproveRequest(id, user.sub, comments, true);
         return this.vacationsService.rhApproveRequest(id, user.sub, comments);
       } else {
         // Manager solo aprueba paso 1
         const userEmployee = await this.vacationsService.getEmployeeByEmail(user.email);
-        return this.vacationsService.supervisorApproveRequest(id, userEmployee?.id || user.sub, comments);
+        return this.vacationsService.supervisorApproveRequest(id, userEmployee?.id || user.sub, comments, false);
       }
     }
 

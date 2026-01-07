@@ -65,9 +65,12 @@ export default function NotificationsDropdown() {
     setLoading(true);
     try {
       const response = await notificationsApi.getMyNotifications({ take: 10 });
-      setNotifications(response.data || []);
+      // API returns { data: notifications[], meta: {...} }
+      const notificationData = response.data?.data || response.data || [];
+      setNotifications(Array.isArray(notificationData) ? notificationData : []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
