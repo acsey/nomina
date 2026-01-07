@@ -22,6 +22,30 @@ api.interceptors.request.use(
   }
 );
 
+// Helper to format validation error messages
+const formatValidationError = (data: any): string => {
+  // Handle NestJS validation pipe errors (array of messages)
+  if (Array.isArray(data.message)) {
+    // Return first message for toast, all messages are available in error.response.data
+    return data.message[0];
+  }
+
+  // Handle single message
+  if (typeof data.message === 'string') {
+    return data.message;
+  }
+
+  // Handle object with field-level errors
+  if (data.errors && typeof data.errors === 'object') {
+    const firstField = Object.keys(data.errors)[0];
+    if (firstField && Array.isArray(data.errors[firstField])) {
+      return data.errors[firstField][0];
+    }
+  }
+
+  return 'Error de validación. Verifique los campos e intente de nuevo.';
+};
+
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
@@ -33,27 +57,43 @@ api.interceptors.response.use(
         case 401:
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          // Only redirect if not already on login page
+          if (!window.location.pathname.includes('/login')) {
+            toast.error('Sesión expirada. Por favor inicie sesión nuevamente.');
+            window.location.href = '/login';
+          }
           break;
         case 403:
-          toast.error('No tienes permisos para realizar esta acción');
+          toast.error(data.message || 'No tiene permisos para realizar esta acción');
           break;
         case 404:
-          toast.error('Recurso no encontrado');
+          toast.error(data.message || 'El recurso solicitado no fue encontrado');
+          break;
+        case 409:
+          toast.error(data.message || 'Conflicto: el recurso ya existe o no puede ser modificado');
           break;
         case 422:
         case 400:
-          const message = data.message || 'Error de validación';
-          toast.error(Array.isArray(message) ? message[0] : message);
+          toast.error(formatValidationError(data));
+          break;
+        case 428:
+          // MFA required - don't show toast, let the component handle it
           break;
         case 500:
-          toast.error('Error del servidor. Intenta de nuevo más tarde.');
+          toast.error('Error interno del servidor. Intente de nuevo más tarde.');
+          break;
+        case 502:
+        case 503:
+        case 504:
+          toast.error('El servidor no está disponible. Intente de nuevo en unos momentos.');
           break;
         default:
-          toast.error('Ocurrió un error inesperado');
+          toast.error(data.message || 'Ocurrió un error inesperado');
       }
     } else if (error.request) {
-      toast.error('No se pudo conectar con el servidor');
+      toast.error('No se pudo conectar con el servidor. Verifique su conexión a internet.');
+    } else {
+      toast.error('Error al procesar la solicitud');
     }
 
     return Promise.reject(error);
