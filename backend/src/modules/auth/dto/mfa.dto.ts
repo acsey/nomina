@@ -1,12 +1,12 @@
-import { IsString, IsNotEmpty, Length, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, Length, Matches, IsOptional, IsEmail } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class VerifyMfaDto {
   @ApiProperty({ description: 'Código TOTP de 6 dígitos', example: '123456' })
-  @IsString()
-  @IsNotEmpty()
-  @Length(6, 8)
-  @Matches(/^[0-9A-Z]+$/, { message: 'Código debe ser numérico o alfanumérico' })
+  @IsNotEmpty({ message: 'El código MFA es requerido' })
+  @IsString({ message: 'El código MFA debe ser texto' })
+  @Length(6, 8, { message: 'El código MFA debe tener entre 6 y 8 caracteres' })
+  @Matches(/^[0-9A-Z]+$/, { message: 'El código MFA debe ser numérico o alfanumérico' })
   code: string;
 }
 
@@ -39,17 +39,18 @@ export class MfaVerifyResultDto {
 
 export class MfaLoginDto {
   @ApiProperty({ description: 'Email del usuario' })
-  @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'El correo electrónico es requerido' })
+  @IsEmail({}, { message: 'El correo electrónico no tiene un formato válido' })
   email: string;
 
   @ApiProperty({ description: 'Contraseña' })
-  @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'La contraseña es requerida' })
+  @IsString({ message: 'La contraseña debe ser texto' })
   password: string;
 
   @ApiProperty({ description: 'Código MFA (si MFA está habilitado)', required: false })
-  @IsString()
-  @Length(6, 8)
+  @IsOptional()
+  @IsString({ message: 'El código MFA debe ser texto' })
+  @Length(6, 8, { message: 'El código MFA debe tener entre 6 y 8 caracteres' })
   mfaCode?: string;
 }
