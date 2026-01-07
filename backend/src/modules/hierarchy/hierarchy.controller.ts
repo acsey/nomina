@@ -243,7 +243,7 @@ export class HierarchyController {
 
     // For manager role, validate they have authority over this employee
     if (user.role === 'manager') {
-      const hasAccess = await this.hierarchyService.validateAccess(user.id, employeeId);
+      const hasAccess = await this.hierarchyService.validateAccess(user.sub, employeeId);
       if (!hasAccess) {
         throw new ForbiddenException('No tiene acceso a este empleado');
       }

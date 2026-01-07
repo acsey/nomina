@@ -3,20 +3,23 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { employeesApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function EmployeesPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const limit = 10;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['employees', search, page],
+    queryKey: ['employees', search, page, user?.companyId],
     queryFn: () =>
       employeesApi.getAll({
         search,
         skip: (page - 1) * limit,
         take: limit,
       }),
+    enabled: !isAuthLoading, // Wait for auth to load
   });
 
   const employees = data?.data?.data || [];
