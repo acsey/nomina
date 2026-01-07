@@ -49,6 +49,10 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  // Vinculación opcional con Employee (para cuentas personales de empleados)
+  // Las cuentas funcionales (rh@empresa.com) NO tienen Employee vinculado
+  employee          Employee?
+
   auditLogs         AuditLog[]
   benefitsCreated   Benefit[] @relation("BenefitCreator")
   benefitsApproved  Benefit[] @relation("BenefitApprover")
@@ -315,6 +319,13 @@ model Employee {
   // Estado
   status              EmployeeStatus @default(ACTIVE)
   isActive            Boolean  @default(true) @map("is_active")
+
+  // Cuenta de usuario vinculada (opcional)
+  // Permite que un empleado tenga acceso al portal con su cuenta personal
+  // Un Employee puede NO tener User (solo datos de nómina sin acceso)
+  // Un User puede NO tener Employee (cuenta funcional como rh@empresa.com)
+  userId              String?  @unique @map("user_id")
+  user                User?    @relation(fields: [userId], references: [id])
 
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")

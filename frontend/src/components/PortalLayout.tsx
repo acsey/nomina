@@ -7,7 +7,6 @@ import NotificationsDropdown from './NotificationsDropdown';
 import ClockWidget from './ClockWidget';
 import { isAdminRole } from '../types/roles';
 import {
-  HomeIcon,
   BanknotesIcon,
   CalendarDaysIcon,
   DocumentTextIcon,
@@ -18,14 +17,12 @@ import {
   UserCircleIcon,
   ClockIcon,
   NewspaperIcon,
-  WrenchScrewdriverIcon,
   ChartBarIcon,
   TrophyIcon,
   ClipboardDocumentListIcon,
   SunIcon,
   MoonIcon,
   ChevronDownIcon,
-  Cog6ToothIcon,
   ArrowsRightLeftIcon,
   RectangleGroupIcon,
 } from '@heroicons/react/24/outline';
@@ -33,11 +30,12 @@ import {
 interface PortalNavItem {
   nameKey: string;
   href: string;
-  icon: typeof HomeIcon;
+  icon: typeof BanknotesIcon;
+  adminOnly?: boolean; // Only show for admins
 }
 
+// Core navigation for all employees
 const portalNavigation: PortalNavItem[] = [
-  { nameKey: 'nav.portal.home', href: '/portal', icon: HomeIcon },
   { nameKey: 'nav.portal.feed', href: '/portal/feed', icon: NewspaperIcon },
   { nameKey: 'nav.portal.myPayroll', href: '/portal/my-payroll', icon: BanknotesIcon },
   { nameKey: 'nav.portal.vacations', href: '/portal/vacations', icon: CalendarDaysIcon },
@@ -45,7 +43,6 @@ const portalNavigation: PortalNavItem[] = [
   { nameKey: 'nav.portal.documents', href: '/portal/documents', icon: DocumentTextIcon },
   { nameKey: 'nav.portal.people', href: '/portal/people', icon: UsersIcon },
   { nameKey: 'nav.portal.orgChart', href: '/portal/org-chart', icon: RectangleGroupIcon },
-  { nameKey: 'nav.portal.services', href: '/portal/services', icon: WrenchScrewdriverIcon },
   { nameKey: 'nav.portal.benefits', href: '/portal/benefits', icon: ChartBarIcon },
   { nameKey: 'nav.portal.recognition', href: '/portal/recognition', icon: TrophyIcon },
   { nameKey: 'nav.portal.surveys', href: '/portal/surveys', icon: ClipboardDocumentListIcon },
@@ -174,23 +171,6 @@ export default function PortalLayout() {
           <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-1">
             {portalNavigation.map((item) => renderNavItem(item))}
           </nav>
-
-          {/* Settings link */}
-          <div className="border-t dark:border-gray-700 p-3">
-            <NavLink
-              to="/portal/settings"
-              className={({ isActive }) =>
-                `flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 font-medium'
-                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                }`
-              }
-            >
-              <Cog6ToothIcon className="h-5 w-5 mr-3 flex-shrink-0" />
-              <span>{t('nav.portal.settings')}</span>
-            </NavLink>
-          </div>
         </div>
       </div>
 
@@ -252,15 +232,6 @@ export default function PortalLayout() {
                   </div>
 
                   <div className="py-1">
-                    <NavLink
-                      to="/portal/settings"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <Cog6ToothIcon className="h-4 w-4" />
-                      {t('nav.portal.settings')}
-                    </NavLink>
-
                     {canSwitchToAdmin && (
                       <button
                         onClick={() => {

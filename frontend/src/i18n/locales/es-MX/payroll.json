@@ -1,8 +1,12 @@
 {
   "title": "Nómina",
-  "myPayroll": "Mi nómina",
   "periods": "Períodos de nómina",
   "receipts": "Recibos",
+
+  "myPayroll": {
+    "title": "Mi nómina",
+    "viewDetails": "Ver detalles"
+  },
 
   "employee": {
     "title": "Mi nómina",

@@ -2,20 +2,34 @@ import { Injectable, NotFoundException, ConflictException, ForbiddenException } 
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { normalizeRole } from '@/common/decorators';
+import { RoleName } from '@/common/constants/roles';
 import * as bcrypt from 'bcrypt';
 
-// Role hierarchy: admin/company_admin > rh > manager > employee
+// Role hierarchy with both legacy and new role names
+// Higher number = higher privilege
 const ROLE_HIERARCHY: Record<string, number> = {
-  admin: 5,
-  company_admin: 4,
-  rh: 3,
+  // New role names
+  [RoleName.SYSTEM_ADMIN]: 6,
+  [RoleName.COMPANY_ADMIN]: 5,
+  [RoleName.HR_ADMIN]: 4,
+  [RoleName.PAYROLL_ADMIN]: 4,
+  [RoleName.AUDITOR]: 3,
+  [RoleName.MANAGER]: 2,
+  [RoleName.EMPLOYEE]: 1,
+  // Legacy role names (for backward compatibility)
+  admin: 6,
+  company_admin: 5,
+  rh: 4,
   manager: 2,
   employee: 1,
 };
 
-// Helper to check if user is super admin (admin without company)
-function isSuperAdmin(user: { role: string; companyId?: string }): boolean {
-  return user.role === 'admin' && !user.companyId;
+// Helper to check if user is super admin (SYSTEM_ADMIN without company)
+// Handles both legacy 'admin' and new 'SYSTEM_ADMIN' roles
+function isSuperAdmin(user: { role: string; companyId?: string | null }): boolean {
+  const normalizedRole = normalizeRole(user.role);
+  return normalizedRole === RoleName.SYSTEM_ADMIN && !user.companyId;
 }
 
 @Injectable()

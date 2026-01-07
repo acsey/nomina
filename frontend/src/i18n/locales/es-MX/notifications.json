@@ -19,6 +19,7 @@
 
   "messages": {
     "payrollAvailable": "Tu recibo de nómina del período {period} está disponible",
+    "payrollReady": "Tu nómina está lista para consultar",
     "vacationApproved": "Tu solicitud de vacaciones ha sido aprobada",
     "vacationRejected": "Tu solicitud de vacaciones ha sido rechazada",
     "vacationPending": "Tienes una solicitud de vacaciones pendiente de aprobar",
@@ -44,6 +45,7 @@
     "justNow": "Justo ahora",
     "minutesAgo": "Hace {minutes} minutos",
     "hoursAgo": "Hace {hours} horas",
+    "yesterday": "Ayer",
     "daysAgo": "Hace {days} días",
     "weeksAgo": "Hace {weeks} semanas"
   }
