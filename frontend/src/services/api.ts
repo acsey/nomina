@@ -598,3 +598,34 @@ export const pacApi = {
   testConnection: (configId: string) =>
     api.post(`/pac/config/${configId}/test`),
 };
+
+// Notifications API
+export const notificationsApi = {
+  // Get user notifications
+  getMyNotifications: (params?: {
+    unreadOnly?: boolean;
+    skip?: number;
+    take?: number;
+    type?: string;
+  }) => api.get('/notifications', { params }),
+
+  // Get unread count
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+
+  // Mark as read
+  markAsRead: (id: string) => api.post(`/notifications/${id}/read`),
+
+  // Mark all as read
+  markAllAsRead: () => api.post('/notifications/read-all'),
+
+  // Delete notification
+  delete: (id: string) => api.delete(`/notifications/${id}`),
+
+  // Get upcoming birthdays
+  getUpcomingBirthdays: (companyId?: string, daysAhead?: number) =>
+    api.get('/notifications/upcoming-birthdays', { params: { companyId, daysAhead } }),
+
+  // Get upcoming anniversaries
+  getUpcomingAnniversaries: (companyId?: string, daysAhead?: number) =>
+    api.get('/notifications/upcoming-anniversaries', { params: { companyId, daysAhead } }),
+};
