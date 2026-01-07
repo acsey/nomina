@@ -9,6 +9,7 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline';
 import { incidentsApi, employeesApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 
@@ -57,6 +58,7 @@ const initialFormData: IncidentFormData = {
 
 export default function IncidentsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<IncidentFormData>(initialFormData);
   const [filterStatus, setFilterStatus] = useState('');
@@ -303,7 +305,8 @@ export default function IncidentsPage() {
                     </td>
                     <td>
                       <div className="flex gap-2">
-                        {incident.status === 'PENDING' && (
+                        {/* Only admin, company_admin, and rh can approve/reject incidents */}
+                        {incident.status === 'PENDING' && ['admin', 'company_admin', 'rh'].includes(user?.role || '') && (
                           <>
                             <button
                               onClick={() => approveMutation.mutate(incident.id)}
@@ -323,7 +326,8 @@ export default function IncidentsPage() {
                             </button>
                           </>
                         )}
-                        {['PENDING', 'APPROVED'].includes(incident.status) && (
+                        {/* Only admin, company_admin, and rh can cancel incidents */}
+                        {['PENDING', 'APPROVED'].includes(incident.status) && ['admin', 'company_admin', 'rh'].includes(user?.role || '') && (
                           <button
                             onClick={() => {
                               if (confirm('Cancelar esta incidencia?')) {
