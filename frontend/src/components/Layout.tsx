@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useTheme } from '../contexts/ThemeContext';
+import NotificationsDropdown from './NotificationsDropdown';
 import {
   HomeIcon,
   UsersIcon,
@@ -301,6 +302,9 @@ export default function Layout() {
           <div className="flex-1" />
 
           <div className="flex items-center gap-x-2">
+            {/* Notifications dropdown */}
+            <NotificationsDropdown />
+
             {/* Theme toggle button */}
             <button
               onClick={toggleDarkMode}
