@@ -49,12 +49,14 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, category: 'principal' },
-  { name: 'Mi Portal', href: '/portal', icon: UserIcon, category: 'principal' },
+  // Mi Portal only visible for employees (not operational roles like admin, HR, managers)
+  { name: 'Mi Portal', href: '/portal', icon: UserIcon, roles: ['EMPLOYEE', 'employee'], category: 'principal' },
   { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
   { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
   { name: 'Organigrama', href: '/org-chart', icon: RectangleGroupIcon, category: 'personal' },
   { name: 'Encuestas', href: '/surveys', icon: ClipboardDocumentListIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
+  { name: 'Documentos', href: '/documents-management', icon: DocumentTextIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
   { name: 'Nomina', href: '/payroll', icon: BanknotesIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
   { name: 'Recibos', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
   { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'nomina' },
@@ -351,14 +353,17 @@ export default function Layout() {
                     </p>
                   </div>
                   <div className="py-1">
-                    <NavLink
-                      to="/my-portal"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      <UserIcon className="h-4 w-4" />
-                      Mi Portal
-                    </NavLink>
+                    {/* Mi Portal only for employees, not operational roles */}
+                    {(user?.role === 'EMPLOYEE' || user?.role === 'employee') && (
+                      <NavLink
+                        to="/portal"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <UserIcon className="h-4 w-4" />
+                        Mi Portal
+                      </NavLink>
+                    )}
                     <NavLink
                       to="/help"
                       onClick={() => setUserMenuOpen(false)}
