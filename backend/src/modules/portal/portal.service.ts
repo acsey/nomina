@@ -12,6 +12,20 @@ export class PortalService {
   ) {}
 
   // =====================================
+  // EMPLOYEE LOOKUP
+  // =====================================
+
+  /**
+   * Get employee by email address
+   */
+  async getEmployeeByEmail(email: string) {
+    return this.prisma.employee.findFirst({
+      where: { email },
+      select: { id: true, companyId: true },
+    });
+  }
+
+  // =====================================
   // EMPLOYEE DOCUMENTS
   // =====================================
 

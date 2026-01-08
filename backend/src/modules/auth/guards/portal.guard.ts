@@ -7,8 +7,8 @@ import { RoleName } from '@/common/constants/roles';
  * PortalGuard - Ensures only users with employee access can use portal endpoints
  *
  * This guard checks:
- * 1. User must have an employeeId (linked to an employee record)
- * 2. OR user has EMPLOYEE role
+ * 1. User has EMPLOYEE role (always allowed)
+ * 2. OR user has an employeeId (linked to an employee record)
  * 3. OR user is admin accessing for management purposes
  */
 @Injectable()
@@ -25,6 +25,11 @@ export class PortalGuard implements CanActivate {
 
     const userRole = normalizeRole(user.role) as RoleName;
 
+    // EMPLOYEE role always has portal access
+    if (userRole === RoleName.EMPLOYEE) {
+      return true;
+    }
+
     // Admins can access portal for management purposes
     const adminRoles = [
       RoleName.SYSTEM_ADMIN,
@@ -37,12 +42,12 @@ export class PortalGuard implements CanActivate {
       return true;
     }
 
-    // Regular users must have employeeId to access portal
-    if (!user.employeeId) {
-      throw new ForbiddenException('Usuario no vinculado a un empleado. No tienes acceso al portal de empleados.');
+    // Other roles must have employeeId to access portal
+    if (user.employeeId) {
+      return true;
     }
 
-    return true;
+    throw new ForbiddenException('Usuario no vinculado a un empleado. No tienes acceso al portal de empleados.');
   }
 }
 
