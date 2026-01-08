@@ -890,6 +890,79 @@ export class VacationsService {
     return updatedRequest;
   }
 
+  /**
+   * Cancel a vacation request (only by the employee who created it)
+   * Can only cancel PENDING or SUPERVISOR_APPROVED requests
+   */
+  async cancelRequest(requestId: string, employeeId: string, reason?: string) {
+    const request = await this.prisma.vacationRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    // Only the owner can cancel their request
+    if (request.employeeId !== employeeId) {
+      throw new ForbiddenException('Solo puedes cancelar tus propias solicitudes');
+    }
+
+    // Can only cancel PENDING or SUPERVISOR_APPROVED requests
+    if (request.status !== 'PENDING' && request.status !== 'SUPERVISOR_APPROVED') {
+      throw new BadRequestException('Solo se pueden cancelar solicitudes pendientes o en proceso de aprobación');
+    }
+
+    // Restore pending days if it's a vacation
+    if (request.type === 'VACATION') {
+      await this.prisma.vacationBalance.update({
+        where: {
+          employeeId_year: {
+            employeeId: request.employeeId,
+            year: dayjs(request.startDate).year(),
+          },
+        },
+        data: {
+          pendingDays: { decrement: request.totalDays },
+        },
+      });
+    }
+
+    // Update approval chain with cancellation
+    const approvalChain = (request.approvalChain as any[]) || [];
+    approvalChain.push({
+      level: 0,
+      employeeId: employeeId,
+      role: 'EMPLOYEE',
+      status: 'CANCELLED',
+      timestamp: new Date().toISOString(),
+      reason: reason || 'Cancelado por el empleado',
+    });
+
+    const updatedRequest = await this.prisma.vacationRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'CANCELLED',
+        rejectedReason: reason || 'Cancelado por el empleado',
+        rejectedAt: new Date(),
+        approvalChain,
+      },
+    });
+
+    return updatedRequest;
+  }
+
   async getBalance(employeeId: string, year: number) {
     let balance = await this.prisma.vacationBalance.findUnique({
       where: {

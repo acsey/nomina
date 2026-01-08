@@ -971,6 +971,12 @@ model Benefit {
   valueType       BenefitValueType @map("value_type")
   isActive        Boolean  @default(true) @map("is_active")
 
+  // Enhanced content for employee portal
+  detailedDescription  String?  @map("detailed_description") @db.Text
+  includes             String[] @default([]) // What the benefit includes
+  termsAndConditions   String?  @map("terms_and_conditions") @db.Text
+  pdfDocumentPath      String?  @map("pdf_document_path") // Path to explanatory PDF
+
   // Approval workflow
   status          BenefitStatus @default(PENDING)
   createdById     String?  @map("created_by_id")
