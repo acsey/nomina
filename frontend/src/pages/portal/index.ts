@@ -2,3 +2,8 @@ export { default as PortalHomePage } from './PortalHomePage';
 export { default as MyPayrollPage } from './MyPayrollPage';
 export { default as VacationsDashboardPage } from './VacationsDashboardPage';
 export { default as FeedPage } from './FeedPage';
+export { default as PortalAttendancePage } from './PortalAttendancePage';
+export { default as PortalDocumentsPage } from './PortalDocumentsPage';
+export { default as PortalBenefitsPage } from './PortalBenefitsPage';
+export { default as PortalRecognitionPage } from './PortalRecognitionPage';
+export { default as PortalSurveysPage } from './PortalSurveysPage';

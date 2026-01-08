@@ -1898,6 +1898,11 @@ async function main() {
 }
 
 main()
+  .then(async () => {
+    // Ejecutar seed del portal del empleado
+    console.log('\n🌱 Ejecutando seed del portal del empleado...');
+    await seedPortal();
+  })
   .catch((e) => {
     console.error('❌ Error en seed:', e);
     process.exit(1);
@@ -1905,3 +1910,318 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+// ============================================
+// SEED DEL PORTAL DEL EMPLEADO
+// ============================================
+async function seedPortal() {
+  // Get the first company for portal data
+  const companies = await prisma.company.findMany();
+  if (companies.length === 0) {
+    console.log('❌ No hay empresas registradas para el portal.');
+    return;
+  }
+
+  for (const company of companies) {
+    console.log(`📦 Creando datos del portal para: ${company.name}`);
+
+    // Get employees for this company
+    const employees = await prisma.employee.findMany({
+      where: { companyId: company.id },
+      take: 10,
+    });
+
+    // ============================================
+    // DESCUENTOS CORPORATIVOS
+    // ============================================
+    const discountsData = [
+      {
+        companyId: company.id,
+        partnerCompany: 'Gimnasio FitLife',
+        description: 'Descuento en membresía mensual para empleados y familia',
+        discount: '30%',
+        category: 'HEALTH' as const,
+        url: 'https://fitlife.com',
+        validUntil: new Date('2026-12-31'),
+      },
+      {
+        companyId: company.id,
+        partnerCompany: 'Óptica Visión',
+        description: 'Descuento en lentes y consultas oftalmológicas',
+        discount: '25%',
+        category: 'HEALTH' as const,
+        code: 'EMP2026',
+      },
+      {
+        companyId: company.id,
+        partnerCompany: 'Universidad TecMilenio',
+        description: 'Descuento en colegiaturas de licenciatura y maestría',
+        discount: '20%',
+        category: 'EDUCATION' as const,
+        url: 'https://tecmilenio.mx',
+      },
+      {
+        companyId: company.id,
+        partnerCompany: 'Cine Cinemex',
+        description: 'Boletos a precio especial todos los días',
+        discount: '2x1 Miércoles',
+        category: 'ENTERTAINMENT' as const,
+        code: 'CORP2026',
+      },
+    ];
+
+    for (const discount of discountsData) {
+      try {
+        await prisma.companyDiscount.create({ data: discount });
+      } catch (e) {
+        // Ignore duplicates
+      }
+    }
+
+    // ============================================
+    // CONVENIOS INSTITUCIONALES
+    // ============================================
+    const agreementsData = [
+      {
+        companyId: company.id,
+        institutionName: 'FONACOT',
+        description: 'Créditos para trabajadores formales con descuento vía nómina',
+        benefits: ['Tasa preferencial', 'Descuento vía nómina', 'Aprobación rápida', 'Sin aval'],
+        url: 'https://fonacot.gob.mx',
+      },
+      {
+        companyId: company.id,
+        institutionName: 'INFONAVIT',
+        description: 'Crédito para vivienda y mejoras del hogar',
+        benefits: ['Puntos acumulados', 'Subcuenta de vivienda', 'Asesoría gratuita'],
+        contact: 'rh@empresa.com',
+      },
+      {
+        companyId: company.id,
+        institutionName: 'Caja de Ahorro Empresarial',
+        description: 'Programa de ahorro y préstamos internos',
+        benefits: ['Préstamos al 1% mensual', 'Ahorro con rendimientos', 'Sin buró de crédito'],
+        contact: 'caja.ahorro@empresa.com',
+      },
+    ];
+
+    for (const agreement of agreementsData) {
+      try {
+        await prisma.companyAgreement.create({ data: agreement });
+      } catch (e) {
+        // Ignore duplicates
+      }
+    }
+
+    // ============================================
+    // BADGES / INSIGNIAS
+    // ============================================
+    const badgesData = [
+      {
+        companyId: company.id,
+        name: 'Primer Año',
+        description: 'Completaste tu primer año en la empresa',
+        color: '#10B981',
+        category: 'MILESTONE' as const,
+        criteria: 'Cumplir 1 año de antigüedad',
+        points: 100,
+      },
+      {
+        companyId: company.id,
+        name: 'Cinco Años',
+        description: 'Cinco años de compromiso y dedicación',
+        color: '#3B82F6',
+        category: 'MILESTONE' as const,
+        criteria: 'Cumplir 5 años de antigüedad',
+        points: 500,
+      },
+      {
+        companyId: company.id,
+        name: 'Asistencia Perfecta',
+        description: 'Sin faltas durante el trimestre',
+        color: '#8B5CF6',
+        category: 'ACHIEVEMENT' as const,
+        criteria: 'Cero faltas en 3 meses consecutivos',
+        points: 150,
+      },
+      {
+        companyId: company.id,
+        name: 'Capacitación Completa',
+        description: 'Completaste todos los cursos obligatorios',
+        color: '#EC4899',
+        category: 'TRAINING' as const,
+        criteria: 'Completar 100% de cursos obligatorios',
+        points: 200,
+      },
+    ];
+
+    const badges = [];
+    for (const badge of badgesData) {
+      try {
+        const created = await prisma.badge.create({ data: badge });
+        badges.push(created);
+      } catch (e) {
+        // Ignore duplicates
+      }
+    }
+
+    // ============================================
+    // CURSOS
+    // ============================================
+    const coursesData = [
+      {
+        companyId: company.id,
+        title: 'Inducción a la Empresa',
+        description: 'Conoce la historia, misión, visión y valores de la empresa.',
+        provider: 'Recursos Humanos',
+        category: 'ONBOARDING' as const,
+        duration: '4 horas',
+        points: 50,
+        isMandatory: true,
+      },
+      {
+        companyId: company.id,
+        title: 'Seguridad e Higiene',
+        description: 'Protocolos de seguridad y prevención de accidentes.',
+        provider: 'Seguridad Industrial',
+        category: 'SAFETY' as const,
+        duration: '3 horas',
+        points: 75,
+        isMandatory: true,
+      },
+      {
+        companyId: company.id,
+        title: 'Excel Avanzado',
+        description: 'Fórmulas avanzadas, tablas dinámicas y macros.',
+        provider: 'LinkedIn Learning',
+        category: 'TECHNICAL' as const,
+        duration: '8 horas',
+        points: 100,
+        isMandatory: false,
+      },
+      {
+        companyId: company.id,
+        title: 'Comunicación Efectiva',
+        description: 'Mejora tus habilidades de comunicación laboral.',
+        provider: 'Desarrollo Organizacional',
+        category: 'SOFT_SKILLS' as const,
+        duration: '6 horas',
+        points: 80,
+        isMandatory: false,
+      },
+    ];
+
+    const courses = [];
+    for (const course of coursesData) {
+      try {
+        const created = await prisma.course.create({ data: course });
+        courses.push(created);
+      } catch (e) {
+        // Ignore duplicates
+      }
+    }
+
+    // ============================================
+    // ENCUESTAS
+    // ============================================
+    try {
+      await prisma.survey.create({
+        data: {
+          companyId: company.id,
+          title: 'Encuesta de Clima Laboral 2026',
+          description: 'Tu opinión es importante. Esta encuesta nos ayuda a mejorar.',
+          type: 'CLIMATE',
+          startsAt: new Date(),
+          endsAt: new Date('2026-03-31'),
+          isAnonymous: true,
+          isPublished: true,
+          questions: {
+            create: [
+              { questionText: '¿Qué tan satisfecho estás con tu ambiente de trabajo?', type: 'RATING', isRequired: true, orderIndex: 0 },
+              { questionText: '¿Sientes que tu trabajo es valorado?', type: 'RATING', isRequired: true, orderIndex: 1 },
+              { questionText: '¿Te sientes parte de un equipo?', type: 'YES_NO', isRequired: true, orderIndex: 2 },
+              { questionText: '¿Qué aspectos mejorarías?', type: 'TEXT', isRequired: false, orderIndex: 3 },
+            ],
+          },
+        },
+      });
+    } catch (e) {
+      // Ignore if exists
+    }
+
+    try {
+      await prisma.survey.create({
+        data: {
+          companyId: company.id,
+          title: 'Satisfacción con Prestaciones',
+          description: 'Queremos conocer tu opinión sobre las prestaciones.',
+          type: 'SATISFACTION',
+          startsAt: new Date(),
+          endsAt: new Date('2026-02-28'),
+          isAnonymous: true,
+          isPublished: true,
+          questions: {
+            create: [
+              { questionText: '¿Qué tan satisfecho estás con las prestaciones?', type: 'RATING', isRequired: true, orderIndex: 0 },
+              { questionText: '¿Cuál prestación valoras más?', type: 'MULTIPLE_CHOICE', options: ['Vales de despensa', 'Fondo de ahorro', 'Seguro médico', 'Vacaciones', 'Otro'], isRequired: true, orderIndex: 1 },
+              { questionText: '¿Recomendarías trabajar aquí?', type: 'YES_NO', isRequired: true, orderIndex: 2 },
+            ],
+          },
+        },
+      });
+    } catch (e) {
+      // Ignore if exists
+    }
+
+    // Assign badges and courses to some employees
+    if (employees.length > 0 && badges.length > 0) {
+      for (let i = 0; i < Math.min(2, employees.length); i++) {
+        const employee = employees[i];
+        const badge = badges[i % badges.length];
+        try {
+          await prisma.employeeBadge.create({
+            data: { badgeId: badge.id, employeeId: employee.id, reason: 'Asignado automáticamente' },
+          });
+        } catch (e) {
+          // Ignore duplicates
+        }
+      }
+    }
+
+    if (employees.length > 0 && courses.length > 0) {
+      for (const employee of employees.slice(0, 3)) {
+        for (const course of courses.filter(c => c.isMandatory)) {
+          try {
+            await prisma.courseEnrollment.create({
+              data: { courseId: course.id, employeeId: employee.id, status: 'NOT_STARTED', progress: 0 },
+            });
+          } catch (e) {
+            // Ignore duplicates
+          }
+        }
+      }
+    }
+
+    // Create recognitions between employees
+    if (employees.length >= 2) {
+      try {
+        await prisma.recognition.create({
+          data: {
+            companyId: company.id,
+            employeeId: employees[0].id,
+            givenById: employees[1].id,
+            type: 'TEAMWORK',
+            title: 'Excelente trabajo en equipo',
+            message: 'Gracias por tu colaboración en el proyecto. Tu apoyo fue fundamental.',
+            points: 50,
+            isPublic: true,
+          },
+        });
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
+  console.log('✅ Seed del portal completado');
+}

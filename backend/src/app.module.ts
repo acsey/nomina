@@ -35,6 +35,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { PacModule } from './modules/pac/pac.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EmailModule } from './modules/email/email.module';
+import { PortalModule } from './modules/portal/portal.module';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import { EmailModule } from './modules/email/email.module';
     NotificationsModule, // Sistema de notificaciones in-app
     EmailModule,    // Servicio de correo electrónico con SMTP
     HealthModule,   // Endpoints de health check para monitoreo
+    PortalModule,   // Portal del empleado (documentos, reconocimientos, encuestas, etc.)
   ],
   controllers: [AppController],
   providers: [

@@ -32,7 +32,16 @@ import AuthCallbackPage from './pages/AuthCallbackPage';
 import WebTimeclockPage from './pages/WebTimeclockPage';
 
 // Employee Portal pages
-import { MyPayrollPage, VacationsDashboardPage, FeedPage } from './pages/portal';
+import {
+  MyPayrollPage,
+  VacationsDashboardPage,
+  FeedPage,
+  PortalAttendancePage,
+  PortalDocumentsPage,
+  PortalBenefitsPage,
+  PortalRecognitionPage,
+  PortalSurveysPage,
+} from './pages/portal';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -119,16 +128,15 @@ function App() {
                 <Route index element={<Navigate to="/portal/feed" replace />} />
                 <Route path="my-payroll" element={<MyPayrollPage />} />
                 <Route path="vacations" element={<VacationsDashboardPage />} />
-                <Route path="attendance" element={<AttendancePage />} />
-                <Route path="documents" element={<EmployeePortalPage />} />
+                <Route path="attendance" element={<PortalAttendancePage />} />
+                <Route path="documents" element={<PortalDocumentsPage />} />
                 <Route path="people" element={<UsersPage />} />
                 <Route path="org-chart" element={<OrgChartPage />} />
                 <Route path="services" element={<HelpPage />} />
-                <Route path="benefits" element={<BenefitsPage />} />
-                <Route path="recognition" element={<EmployeePortalPage />} />
-                <Route path="surveys" element={<EmployeePortalPage />} />
+                <Route path="benefits" element={<PortalBenefitsPage />} />
+                <Route path="recognition" element={<PortalRecognitionPage />} />
+                <Route path="surveys" element={<PortalSurveysPage />} />
                 <Route path="feed" element={<FeedPage />} />
-                <Route path="settings" element={<SystemSettingsPage />} />
               </Route>
             </Routes>
           </ThemeProvider>
