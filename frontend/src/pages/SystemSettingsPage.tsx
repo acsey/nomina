@@ -65,7 +65,8 @@ export default function SystemSettingsPage() {
   const [justification, setJustification] = useState('');
   const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage());
 
-  const isAdmin = user?.role === 'admin';
+  // Super Admin = SYSTEM_ADMIN role WITHOUT companyId (system-wide admin)
+  const isSuperAdmin = user?.role === 'SYSTEM_ADMIN' && !user?.companyId;
 
   const handleLanguageChange = (lang: LanguageCode) => {
     changeLanguage(lang);
@@ -73,8 +74,8 @@ export default function SystemSettingsPage() {
     toast.success(lang === 'es-MX' ? 'Idioma cambiado a Español' : 'Language changed to English');
   };
 
-  // Redirect if not admin
-  if (!isAdmin) {
+  // Redirect if not super admin (SYSTEM_ADMIN without companyId)
+  if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -83,7 +84,7 @@ export default function SystemSettingsPage() {
             Acceso Restringido
           </h2>
           <p className="text-gray-500 dark:text-gray-400">
-            Solo los administradores pueden acceder a esta pagina.
+            Solo el Super Administrador del sistema puede acceder a esta pagina.
           </p>
         </div>
       </div>

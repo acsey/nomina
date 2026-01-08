@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckIcon,
@@ -13,6 +13,7 @@ import { vacationsApi, catalogsApi, employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
+import SearchableSelect from '../components/SearchableSelect';
 
 const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
@@ -323,6 +324,25 @@ export default function VacationsPage() {
 
   const isAdmin = user?.role === 'admin' || user?.role === 'company_admin' || user?.role === 'rh' || user?.role === 'manager';
 
+  // Prepare employee options for SearchableSelect
+  const employeeOptions = useMemo(() =>
+    employees.map((emp: any) => ({
+      value: emp.id,
+      label: `${emp.firstName} ${emp.lastName} - ${emp.employeeNumber}`,
+      description: emp.department?.name || '',
+    })),
+    [employees]
+  );
+
+  // Prepare vacation type options for SearchableSelect
+  const typeOptions = useMemo(() =>
+    Object.entries(typeLabels).map(([value, label]) => ({
+      value,
+      label,
+    })),
+    []
+  );
+
   return (
     <div>
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
@@ -347,19 +367,13 @@ export default function VacationsPage() {
       <div className="card mb-6">
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
           <div className="flex-1">
-            <label className="label">Seleccionar Empleado</label>
-            <select
+            <SearchableSelect
+              label="Seleccionar Empleado"
+              options={employeeOptions}
               value={selectedEmployeeId}
-              onChange={(e) => setSelectedEmployeeId(e.target.value)}
-              className="input"
-            >
-              <option value="">Seleccionar empleado...</option>
-              {employees.map((emp: any) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.firstName} {emp.lastName} - {emp.employeeNumber}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedEmployeeId}
+              placeholder="Seleccionar empleado..."
+            />
           </div>
           {selectedEmployeeId && balanceData?.data && (
             <div className="flex flex-wrap gap-4">
@@ -605,38 +619,24 @@ export default function VacationsPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="label">Empleado *</label>
-                    <select
-                      name="employeeId"
+                    <SearchableSelect
+                      label="Empleado *"
+                      options={employeeOptions}
                       value={formData.employeeId}
-                      onChange={handleChange}
-                      className="input"
-                      required
-                    >
-                      <option value="">Seleccionar...</option>
-                      {employees.map((emp: any) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.firstName} {emp.lastName} - {emp.employeeNumber}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setFormData((prev) => ({ ...prev, employeeId: value }))}
+                      placeholder="Seleccionar..."
+                    />
                   </div>
 
                   <div>
-                    <label className="label">Tipo de Solicitud *</label>
-                    <select
-                      name="type"
+                    <SearchableSelect
+                      label="Tipo de Solicitud *"
+                      options={typeOptions}
                       value={formData.type}
-                      onChange={handleChange}
-                      className="input"
-                      required
-                    >
-                      {Object.entries(typeLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setFormData((prev) => ({ ...prev, type: value || 'VACATION' }))}
+                      placeholder="Seleccionar tipo..."
+                      clearable={false}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
