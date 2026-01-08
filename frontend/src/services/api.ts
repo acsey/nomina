@@ -704,3 +704,71 @@ export const notificationsApi = {
   getUpcomingAnniversaries: (companyId?: string, daysAhead?: number) =>
     api.get('/notifications/upcoming-anniversaries', { params: { companyId, daysAhead } }),
 };
+
+// Portal API - Employee Portal
+export const portalApi = {
+  // Documents
+  getMyDocuments: (employeeId: string) => api.get(`/portal/documents/${employeeId}`),
+  uploadDocument: (data: {
+    employeeId: string;
+    type: string;
+    name: string;
+    path: string;
+    fileSize?: number;
+    mimeType?: string;
+    description?: string;
+    expiresAt?: string;
+  }) => api.post('/portal/documents', data),
+  validateDocument: (id: string, data: { status: 'APPROVED' | 'REJECTED'; notes?: string }) =>
+    api.patch(`/portal/documents/${id}/validate`, data),
+  deleteDocument: (id: string) => api.delete(`/portal/documents/${id}`),
+
+  // Discounts
+  getDiscounts: () => api.get('/portal/discounts'),
+  createDiscount: (data: any) => api.post('/portal/discounts', data),
+
+  // Agreements
+  getAgreements: () => api.get('/portal/agreements'),
+  createAgreement: (data: any) => api.post('/portal/agreements', data),
+
+  // Recognitions
+  getMyRecognitions: (employeeId: string) => api.get(`/portal/recognitions/me/${employeeId}`),
+  getCompanyRecognitions: (limit?: number) =>
+    api.get('/portal/recognitions/company', { params: { limit } }),
+  giveRecognition: (data: {
+    employeeId: string;
+    type: string;
+    title: string;
+    message: string;
+    points?: number;
+    isPublic?: boolean;
+  }) => api.post('/portal/recognitions', data),
+  getEmployeePoints: (employeeId: string) => api.get(`/portal/points/${employeeId}`),
+
+  // Courses
+  getAvailableCourses: () => api.get('/portal/courses/available'),
+  getMyCourses: (employeeId: string) => api.get(`/portal/courses/me/${employeeId}`),
+  enrollInCourse: (courseId: string) => api.post(`/portal/courses/${courseId}/enroll`),
+  updateCourseProgress: (courseId: string, progress: number) =>
+    api.patch(`/portal/courses/${courseId}/progress`, { progress }),
+  createCourse: (data: any) => api.post('/portal/courses', data),
+
+  // Badges
+  getCompanyBadges: () => api.get('/portal/badges/company'),
+  getMyBadges: (employeeId: string) => api.get(`/portal/badges/me/${employeeId}`),
+  awardBadge: (badgeId: string, employeeId: string, reason?: string) =>
+    api.post(`/portal/badges/${badgeId}/award`, { employeeId, reason }),
+  createBadge: (data: any) => api.post('/portal/badges', data),
+
+  // Surveys
+  getAvailableSurveys: () => api.get('/portal/surveys/available'),
+  getSurveyDetails: (id: string) => api.get(`/portal/surveys/${id}`),
+  submitSurveyResponse: (surveyId: string, answers: any[]) =>
+    api.post(`/portal/surveys/${surveyId}/respond`, { answers }),
+  createSurvey: (data: any) => api.post('/portal/surveys', data),
+  publishSurvey: (id: string) => api.patch(`/portal/surveys/${id}/publish`),
+  getSurveyResults: (id: string) => api.get(`/portal/surveys/${id}/results`),
+
+  // Benefits
+  getMyBenefits: (employeeId: string) => api.get(`/portal/benefits/${employeeId}`),
+};
