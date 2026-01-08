@@ -293,14 +293,14 @@ export class VacationsController {
    * Para managers: solo subordinados directos
    */
   @Get('pending')
-  @Roles('admin', 'company_admin', 'rh', 'manager')
+  @Roles('admin', 'company_admin', 'rh', 'manager', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Obtener solicitudes pendientes de supervisor' })
   async getPendingRequests(
     @Query('companyId') companyId: string,
     @CurrentUser() user: any,
   ) {
     // For managers, only show subordinates' requests
-    if (user.role === 'manager') {
+    if (user.role === 'manager' || user.role === 'MANAGER') {
       const employee = await this.vacationsService.getEmployeeByEmail(user.email);
       if (employee) {
         return this.vacationsService.getPendingRequestsForManager(employee.id, user.companyId);
@@ -308,10 +308,16 @@ export class VacationsController {
       return [];
     }
 
-    // For company-bound users, use their companyId
-    const effectiveCompanyId = user.role === 'admin' && !user.companyId
+    // For SYSTEM_ADMIN without companyId, use the query parameter
+    const isSystemAdmin = user.role === 'admin' || user.role === 'SYSTEM_ADMIN';
+    const effectiveCompanyId = isSystemAdmin && !user.companyId
       ? companyId
-      : user.companyId;
+      : (user.companyId || companyId);
+
+    // If no companyId available, return empty array
+    if (!effectiveCompanyId) {
+      return [];
+    }
 
     return this.vacationsService.getPendingRequests(effectiveCompanyId);
   }
@@ -321,16 +327,22 @@ export class VacationsController {
    * Solo para RH, Company Admin y Super Admin
    */
   @Get('pending-rh-validation')
-  @Roles('admin', 'company_admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Obtener solicitudes pendientes de validación de RH' })
   async getPendingRHValidation(
     @Query('companyId') companyId: string,
     @CurrentUser() user: any,
   ) {
-    // For company-bound users, use their companyId
-    const effectiveCompanyId = user.role === 'admin' && !user.companyId
+    // For SYSTEM_ADMIN without companyId, use the query parameter
+    const isSystemAdmin = user.role === 'admin' || user.role === 'SYSTEM_ADMIN';
+    const effectiveCompanyId = isSystemAdmin && !user.companyId
       ? companyId
-      : user.companyId;
+      : (user.companyId || companyId);
+
+    // If no companyId available, return empty array
+    if (!effectiveCompanyId) {
+      return [];
+    }
 
     return this.vacationsService.getPendingRHValidation(effectiveCompanyId);
   }
@@ -340,16 +352,22 @@ export class VacationsController {
    * Solo para RH, Company Admin y Super Admin
    */
   @Get('pending-all')
-  @Roles('admin', 'company_admin', 'rh')
+  @Roles('admin', 'company_admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Obtener todas las solicitudes pendientes' })
   async getAllPendingRequests(
     @Query('companyId') companyId: string,
     @CurrentUser() user: any,
   ) {
-    // For company-bound users, use their companyId
-    const effectiveCompanyId = user.role === 'admin' && !user.companyId
+    // For SYSTEM_ADMIN without companyId, use the query parameter
+    const isSystemAdmin = user.role === 'admin' || user.role === 'SYSTEM_ADMIN';
+    const effectiveCompanyId = isSystemAdmin && !user.companyId
       ? companyId
-      : user.companyId;
+      : (user.companyId || companyId);
+
+    // If no companyId available, return empty array
+    if (!effectiveCompanyId) {
+      return [];
+    }
 
     return this.vacationsService.getAllPendingRequests(effectiveCompanyId);
   }
