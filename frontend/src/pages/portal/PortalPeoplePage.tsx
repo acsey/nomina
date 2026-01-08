@@ -39,7 +39,8 @@ export default function PortalPeoplePage() {
         companyId: user?.companyId,
         take: 500, // Get all employees for directory
       });
-      return response.data?.employees || response.data || [];
+      // Backend returns { data: employees[], meta: {...} }
+      return response.data?.data || response.data?.employees || response.data || [];
     },
     enabled: !!user?.companyId,
   });
