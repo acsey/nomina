@@ -16,6 +16,7 @@ interface User {
   lastName: string;
   role: string;
   companyId?: string;
+  employeeId?: string;
   company?: Company | null;
 }
 

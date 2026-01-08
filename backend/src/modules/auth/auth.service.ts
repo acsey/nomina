@@ -32,6 +32,15 @@ export class AuthService {
       include: { role: true, company: true },
     });
 
+    // Find linked employee by email (for B3 - employee + operational role model)
+    const linkedEmployee = await this.prisma.employee.findFirst({
+      where: {
+        email: email,
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    });
+
     if (!user) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
@@ -84,6 +93,7 @@ export class AuthService {
       role: user.role.name,
       permissions: user.role.permissions,
       companyId: user.companyId,
+      employeeId: linkedEmployee?.id || null,
     };
 
     // Include MFA requirement status in response
@@ -99,6 +109,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role.name,
         companyId: user.companyId,
+        employeeId: linkedEmployee?.id || null,
         company: user.company ? {
           id: user.company.id,
           name: user.company.name,

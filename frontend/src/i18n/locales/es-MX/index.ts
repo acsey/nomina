@@ -9,6 +9,7 @@ import nav from './nav.json';
 import portal from './portal.json';
 import settings from './settings.json';
 import documents from './documents.json';
+import surveys from './surveys.json';
 
 export default {
   common,
@@ -22,4 +23,5 @@ export default {
   portal,
   settings,
   documents,
+  surveys,
 };

@@ -44,13 +44,14 @@ interface NavItem {
   roles?: string[];
   requiresMultiCompany?: boolean;
   requiresSuperAdmin?: boolean; // Requires SYSTEM_ADMIN without companyId
+  requiresEmployeeId?: boolean; // Requires user to have an employeeId
   category: string;
 }
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, category: 'principal' },
-  // Mi Portal only visible for employees (not operational roles like admin, HR, managers)
-  { name: 'Mi Portal', href: '/portal', icon: UserIcon, roles: ['EMPLOYEE', 'employee'], category: 'principal' },
+  // Mi Portal visible for EMPLOYEE role OR any user with employeeId
+  { name: 'Mi Portal', href: '/portal', icon: UserIcon, requiresEmployeeId: true, category: 'principal' },
   { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
   { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
@@ -158,9 +159,14 @@ export default function Layout() {
       const meetsMultiCompanyReq = !item.requiresMultiCompany || multiCompanyEnabled;
       // Super admin requirement: must be SYSTEM_ADMIN without companyId
       const meetsSuperAdminReq = !item.requiresSuperAdmin || (user?.role === 'SYSTEM_ADMIN' && !user?.companyId);
-      return hasRoleAccess && meetsMultiCompanyReq && meetsSuperAdminReq;
+      // Employee ID requirement: user must be EMPLOYEE role OR have an employeeId
+      const meetsEmployeeIdReq = !item.requiresEmployeeId ||
+        user?.role === 'EMPLOYEE' ||
+        user?.role === 'employee' ||
+        !!user?.employeeId;
+      return hasRoleAccess && meetsMultiCompanyReq && meetsSuperAdminReq && meetsEmployeeIdReq;
     });
-  }, [user?.role, user?.companyId, multiCompanyEnabled]);
+  }, [user?.role, user?.companyId, user?.employeeId, multiCompanyEnabled]);
 
   // Group navigation by category
   const groupedNavigation = useMemo(() => {
@@ -353,8 +359,8 @@ export default function Layout() {
                     </p>
                   </div>
                   <div className="py-1">
-                    {/* Mi Portal only for employees, not operational roles */}
-                    {(user?.role === 'EMPLOYEE' || user?.role === 'employee') && (
+                    {/* Mi Portal for employees OR any user with employeeId */}
+                    {(user?.role === 'EMPLOYEE' || user?.role === 'employee' || user?.employeeId) && (
                       <NavLink
                         to="/portal"
                         onClick={() => setUserMenuOpen(false)}

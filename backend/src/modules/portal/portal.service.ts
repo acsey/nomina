@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 @Injectable()
 export class PortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PortalService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // =====================================
   // EMPLOYEE DOCUMENTS
@@ -51,7 +57,8 @@ export class PortalService {
     expiresAt?: Date;
     uploadedById: string;
   }) {
-    return this.prisma.employeeDocument.create({
+    // Create the document
+    const document = await this.prisma.employeeDocument.create({
       data: {
         employeeId: data.employeeId,
         type: data.type as any,
@@ -64,7 +71,40 @@ export class PortalService {
         uploadedById: data.uploadedById,
         validationStatus: 'PENDING',
       },
+      include: {
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+            companyId: true,
+          },
+        },
+      },
     });
+
+    // Notify HR about the new document
+    try {
+      const employee = document.employee;
+      if (employee?.companyId) {
+        const rhUserIds = await this.notificationsService.getRHUserIds(employee.companyId);
+        if (rhUserIds.length > 0) {
+          await this.notificationsService.notifyDocumentUploaded({
+            employeeName: `${employee.firstName} ${employee.lastName}`,
+            employeeId: data.employeeId,
+            documentType: data.type,
+            documentName: data.name,
+            rhUserIds,
+            companyId: employee.companyId,
+          });
+          this.logger.log(`Document upload notification sent to ${rhUserIds.length} HR users`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send document upload notification: ${error.message}`);
+      // Don't throw - notification failure shouldn't break upload
+    }
+
+    return document;
   }
 
   async validateDocument(documentId: string, data: {
@@ -74,13 +114,24 @@ export class PortalService {
   }) {
     const doc = await this.prisma.employeeDocument.findUnique({
       where: { id: documentId },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyId: true,
+          },
+        },
+      },
     });
 
     if (!doc) {
       throw new NotFoundException('Documento no encontrado');
     }
 
-    return this.prisma.employeeDocument.update({
+    const updatedDoc = await this.prisma.employeeDocument.update({
       where: { id: documentId },
       data: {
         validationStatus: data.status,
@@ -89,17 +140,88 @@ export class PortalService {
         validationNotes: data.notes,
       },
     });
+
+    // Notify employee about the validation result
+    try {
+      const employee = doc.employee;
+      if (employee?.companyId) {
+        // Get the validator's name
+        const validator = await this.prisma.user.findUnique({
+          where: { id: data.validatedById },
+          select: { firstName: true, lastName: true },
+        });
+        const validatorName = validator ? `${validator.firstName} ${validator.lastName}` : 'RH';
+
+        // Get employee's user ID
+        const employeeUserId = await this.notificationsService.getEmployeeUserId(employee.id);
+
+        if (employeeUserId) {
+          if (data.status === 'APPROVED') {
+            await this.notificationsService.notifyDocumentValidated({
+              employeeName: `${employee.firstName} ${employee.lastName}`,
+              employeeUserId,
+              documentType: doc.type,
+              documentName: doc.name,
+              validatedBy: validatorName,
+              companyId: employee.companyId,
+            });
+          } else {
+            await this.notificationsService.notifyDocumentRejected({
+              employeeName: `${employee.firstName} ${employee.lastName}`,
+              employeeUserId,
+              documentType: doc.type,
+              documentName: doc.name,
+              rejectedBy: validatorName,
+              reason: data.notes,
+              companyId: employee.companyId,
+            });
+          }
+          this.logger.log(`Document ${data.status} notification sent to employee`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send document validation notification: ${error.message}`);
+      // Don't throw - notification failure shouldn't break validation
+    }
+
+    return updatedDoc;
   }
 
-  async deleteDocument(documentId: string, employeeId: string) {
+  async deleteDocument(documentId: string, employeeId: string, user?: any) {
     const doc = await this.prisma.employeeDocument.findUnique({
       where: { id: documentId },
+      include: {
+        employee: {
+          select: { companyId: true },
+        },
+      },
     });
 
     if (!doc) {
       throw new NotFoundException('Documento no encontrado');
     }
 
+    // Admins can delete any document in their company
+    if (user) {
+      const adminRoles = ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'];
+      if (adminRoles.includes(user.role)) {
+        // SYSTEM_ADMIN can delete any document
+        if (user.role === 'SYSTEM_ADMIN' || user.role === 'admin') {
+          return this.prisma.employeeDocument.delete({
+            where: { id: documentId },
+          });
+        }
+        // Other admins can only delete documents from their company
+        if (doc.employee?.companyId === user.companyId) {
+          return this.prisma.employeeDocument.delete({
+            where: { id: documentId },
+          });
+        }
+        throw new ForbiddenException('No puedes eliminar documentos de otra empresa');
+      }
+    }
+
+    // Regular employees can only delete their own documents
     if (doc.employeeId !== employeeId) {
       throw new ForbiddenException('No tienes permiso para eliminar este documento');
     }

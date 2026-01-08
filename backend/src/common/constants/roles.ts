@@ -276,13 +276,27 @@ export const ADMIN_ROLES: RoleName[] = [
 
 /**
  * Portal roles that have access to employee portal
+ *
+ * NOTE: By default, only EMPLOYEE role has direct portal access.
+ * Users with operational roles (HR_ADMIN, etc.) can access portal
+ * ONLY if they also have an employeeId linked to their account.
+ * This is handled by the PortalGuard.
  */
 export const PORTAL_ROLES: RoleName[] = [
   RoleName.EMPLOYEE,
-  RoleName.MANAGER,
+];
+
+/**
+ * Operational roles that have administrative access
+ * These roles do NOT have portal access unless they also have an employeeId
+ */
+export const OPERATIONAL_ROLES: RoleName[] = [
+  RoleName.SYSTEM_ADMIN,
+  RoleName.COMPANY_ADMIN,
   RoleName.HR_ADMIN,
   RoleName.PAYROLL_ADMIN,
-  RoleName.COMPANY_ADMIN,
+  RoleName.MANAGER,
+  RoleName.AUDITOR,
 ];
 
 /**

@@ -1,0 +1,122 @@
+{
+  "title": "Encuestas",
+  "management": {
+    "title": "Gestion de Encuestas",
+    "subtitle": "Crea y administra encuestas para tu organizacion",
+    "create": "Crear encuesta",
+    "edit": "Editar encuesta",
+    "delete": "Eliminar encuesta",
+    "publish": "Publicar",
+    "unpublish": "Despublicar",
+    "preview": "Vista previa",
+    "duplicate": "Duplicar",
+    "results": "Ver resultados"
+  },
+  "form": {
+    "basicInfo": "Informacion basica",
+    "title": "Titulo de la encuesta",
+    "titlePlaceholder": "Ej: Encuesta de clima laboral 2024",
+    "description": "Descripcion",
+    "descriptionPlaceholder": "Describe el proposito de esta encuesta...",
+    "type": "Tipo de encuesta",
+    "isAnonymous": "Encuesta anonima",
+    "anonymousHelp": "Las respuestas no se vincularan a empleados especificos",
+    "targetAudience": "Audiencia objetivo",
+    "allEmployees": "Todos los empleados",
+    "byDepartment": "Por departamento",
+    "byPosition": "Por puesto",
+    "schedule": "Programacion",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "noEndDate": "Sin fecha limite"
+  },
+  "types": {
+    "CLIMATE": "Clima laboral",
+    "SATISFACTION": "Satisfaccion",
+    "ENGAGEMENT": "Engagement",
+    "ONBOARDING": "Onboarding",
+    "EXIT": "Salida",
+    "FEEDBACK": "Retroalimentacion",
+    "TRAINING": "Capacitacion",
+    "CUSTOM": "Personalizada"
+  },
+  "questions": {
+    "title": "Preguntas",
+    "add": "Agregar pregunta",
+    "edit": "Editar pregunta",
+    "delete": "Eliminar pregunta",
+    "reorder": "Reordenar preguntas",
+    "questionText": "Texto de la pregunta",
+    "questionPlaceholder": "Escribe tu pregunta aqui...",
+    "questionType": "Tipo de pregunta",
+    "required": "Pregunta requerida",
+    "options": "Opciones de respuesta",
+    "addOption": "Agregar opcion",
+    "types": {
+      "TEXT": "Texto libre",
+      "RATING": "Calificacion (1-5)",
+      "SCALE": "Escala (1-10)",
+      "MULTIPLE_CHOICE": "Opcion multiple",
+      "YES_NO": "Si/No",
+      "DATE": "Fecha"
+    }
+  },
+  "status": {
+    "DRAFT": "Borrador",
+    "PUBLISHED": "Publicada",
+    "ACTIVE": "Activa",
+    "CLOSED": "Cerrada",
+    "ARCHIVED": "Archivada"
+  },
+  "list": {
+    "noSurveys": "No hay encuestas",
+    "createFirst": "Crea tu primera encuesta",
+    "responses": "{{count}} respuestas",
+    "questionsCount": "{{count}} preguntas",
+    "endsIn": "Termina en {{days}} dias",
+    "ended": "Finalizada",
+    "startsIn": "Inicia en {{days}} dias"
+  },
+  "results": {
+    "title": "Resultados de la encuesta",
+    "summary": "Resumen",
+    "totalResponses": "Total de respuestas",
+    "completionRate": "Tasa de completado",
+    "averageRating": "Calificacion promedio",
+    "byQuestion": "Por pregunta",
+    "exportExcel": "Exportar a Excel",
+    "exportPDF": "Exportar a PDF",
+    "noResponses": "Aun no hay respuestas",
+    "distribution": "Distribucion de respuestas",
+    "trends": "Tendencias"
+  },
+  "respond": {
+    "title": "Responder encuesta",
+    "progress": "Pregunta {{current}} de {{total}}",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "submit": "Enviar respuestas",
+    "submitConfirm": "Estas seguro de enviar tus respuestas? Esta accion no se puede deshacer.",
+    "thankYou": "Gracias por completar la encuesta",
+    "yourFeedback": "Tu retroalimentacion es muy valiosa para nosotros",
+    "alreadyCompleted": "Ya has completado esta encuesta",
+    "notAvailable": "Esta encuesta no esta disponible"
+  },
+  "validation": {
+    "titleRequired": "El titulo es requerido",
+    "atLeastOneQuestion": "La encuesta debe tener al menos una pregunta",
+    "questionTextRequired": "El texto de la pregunta es requerido",
+    "optionsRequired": "Las preguntas de opcion multiple requieren al menos 2 opciones",
+    "startDateRequired": "La fecha de inicio es requerida",
+    "endDateAfterStart": "La fecha de fin debe ser posterior a la fecha de inicio"
+  },
+  "messages": {
+    "created": "Encuesta creada exitosamente",
+    "updated": "Encuesta actualizada exitosamente",
+    "deleted": "Encuesta eliminada exitosamente",
+    "published": "Encuesta publicada exitosamente",
+    "unpublished": "Encuesta despublicada",
+    "responseSaved": "Respuesta guardada",
+    "responseSubmitted": "Respuestas enviadas exitosamente"
+  }
+}

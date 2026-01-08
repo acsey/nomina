@@ -9,6 +9,7 @@ import nav from './nav.json';
 import portal from './portal.json';
 import settings from './settings.json';
 import documents from './documents.json';
+import surveys from './surveys.json';
 
 const enUS = {
   common,
@@ -22,6 +23,7 @@ const enUS = {
   portal,
   settings,
   documents,
+  surveys,
 };
 
 export default enUS;

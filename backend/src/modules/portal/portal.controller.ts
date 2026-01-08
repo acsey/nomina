@@ -8,19 +8,46 @@ import {
   Delete,
   Query,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PortalService } from './portal.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { PortalGuard, EmployeeOwnershipGuard } from '../auth/guards/portal.guard';
 import { Roles, CurrentUser } from '@/common/decorators';
+import { normalizeRole } from '@/common/decorators';
+import { RoleName } from '@/common/constants/roles';
 
 @ApiTags('portal')
 @Controller('portal')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PortalGuard)
 @ApiBearerAuth()
 export class PortalController {
   constructor(private readonly portalService: PortalService) {}
+
+  /**
+   * Validates that the user can access the requested employeeId.
+   * Admins can access any employee, regular users only their own.
+   */
+  private validateEmployeeAccess(user: any, targetEmployeeId: string): void {
+    const userRole = normalizeRole(user.role) as RoleName;
+    const adminRoles = [
+      RoleName.SYSTEM_ADMIN,
+      RoleName.COMPANY_ADMIN,
+      RoleName.HR_ADMIN,
+      RoleName.PAYROLL_ADMIN,
+      RoleName.MANAGER,
+    ];
+
+    if (adminRoles.includes(userRole)) {
+      return; // Admins can access any employee
+    }
+
+    if (targetEmployeeId !== user.employeeId) {
+      throw new ForbiddenException('No tienes permiso para acceder a datos de otro empleado');
+    }
+  }
 
   // =====================================
   // EMPLOYEE DOCUMENTS
@@ -35,7 +62,11 @@ export class PortalController {
 
   @Get('documents/:employeeId')
   @ApiOperation({ summary: 'Obtener documentos del empleado' })
-  getMyDocuments(@Param('employeeId') employeeId: string) {
+  getMyDocuments(
+    @Param('employeeId') employeeId: string,
+    @CurrentUser() user: any,
+  ) {
+    this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyDocuments(employeeId);
   }
 
@@ -43,16 +74,31 @@ export class PortalController {
   @ApiOperation({ summary: 'Subir documento' })
   uploadDocument(
     @Body() uploadDto: any,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: any,
   ) {
+    // Employee can only upload to their own profile
+    const userRole = normalizeRole(user.role) as RoleName;
+    const adminRoles = [
+      RoleName.SYSTEM_ADMIN,
+      RoleName.COMPANY_ADMIN,
+      RoleName.HR_ADMIN,
+    ];
+
+    const targetEmployeeId = uploadDto.employeeId || user.employeeId;
+
+    if (!adminRoles.includes(userRole) && targetEmployeeId !== user.employeeId) {
+      throw new ForbiddenException('Solo puedes subir documentos a tu propio expediente');
+    }
+
     return this.portalService.uploadDocument({
       ...uploadDto,
-      uploadedById: userId,
+      employeeId: targetEmployeeId,
+      uploadedById: user.sub,
     });
   }
 
   @Patch('documents/:id/validate')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Validar documento (RH)' })
   validateDocument(
     @Param('id') id: string,
@@ -70,9 +116,10 @@ export class PortalController {
   @ApiOperation({ summary: 'Eliminar documento' })
   deleteDocument(
     @Param('id') id: string,
-    @CurrentUser('employeeId') employeeId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.portalService.deleteDocument(id, employeeId);
+    // Service will verify ownership
+    return this.portalService.deleteDocument(id, user.employeeId, user);
   }
 
   // =====================================
@@ -86,7 +133,7 @@ export class PortalController {
   }
 
   @Post('discounts')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Crear descuento' })
   createDiscount(
     @Body() createDto: any,
@@ -106,7 +153,7 @@ export class PortalController {
   }
 
   @Post('agreements')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Crear convenio' })
   createAgreement(
     @Body() createDto: any,
@@ -121,12 +168,16 @@ export class PortalController {
 
   @Get('recognitions/me/:employeeId')
   @ApiOperation({ summary: 'Obtener mis reconocimientos' })
-  getMyRecognitions(@Param('employeeId') employeeId: string) {
+  getMyRecognitions(
+    @Param('employeeId') employeeId: string,
+    @CurrentUser() user: any,
+  ) {
+    this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyRecognitions(employeeId);
   }
 
   @Get('recognitions/company')
-  @ApiOperation({ summary: 'Obtener reconocimientos públicos de la empresa' })
+  @ApiOperation({ summary: 'Obtener reconocimientos publicos de la empresa' })
   getCompanyRecognitions(
     @CurrentUser('companyId') companyId: string,
     @Query('limit') limit?: string,
@@ -139,18 +190,26 @@ export class PortalController {
   giveRecognition(
     @Body() createDto: any,
     @CurrentUser('companyId') companyId: string,
-    @CurrentUser('employeeId') givenById: string,
+    @CurrentUser() user: any,
   ) {
+    // Use the actual employee's ID or throw if not an employee
+    if (!user.employeeId) {
+      throw new ForbiddenException('Solo empleados pueden dar reconocimientos');
+    }
     return this.portalService.giveRecognition({
       ...createDto,
       companyId,
-      givenById,
+      givenById: user.employeeId,
     });
   }
 
   @Get('points/:employeeId')
   @ApiOperation({ summary: 'Obtener puntos del empleado' })
-  getEmployeePoints(@Param('employeeId') employeeId: string) {
+  getEmployeePoints(
+    @Param('employeeId') employeeId: string,
+    @CurrentUser() user: any,
+  ) {
+    this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getEmployeePoints(employeeId);
   }
 
@@ -166,7 +225,11 @@ export class PortalController {
 
   @Get('courses/me/:employeeId')
   @ApiOperation({ summary: 'Obtener mis cursos' })
-  getMyCourses(@Param('employeeId') employeeId: string) {
+  getMyCourses(
+    @Param('employeeId') employeeId: string,
+    @CurrentUser() user: any,
+  ) {
+    this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyCourses(employeeId);
   }
 
@@ -174,9 +237,12 @@ export class PortalController {
   @ApiOperation({ summary: 'Inscribirse en un curso' })
   enrollInCourse(
     @Param('courseId') courseId: string,
-    @CurrentUser('employeeId') employeeId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.portalService.enrollInCourse(employeeId, courseId);
+    if (!user.employeeId) {
+      throw new ForbiddenException('Solo empleados pueden inscribirse en cursos');
+    }
+    return this.portalService.enrollInCourse(user.employeeId, courseId);
   }
 
   @Patch('courses/:courseId/progress')
@@ -184,13 +250,16 @@ export class PortalController {
   updateCourseProgress(
     @Param('courseId') courseId: string,
     @Body() updateDto: { progress: number },
-    @CurrentUser('employeeId') employeeId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.portalService.updateCourseProgress(employeeId, courseId, updateDto.progress);
+    if (!user.employeeId) {
+      throw new ForbiddenException('Solo empleados pueden actualizar progreso de cursos');
+    }
+    return this.portalService.updateCourseProgress(user.employeeId, courseId, updateDto.progress);
   }
 
   @Post('courses')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Crear curso' })
   createCourse(
     @Body() createDto: any,
@@ -211,12 +280,16 @@ export class PortalController {
 
   @Get('badges/me/:employeeId')
   @ApiOperation({ summary: 'Obtener mis insignias' })
-  getMyBadges(@Param('employeeId') employeeId: string) {
+  getMyBadges(
+    @Param('employeeId') employeeId: string,
+    @CurrentUser() user: any,
+  ) {
+    this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyBadges(employeeId);
   }
 
   @Post('badges/:badgeId/award')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Otorgar insignia a empleado' })
   awardBadge(
     @Param('badgeId') badgeId: string,
@@ -226,7 +299,7 @@ export class PortalController {
   }
 
   @Post('badges')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Crear insignia' })
   createBadge(
     @Body() createDto: any,
@@ -259,13 +332,14 @@ export class PortalController {
   submitSurveyResponse(
     @Param('id') surveyId: string,
     @Body() responseDto: { answers: any[] },
-    @CurrentUser('employeeId') employeeId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.portalService.submitSurveyResponse(surveyId, employeeId, responseDto.answers);
+    // Use user's employeeId (can be null for anonymous surveys)
+    return this.portalService.submitSurveyResponse(surveyId, user.employeeId, responseDto.answers);
   }
 
   @Post('surveys')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Crear encuesta' })
   createSurvey(
     @Body() createDto: any,
@@ -279,14 +353,14 @@ export class PortalController {
   }
 
   @Patch('surveys/:id/publish')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Publicar encuesta' })
   publishSurvey(@Param('id') id: string) {
     return this.portalService.publishSurvey(id);
   }
 
   @Get('surveys/:id/results')
-  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Obtener resultados de encuesta' })
   getSurveyResults(@Param('id') id: string) {
     return this.portalService.getSurveyResults(id);
@@ -298,7 +372,11 @@ export class PortalController {
 
   @Get('benefits/:employeeId')
   @ApiOperation({ summary: 'Obtener prestaciones del empleado' })
-  getMyBenefits(@Param('employeeId') employeeId: string) {
+  getMyBenefits(
+    @Param('employeeId') employeeId: string,
+    @CurrentUser() user: any,
+  ) {
+    this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyBenefits(employeeId);
   }
 }
