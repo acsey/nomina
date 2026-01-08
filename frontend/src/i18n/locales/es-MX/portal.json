@@ -1,9 +1,9 @@
 {
   "welcome": {
-    "greeting": "¡Hola, {name}!",
-    "goodMorning": "Buenos días, {name}",
-    "goodAfternoon": "Buenas tardes, {name}",
-    "goodEvening": "Buenas noches, {name}"
+    "greeting": "¡Hola, {{name}}!",
+    "goodMorning": "Buenos días, {{name}}",
+    "goodAfternoon": "Buenas tardes, {{name}}",
+    "goodEvening": "Buenas noches, {{name}}"
   },
 
   "clock": {
@@ -23,9 +23,9 @@
     },
     "todayHours": "Hoy",
     "weekHours": "Esta semana",
-    "checkedInAt": "Entrada: {time}",
-    "checkedOutAt": "Salida: {time}",
-    "totalHours": "{hours}h {minutes}m"
+    "checkedInAt": "Entrada: {{time}}",
+    "checkedOutAt": "Salida: {{time}}",
+    "totalHours": "{{hours}}h {{minutes}}m"
   },
 
   "widgets": {
