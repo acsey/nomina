@@ -1,0 +1,69 @@
+{
+  "title": "Mis Documentos",
+  "subtitle": "Gestiona tus documentos personales y contratos",
+  "upload": "Subir Documento",
+  "uploadDocument": "Subir Documento",
+  "uploading": "Subiendo...",
+  "uploadSuccess": "Documento subido exitosamente",
+  "uploadError": "Error al subir el documento",
+  "selectFile": "Selecciona un archivo",
+  "download": "Descargar",
+  "downloading": "Descargando {{name}}...",
+  "downloadError": "Error al descargar el documento",
+  "downloadToView": "Descargar para ver",
+  "view": "Ver documento",
+  "delete": "Eliminar",
+  "deleteSuccess": "Documento eliminado",
+  "deleteError": "Error al eliminar el documento",
+
+  "digitalFile": "Expediente Digital",
+  "complete": "Completo",
+  "total": "Total",
+  "approved": "Aprobados",
+  "pending": "Pendientes",
+  "rejected": "Rechazados",
+  "all": "Todos",
+
+  "noDocuments": "No hay documentos en esta categoria",
+  "noEmployee": "No hay empleado vinculado",
+  "noEmployeeDesc": "Tu cuenta no esta vinculada a un registro de empleado.",
+
+  "uploaded": "Subido",
+  "validUntil": "Vigencia",
+  "validUntilOptional": "Vigencia (opcional)",
+
+  "documentType": "Tipo de documento",
+  "documentName": "Nombre del documento",
+  "namePlaceholder": "Ej: Acta de Nacimiento",
+  "file": "Archivo",
+
+  "requiredDocuments": "Documentos Requeridos",
+  "previewNotAvailable": "Vista previa no disponible para este tipo de archivo",
+
+  "types": {
+    "ACTA_NACIMIENTO": "Acta de Nacimiento",
+    "CURP": "CURP",
+    "INE": "INE/IFE",
+    "COMPROBANTE_DOMICILIO": "Comprobante de Domicilio",
+    "RFC": "RFC con Homoclave",
+    "NSS": "Numero de Seguro Social",
+    "CUENTA_BANCARIA": "Comprobante de Cuenta Bancaria",
+    "CONTRATO": "Contrato Laboral",
+    "CONSTANCIA_ESTUDIOS": "Constancia de Estudios",
+    "CERTIFICADO_MEDICO": "Certificado Medico",
+    "OTHER": "Otro Documento"
+  },
+
+  "categories": {
+    "personal": "Documentos Personales",
+    "contract": "Contratos",
+    "hr_request": "Solicitados por RH",
+    "other": "Otros"
+  },
+
+  "status": {
+    "PENDING": "Pendiente",
+    "APPROVED": "Aprobado",
+    "REJECTED": "Rechazado"
+  }
+}

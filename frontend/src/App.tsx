@@ -30,6 +30,7 @@ import HelpPage from './pages/HelpPage';
 import OrgChartPage from './pages/OrgChartPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import WebTimeclockPage from './pages/WebTimeclockPage';
+import SurveysManagementPage from './pages/SurveysManagementPage';
 
 // Employee Portal pages
 import {
@@ -41,6 +42,7 @@ import {
   PortalBenefitsPage,
   PortalRecognitionPage,
   PortalSurveysPage,
+  PortalPeoplePage,
 } from './pages/portal';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -114,6 +116,7 @@ function App() {
               <Route path="help" element={<HelpPage />} />
               <Route path="org-chart" element={<OrgChartPage />} />
               <Route path="timeclock" element={<WebTimeclockPage />} />
+              <Route path="surveys" element={<SurveysManagementPage />} />
               </Route>
 
               {/* Employee Portal Routes */}
@@ -130,7 +133,7 @@ function App() {
                 <Route path="vacations" element={<VacationsDashboardPage />} />
                 <Route path="attendance" element={<PortalAttendancePage />} />
                 <Route path="documents" element={<PortalDocumentsPage />} />
-                <Route path="people" element={<UsersPage />} />
+                <Route path="people" element={<PortalPeoplePage />} />
                 <Route path="org-chart" element={<OrgChartPage />} />
                 <Route path="services" element={<HelpPage />} />
                 <Route path="benefits" element={<PortalBenefitsPage />} />

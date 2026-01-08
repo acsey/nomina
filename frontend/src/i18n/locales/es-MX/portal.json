@@ -79,8 +79,13 @@
   },
 
   "people": {
-    "title": "Personas",
-    "search": "Buscar personas...",
+    "title": "Directorio de Personas",
+    "subtitle": "{{count}} colaboradores en la empresa",
+    "search": "Buscar por nombre, correo o puesto...",
+    "allDepartments": "Todos los departamentos",
+    "showing": "Mostrando {{count}} personas",
+    "noResults": "No se encontraron personas con ese criterio",
+    "extension": "Ext. {{ext}}",
     "departments": "Por departamento",
     "positions": "Por puesto",
     "viewProfile": "Ver perfil",

@@ -10,7 +10,7 @@
     "usedDays": "Días utilizados",
     "pendingDays": "Días pendientes de aprobación",
     "expiringDays": "Días por vencer",
-    "expiresOn": "Vencen el {date}",
+    "expiresOn": "Vencen el {{date}}",
     "totalEntitled": "Días correspondientes",
     "takenThisYear": "Tomados este año",
     "requestVacation": "Solicitar vacaciones"
@@ -18,8 +18,21 @@
 
   "balance": {
     "availableDays": "Días disponibles",
+    "availableTooltip": "Días que puedes tomar actualmente",
+    "earnedDays": "Días correspondientes",
+    "seniorityYears": "Antigüedad: {{years}} años",
     "usedDays": "Días usados",
-    "pendingApproval": "Pendiente de aprobación"
+    "usedTooltip": "Días de vacaciones ya tomados",
+    "pendingApproval": "Pendiente de aprobación",
+    "pendingTooltip": "Días solicitados pendientes de aprobación",
+    "expiring": "{{days}} Días por vencer",
+    "expiringTooltip": "Estos días vencen el {{date}}"
+  },
+
+  "entitlement": {
+    "title": "Días por ley según antigüedad",
+    "byLaw": "Según la Ley Federal del Trabajo (Art. 76)",
+    "year": "Año {{number}}"
   },
 
   "types": {
@@ -50,6 +63,7 @@
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin",
     "days": "Días solicitados",
+    "daysRequested": "{{count}} Días solicitados",
     "workingDays": "Días hábiles",
     "reason": "Motivo",
     "reasonPlaceholder": "Describa el motivo de su solicitud...",
