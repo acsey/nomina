@@ -1,9 +1,9 @@
 {
   "welcome": {
-    "greeting": "Hello, {name}",
-    "goodMorning": "Good morning, {name}",
-    "goodAfternoon": "Good afternoon, {name}",
-    "goodEvening": "Good evening, {name}"
+    "greeting": "Hello, {{name}}",
+    "goodMorning": "Good morning, {{name}}",
+    "goodAfternoon": "Good afternoon, {{name}}",
+    "goodEvening": "Good evening, {{name}}"
   },
 
   "clock": {

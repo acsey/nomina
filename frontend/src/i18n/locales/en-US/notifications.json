@@ -29,15 +29,15 @@
     "vacationApproved": "Your vacation was approved",
     "vacationRejected": "Your vacation was rejected",
     "vacationPending": "You have vacation requests pending approval",
-    "documentExpiring": "Your {document} expires soon",
-    "documentExpired": "Your {document} has expired",
+    "documentExpiring": "Your {{document}} expires soon",
+    "documentExpired": "Your {{document}} has expired",
     "attendanceReminder": "Remember to clock in",
     "missedClockIn": "You haven't clocked in today",
     "overtimeAlert": "You have overtime hours pending approval",
-    "birthdayReminder": "{name} has their birthday today",
-    "anniversaryReminder": "{name} completes {years} years today",
+    "birthdayReminder": "{{name}} has their birthday today",
+    "anniversaryReminder": "{{name}} completes {{years}} years today",
     "policyUpdate": "Company policies have been updated",
-    "systemMaintenance": "System maintenance scheduled for {date}"
+    "systemMaintenance": "System maintenance scheduled for {{date}}"
   },
 
   "actions": {
@@ -61,9 +61,9 @@
 
   "time": {
     "justNow": "Just now",
-    "minutesAgo": "{minutes} minutes ago",
-    "hoursAgo": "{hours} hours ago",
+    "minutesAgo": "{{minutes}} minutes ago",
+    "hoursAgo": "{{hours}} hours ago",
     "yesterday": "Yesterday",
-    "daysAgo": "{days} days ago"
+    "daysAgo": "{{days}} days ago"
   }
 }
