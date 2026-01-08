@@ -87,7 +87,20 @@ export default function LoginPage() {
     try {
       await login(email, password, mfaCode || undefined);
       toast.success('Bienvenido');
-      navigate('/dashboard');
+
+      // Get user from localStorage to check role
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        // Redirect employees to their portal, others to dashboard
+        if (userData.role === 'EMPLOYEE' || userData.role === 'employee') {
+          navigate('/portal/feed');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       // Check if MFA is required
       if (error.response?.status === 428 && error.response?.data?.mfaRequired) {
