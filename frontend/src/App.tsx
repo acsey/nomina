@@ -31,6 +31,7 @@ import OrgChartPage from './pages/OrgChartPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import WebTimeclockPage from './pages/WebTimeclockPage';
 import SurveysManagementPage from './pages/SurveysManagementPage';
+import DocumentsManagementPage from './pages/DocumentsManagementPage';
 
 // Employee Portal pages
 import {
@@ -117,6 +118,7 @@ function App() {
               <Route path="org-chart" element={<OrgChartPage />} />
               <Route path="timeclock" element={<WebTimeclockPage />} />
               <Route path="surveys" element={<SurveysManagementPage />} />
+              <Route path="documents-management" element={<DocumentsManagementPage />} />
               </Route>
 
               {/* Employee Portal Routes */}

@@ -231,9 +231,9 @@ export class CatalogsController {
   @Get('companies')
   @ApiOperation({ summary: 'Listar empresas' })
   async getCompanies(@CurrentUser() user: any) {
-    // Admin puede ver todas las empresas
+    // System Admin puede ver todas las empresas
     // Otros roles solo ven su propia empresa
-    if (user.role === 'admin') {
+    if (user.role === 'admin' || user.role === 'SYSTEM_ADMIN') {
       return this.prisma.company.findMany({
         orderBy: { name: 'asc' },
       });
@@ -252,7 +252,7 @@ export class CatalogsController {
   }
 
   @Post('companies')
-  @Roles('admin')
+  @Roles('admin', 'SYSTEM_ADMIN')
   @ApiOperation({ summary: 'Crear empresa (solo admin)' })
   async createCompany(@Body() data: CreateCompanyDto) {
     return this.prisma.company.create({
@@ -274,15 +274,16 @@ export class CatalogsController {
   }
 
   @Patch('companies/:id')
-  @Roles('admin', 'company_admin', 'rh')
+  @Roles('admin', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'company_admin', 'rh')
   @ApiOperation({ summary: 'Actualizar empresa (admin puede todas, company_admin y rh solo la suya)' })
   async updateCompany(
     @Param('id') id: string,
     @Body() data: UpdateCompanyDto,
     @CurrentUser() user: any,
   ) {
-    // company_admin y RH solo pueden editar su propia empresa
-    if (user.role !== 'admin' && user.companyId !== id) {
+    // System Admin puede editar cualquier empresa, otros solo la suya
+    const isSystemAdmin = user.role === 'admin' || user.role === 'SYSTEM_ADMIN';
+    if (!isSystemAdmin && user.companyId !== id) {
       throw new ForbiddenException('Solo puedes editar tu propia empresa');
     }
 
