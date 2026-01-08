@@ -9,6 +9,10 @@ export class BenefitsService {
   async createBenefit(data: {
     name: string;
     description?: string;
+    detailedDescription?: string;
+    includes?: string[];
+    termsAndConditions?: string;
+    pdfDocumentPath?: string;
     type: BenefitType;
     value?: number;
     valueType: BenefitValueType;
@@ -154,6 +158,10 @@ export class BenefitsService {
   async updateBenefit(id: string, data: Partial<{
     name: string;
     description: string;
+    detailedDescription: string;
+    includes: string[];
+    termsAndConditions: string;
+    pdfDocumentPath: string;
     type: BenefitType;
     value: number;
     valueType: BenefitValueType;

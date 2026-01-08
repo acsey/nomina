@@ -901,4 +901,70 @@ export class NotificationsService {
       this.logger.error(`Failed to send anniversary email: ${error.message}`);
     }
   }
+
+  // =========================================
+  // Métodos para notificaciones de encuestas
+  // =========================================
+
+  /**
+   * Notificar a RH/creador cuando alguien responde una encuesta
+   */
+  async notifySurveyResponse(data: {
+    surveyTitle: string;
+    surveyId: string;
+    isAnonymous: boolean;
+    respondentName?: string;
+    responseCount: number;
+    creatorUserId: string;
+    rhUserIds: string[];
+    companyId: string;
+  }) {
+    const notifications: CreateNotificationDto[] = [];
+
+    const message = data.isAnonymous
+      ? `Nueva respuesta anónima en la encuesta "${data.surveyTitle}". Total de respuestas: ${data.responseCount}`
+      : `${data.respondentName} respondió la encuesta "${data.surveyTitle}". Total de respuestas: ${data.responseCount}`;
+
+    // Notificación al creador de la encuesta
+    notifications.push({
+      type: NotificationType.SURVEY_RESPONSE_RECEIVED,
+      title: 'Nueva respuesta de encuesta',
+      message,
+      userId: data.creatorUserId,
+      companyId: data.companyId,
+      priority: NotificationPriority.NORMAL,
+      metadata: {
+        surveyId: data.surveyId,
+        surveyTitle: data.surveyTitle,
+        isAnonymous: data.isAnonymous,
+        respondentName: data.isAnonymous ? null : data.respondentName,
+        responseCount: data.responseCount,
+      },
+    });
+
+    // Notificación a RH (si no es el creador)
+    for (const rhUserId of data.rhUserIds) {
+      if (rhUserId !== data.creatorUserId) {
+        notifications.push({
+          type: NotificationType.SURVEY_RESPONSE_RECEIVED,
+          title: 'Nueva respuesta de encuesta',
+          message,
+          userId: rhUserId,
+          companyId: data.companyId,
+          priority: NotificationPriority.LOW,
+          metadata: {
+            surveyId: data.surveyId,
+            surveyTitle: data.surveyTitle,
+            isAnonymous: data.isAnonymous,
+            responseCount: data.responseCount,
+          },
+        });
+      }
+    }
+
+    if (notifications.length > 0) {
+      return this.createMany(notifications);
+    }
+    return null;
+  }
 }
