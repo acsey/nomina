@@ -42,6 +42,7 @@ interface NavItem {
   icon: typeof HomeIcon;
   roles?: string[];
   requiresMultiCompany?: boolean;
+  requiresSuperAdmin?: boolean; // Requires SYSTEM_ADMIN without companyId
   category: string;
 }
 
@@ -66,7 +67,7 @@ const navigation: NavItem[] = [
   { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['SYSTEM_ADMIN', 'admin'], requiresMultiCompany: true, category: 'config' },
   { name: 'Config. Empresa', href: '/company-config', icon: CogIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'config' },
   { name: 'Config. Contable', href: '/accounting-config', icon: CalculatorIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'admin', 'company_admin'], category: 'config' },
-  { name: 'Config. Sistema', href: '/system-settings', icon: Cog8ToothIcon, roles: ['SYSTEM_ADMIN', 'admin'], category: 'config' },
+  { name: 'Config. Sistema', href: '/system-settings', icon: Cog8ToothIcon, roles: ['SYSTEM_ADMIN'], requiresSuperAdmin: true, category: 'config' },
   { name: 'Ayuda', href: '/help', icon: QuestionMarkCircleIcon, category: 'ayuda' },
 ];
 
@@ -151,9 +152,11 @@ export default function Layout() {
     return navigation.filter((item) => {
       const hasRoleAccess = !item.roles || item.roles.includes(user?.role || '');
       const meetsMultiCompanyReq = !item.requiresMultiCompany || multiCompanyEnabled;
-      return hasRoleAccess && meetsMultiCompanyReq;
+      // Super admin requirement: must be SYSTEM_ADMIN without companyId
+      const meetsSuperAdminReq = !item.requiresSuperAdmin || (user?.role === 'SYSTEM_ADMIN' && !user?.companyId);
+      return hasRoleAccess && meetsMultiCompanyReq && meetsSuperAdminReq;
     });
-  }, [user?.role, multiCompanyEnabled]);
+  }, [user?.role, user?.companyId, multiCompanyEnabled]);
 
   // Group navigation by category
   const groupedNavigation = useMemo(() => {
