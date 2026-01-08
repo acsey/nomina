@@ -1,0 +1,69 @@
+{
+  "title": "My Documents",
+  "subtitle": "Manage your personal documents and contracts",
+  "upload": "Upload Document",
+  "uploadDocument": "Upload Document",
+  "uploading": "Uploading...",
+  "uploadSuccess": "Document uploaded successfully",
+  "uploadError": "Error uploading document",
+  "selectFile": "Select a file",
+  "download": "Download",
+  "downloading": "Downloading {{name}}...",
+  "downloadError": "Error downloading document",
+  "downloadToView": "Download to view",
+  "view": "View document",
+  "delete": "Delete",
+  "deleteSuccess": "Document deleted",
+  "deleteError": "Error deleting document",
+
+  "digitalFile": "Digital File",
+  "complete": "Complete",
+  "total": "Total",
+  "approved": "Approved",
+  "pending": "Pending",
+  "rejected": "Rejected",
+  "all": "All",
+
+  "noDocuments": "No documents in this category",
+  "noEmployee": "No linked employee",
+  "noEmployeeDesc": "Your account is not linked to an employee record.",
+
+  "uploaded": "Uploaded",
+  "validUntil": "Valid until",
+  "validUntilOptional": "Valid until (optional)",
+
+  "documentType": "Document type",
+  "documentName": "Document name",
+  "namePlaceholder": "E.g: Birth Certificate",
+  "file": "File",
+
+  "requiredDocuments": "Required Documents",
+  "previewNotAvailable": "Preview not available for this file type",
+
+  "types": {
+    "ACTA_NACIMIENTO": "Birth Certificate",
+    "CURP": "CURP",
+    "INE": "ID Card (INE/IFE)",
+    "COMPROBANTE_DOMICILIO": "Proof of Address",
+    "RFC": "Tax ID (RFC)",
+    "NSS": "Social Security Number",
+    "CUENTA_BANCARIA": "Bank Account Statement",
+    "CONTRATO": "Employment Contract",
+    "CONSTANCIA_ESTUDIOS": "Education Certificate",
+    "CERTIFICADO_MEDICO": "Medical Certificate",
+    "OTHER": "Other Document"
+  },
+
+  "categories": {
+    "personal": "Personal Documents",
+    "contract": "Contracts",
+    "hr_request": "Requested by HR",
+    "other": "Other"
+  },
+
+  "status": {
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected"
+  }
+}

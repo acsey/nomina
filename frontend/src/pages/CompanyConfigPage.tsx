@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import {
   CogIcon,
   SwatchIcon,
@@ -85,6 +86,7 @@ export default function CompanyConfigPage() {
   const { user } = useAuth();
   const { multiCompanyEnabled } = useSystemConfig();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [activeTab, setActiveTab] = useState<'branding' | 'cfdi' | 'pac'>('branding');
   const [formData, setFormData] = useState<ConfigFormData>(defaultFormData);
@@ -92,7 +94,11 @@ export default function CompanyConfigPage() {
   const cerInputRef = useRef<HTMLInputElement>(null);
   const keyInputRef = useRef<HTMLInputElement>(null);
 
-  const isAdmin = user?.role === 'admin';
+  // Check for both SYSTEM_ADMIN (new) and admin (legacy) roles
+  const isSystemAdmin = user?.role === 'SYSTEM_ADMIN' || user?.role === 'admin';
+
+  // Get company ID from URL query parameter
+  const companyIdFromUrl = searchParams.get('company');
 
   // Obtener empresas
   const { data: companiesData, isLoading, isFetching } = useQuery({
@@ -115,12 +121,23 @@ export default function CompanyConfigPage() {
 
   const pacProviders = pacProvidersData || [];
 
-  // Seleccionar empresa por defecto
+  // Seleccionar empresa por defecto or from URL parameter
   useEffect(() => {
     if (companies.length > 0 && !selectedCompanyId) {
-      setSelectedCompanyId(companies[0].id);
+      // First check URL parameter
+      if (companyIdFromUrl && companies.some((c: any) => c.id === companyIdFromUrl)) {
+        setSelectedCompanyId(companyIdFromUrl);
+      } else {
+        setSelectedCompanyId(companies[0].id);
+      }
     }
-  }, [companies, selectedCompanyId]);
+  }, [companies, selectedCompanyId, companyIdFromUrl]);
+
+  // Update URL when company selection changes
+  const handleCompanyChange = (newCompanyId: string) => {
+    setSelectedCompanyId(newCompanyId);
+    setSearchParams({ company: newCompanyId });
+  };
 
   // Obtener empresa seleccionada
   const company = companies.find((c: any) => c.id === selectedCompanyId);
@@ -263,8 +280,8 @@ export default function CompanyConfigPage() {
         </p>
       </div>
 
-      {/* Company Selector for Admin */}
-      {isAdmin && multiCompanyEnabled && companies.length > 1 && (
+      {/* Company Selector for System Admin - Always show when more than one company */}
+      {isSystemAdmin && companies.length > 1 && (
         <div className="card mb-6 bg-blue-50 border-blue-200">
           <div className="flex items-center gap-4">
             <BuildingOffice2Icon className="h-8 w-8 text-blue-600" />
@@ -272,7 +289,7 @@ export default function CompanyConfigPage() {
               <label className="label text-blue-800">Seleccionar Empresa a Configurar</label>
               <select
                 value={selectedCompanyId}
-                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                onChange={(e) => handleCompanyChange(e.target.value)}
                 className="input max-w-md"
               >
                 {companies.map((c: any) => (

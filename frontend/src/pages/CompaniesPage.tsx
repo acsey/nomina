@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import {
   PlusIcon,
   PencilSquareIcon,
   BuildingOffice2Icon,
   XMarkIcon,
   BuildingLibraryIcon,
+  CogIcon,
 } from '@heroicons/react/24/outline';
 import { catalogsApi, api } from '../services/api';
 import toast from 'react-hot-toast';
@@ -236,12 +238,22 @@ export default function CompaniesPage() {
                     <p className="text-sm text-gray-500">{company.rfc}</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => openEditModal(company)}
-                  className="p-2 text-gray-400 hover:text-primary-600 hover:bg-gray-100 rounded-lg"
-                >
-                  <PencilSquareIcon className="h-5 w-5" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <Link
+                    to={`/company-config?company=${company.id}`}
+                    className="p-2 text-gray-400 hover:text-primary-600 hover:bg-gray-100 rounded-lg"
+                    title="Configurar empresa"
+                  >
+                    <CogIcon className="h-5 w-5" />
+                  </Link>
+                  <button
+                    onClick={() => openEditModal(company)}
+                    className="p-2 text-gray-400 hover:text-primary-600 hover:bg-gray-100 rounded-lg"
+                    title="Editar datos"
+                  >
+                    <PencilSquareIcon className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Badge de tipo */}

@@ -8,6 +8,7 @@ import notifications from './notifications.json';
 import nav from './nav.json';
 import portal from './portal.json';
 import settings from './settings.json';
+import documents from './documents.json';
 
 export default {
   common,
@@ -20,4 +21,5 @@ export default {
   nav,
   portal,
   settings,
+  documents,
 };
