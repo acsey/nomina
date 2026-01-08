@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   BanknotesIcon,
@@ -7,82 +8,15 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   CalendarDaysIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
+import { payrollApi, employeesApi } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
+import dayjs from 'dayjs';
 
-interface PaystubItem {
-  code: string;
-  nameKey: string;
-  tooltipKey: string;
-  amount: number;
-  type: 'earning' | 'deduction';
-}
-
-interface Paystub {
-  id: string;
-  period: string;
-  periodStart: string;
-  periodEnd: string;
-  paymentDate: string;
-  grossPay: number;
-  totalDeductions: number;
-  netPay: number;
-  earnings: PaystubItem[];
-  deductions: PaystubItem[];
-  uuid: string;
-  status: 'paid' | 'pending';
-}
-
-// Mock data - In real app, this comes from API
-const mockPaystubs: Paystub[] = [
-  {
-    id: '1',
-    period: 'Enero 2da Quincena 2026',
-    periodStart: '2026-01-16',
-    periodEnd: '2026-01-31',
-    paymentDate: '2026-01-31',
-    grossPay: 25000,
-    totalDeductions: 5250,
-    netPay: 19750,
-    earnings: [
-      { code: 'P001', nameKey: 'payroll.earnings.baseSalary', tooltipKey: 'payroll.earnings.baseSalaryTooltip', amount: 22500, type: 'earning' },
-      { code: 'P002', nameKey: 'payroll.earnings.foodVouchers', tooltipKey: 'payroll.earnings.foodVouchersTooltip', amount: 1500, type: 'earning' },
-      { code: 'P003', nameKey: 'payroll.earnings.transportAllowance', tooltipKey: 'payroll.earnings.transportTooltip', amount: 1000, type: 'earning' },
-    ],
-    deductions: [
-      { code: 'D001', nameKey: 'payroll.deductions.isr', tooltipKey: 'payroll.deductions.isrTooltip', amount: 3500, type: 'deduction' },
-      { code: 'D002', nameKey: 'payroll.deductions.imss', tooltipKey: 'payroll.deductions.imssTooltip', amount: 1250, type: 'deduction' },
-      { code: 'D003', nameKey: 'payroll.deductions.retirementSavings', tooltipKey: 'payroll.deductions.retirementTooltip', amount: 500, type: 'deduction' },
-    ],
-    uuid: 'ABC12345-1234-5678-90AB-CDEF12345678',
-    status: 'paid',
-  },
-  {
-    id: '2',
-    period: 'Enero 1ra Quincena 2026',
-    periodStart: '2026-01-01',
-    periodEnd: '2026-01-15',
-    paymentDate: '2026-01-15',
-    grossPay: 25000,
-    totalDeductions: 5250,
-    netPay: 19750,
-    earnings: [
-      { code: 'P001', nameKey: 'payroll.earnings.baseSalary', tooltipKey: 'payroll.earnings.baseSalaryTooltip', amount: 22500, type: 'earning' },
-      { code: 'P002', nameKey: 'payroll.earnings.foodVouchers', tooltipKey: 'payroll.earnings.foodVouchersTooltip', amount: 1500, type: 'earning' },
-      { code: 'P003', nameKey: 'payroll.earnings.transportAllowance', tooltipKey: 'payroll.earnings.transportTooltip', amount: 1000, type: 'earning' },
-    ],
-    deductions: [
-      { code: 'D001', nameKey: 'payroll.deductions.isr', tooltipKey: 'payroll.deductions.isrTooltip', amount: 3500, type: 'deduction' },
-      { code: 'D002', nameKey: 'payroll.deductions.imss', tooltipKey: 'payroll.deductions.imssTooltip', amount: 1250, type: 'deduction' },
-      { code: 'D003', nameKey: 'payroll.deductions.retirementSavings', tooltipKey: 'payroll.deductions.retirementTooltip', amount: 500, type: 'deduction' },
-    ],
-    uuid: 'DEF67890-1234-5678-90AB-CDEF12345678',
-    status: 'paid',
-  },
-];
-
-function TooltipIcon({ tooltipKey }: { tooltipKey: string }) {
-  const { t } = useTranslation();
+function TooltipIcon({ text }: { text: string }) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -98,30 +32,36 @@ function TooltipIcon({ tooltipKey }: { tooltipKey: string }) {
       {showTooltip && (
         <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50">
           <div className="absolute left-3 bottom-0 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-          {t(tooltipKey)}
+          {text}
         </div>
       )}
     </div>
   );
 }
 
-function PaystubCard({ paystub, isExpanded, onToggle }: { paystub: Paystub; isExpanded: boolean; onToggle: () => void }) {
+function PaystubCard({ receipt, isExpanded, onToggle, onDownloadPdf, onDownloadXml }: {
+  receipt: any;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onDownloadPdf: () => void;
+  onDownloadXml: () => void;
+}) {
   const { t } = useTranslation();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
-    }).format(amount);
+    }).format(amount || 0);
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('es-MX', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return dayjs(dateStr).format('DD MMM YYYY');
   };
+
+  const periodName = receipt.payrollPeriod
+    ? `${receipt.payrollPeriod.periodType === 'MONTHLY' ? 'Mes' : 'Quincena'} ${receipt.payrollPeriod.periodNumber}/${receipt.payrollPeriod.year}`
+    : 'Periodo desconocido';
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -135,9 +75,9 @@ function PaystubCard({ paystub, isExpanded, onToggle }: { paystub: Paystub; isEx
             <BanknotesIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
           </div>
           <div className="text-left">
-            <h3 className="font-semibold text-gray-900 dark:text-white">{paystub.period}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">{periodName}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {formatDate(paystub.periodStart)} - {formatDate(paystub.periodEnd)}
+              {receipt.payrollPeriod && formatDate(receipt.payrollPeriod.startDate)} - {receipt.payrollPeriod && formatDate(receipt.payrollPeriod.endDate)}
             </p>
           </div>
         </div>
@@ -145,7 +85,7 @@ function PaystubCard({ paystub, isExpanded, onToggle }: { paystub: Paystub; isEx
           <div className="text-right">
             <p className="text-sm text-gray-500 dark:text-gray-400">{t('payroll.myPayroll.netPay')}</p>
             <p className="text-xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(paystub.netPay)}
+              {formatCurrency(Number(receipt.netPay))}
             </p>
           </div>
           {isExpanded ? (
@@ -164,14 +104,14 @@ function PaystubCard({ paystub, isExpanded, onToggle }: { paystub: Paystub; isEx
             <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
                 {t('payroll.myPayroll.netPay')}
-                <TooltipIcon tooltipKey="payroll.myPayroll.netPayTooltip" />
+                <TooltipIcon text="El monto que recibes despues de deducciones" />
               </p>
               <p className="text-4xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {formatCurrency(paystub.netPay)}
+                {formatCurrency(Number(receipt.netPay))}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 <CheckCircleIcon className="inline h-4 w-4 text-green-500 mr-1" />
-                {t('payroll.period.paid')} - {formatDate(paystub.paymentDate)}
+                {receipt.payrollPeriod?.status === 'PAID' ? 'Pagado' : 'Procesado'} - {receipt.payrollPeriod && formatDate(receipt.payrollPeriod.paymentDate || receipt.payrollPeriod.endDate)}
               </p>
             </div>
           </div>
@@ -181,97 +121,81 @@ function PaystubCard({ paystub, isExpanded, onToggle }: { paystub: Paystub; isEx
             <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
               <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
                 {t('payroll.myPayroll.grossPay')}
-                <TooltipIcon tooltipKey="payroll.myPayroll.grossPayTooltip" />
+                <TooltipIcon text="Total de percepciones antes de deducciones" />
               </p>
               <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {formatCurrency(paystub.grossPay)}
+                {formatCurrency(Number(receipt.totalPerceptions))}
               </p>
             </div>
             <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
               <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
                 {t('payroll.myPayroll.deductions')}
-                <TooltipIcon tooltipKey="payroll.myPayroll.deductionsTooltip" />
+                <TooltipIcon text="Total de descuentos aplicados" />
               </p>
               <p className="text-xl font-semibold text-red-600 dark:text-red-400">
-                -{formatCurrency(paystub.totalDeductions)}
+                -{formatCurrency(Number(receipt.totalDeductions))}
               </p>
             </div>
           </div>
 
-          {/* Earnings Section */}
+          {/* Details */}
           <div className="p-5 border-b dark:border-gray-700">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-              {t('payroll.earnings.title')}
-              <span className="ml-2 text-sm font-normal text-gray-500">
-                ({t('payroll.earnings.subtitle')})
-              </span>
-            </h4>
-            <div className="space-y-2">
-              {paystub.earnings.map((item) => (
-                <div
-                  key={item.code}
-                  className="flex items-center justify-between py-2 px-3 bg-green-50 dark:bg-green-900/10 rounded-lg"
-                >
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-700 dark:text-gray-200">
-                      {t(item.nameKey)}
-                    </span>
-                    <TooltipIcon tooltipKey={item.tooltipKey} />
-                  </div>
-                  <span className="font-medium text-green-600 dark:text-green-400">
-                    +{formatCurrency(item.amount)}
-                  </span>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">Salario base:</span>
+                <span className="ml-2 font-medium">{formatCurrency(Number(receipt.baseSalary))}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Dias trabajados:</span>
+                <span className="ml-2 font-medium">{receipt.workedDays || 15}</span>
+              </div>
+              {receipt.overtimeHours > 0 && (
+                <div>
+                  <span className="text-gray-500">Horas extra:</span>
+                  <span className="ml-2 font-medium">{receipt.overtimeHours}h ({formatCurrency(Number(receipt.overtimePay))})</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Deductions Section */}
-          <div className="p-5 border-b dark:border-gray-700">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-              {t('payroll.deductions.title')}
-              <span className="ml-2 text-sm font-normal text-gray-500">
-                ({t('payroll.deductions.subtitle')})
-              </span>
-            </h4>
-            <div className="space-y-2">
-              {paystub.deductions.map((item) => (
-                <div
-                  key={item.code}
-                  className="flex items-center justify-between py-2 px-3 bg-red-50 dark:bg-red-900/10 rounded-lg"
-                >
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-700 dark:text-gray-200">
-                      {t(item.nameKey)}
-                    </span>
-                    <TooltipIcon tooltipKey={item.tooltipKey} />
-                  </div>
-                  <span className="font-medium text-red-600 dark:text-red-400">
-                    -{formatCurrency(item.amount)}
-                  </span>
+              )}
+              {receipt.imss > 0 && (
+                <div>
+                  <span className="text-gray-500">IMSS:</span>
+                  <span className="ml-2 font-medium text-red-600">-{formatCurrency(Number(receipt.imss))}</span>
                 </div>
-              ))}
+              )}
+              {receipt.isr > 0 && (
+                <div>
+                  <span className="text-gray-500">ISR:</span>
+                  <span className="ml-2 font-medium text-red-600">-{formatCurrency(Number(receipt.isr))}</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Actions */}
           <div className="p-5 flex flex-wrap gap-3">
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDownloadPdf(); }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
               <DocumentArrowDownIcon className="h-5 w-5" />
-              {t('payroll.myPayroll.downloadPaystub')}
+              Descargar PDF
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDownloadXml(); }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
               <DocumentArrowDownIcon className="h-5 w-5" />
-              {t('payroll.myPayroll.downloadXml')}
+              Descargar XML
             </button>
           </div>
 
           {/* Fiscal Info */}
-          <div className="p-5 bg-gray-50 dark:bg-gray-700/30 border-t dark:border-gray-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              <span className="font-medium">{t('payroll.details.uuid')}:</span> {paystub.uuid}
-            </p>
-          </div>
+          {receipt.uuid && (
+            <div className="p-5 bg-gray-50 dark:bg-gray-700/30 border-t dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="font-medium">UUID CFDI:</span> {receipt.uuid}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -280,11 +204,97 @@ function PaystubCard({ paystub, isExpanded, onToggle }: { paystub: Paystub; isEx
 
 export default function MyPayrollPage() {
   const { t } = useTranslation();
-  const [expandedId, setExpandedId] = useState<string | null>(mockPaystubs[0]?.id || null);
+  const { user } = useAuth();
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Get employee data
+  const { data: employeeData, isLoading: isLoadingEmployee } = useQuery({
+    queryKey: ['my-employee', user?.email],
+    queryFn: async () => {
+      const response = await employeesApi.getByEmail(user?.email || '');
+      return response.data;
+    },
+    enabled: !!user?.email,
+  });
+
+  const employeeId = employeeData?.id;
+
+  // Get receipts
+  const { data: receiptsData, isLoading: isLoadingReceipts } = useQuery({
+    queryKey: ['my-receipts', employeeId, selectedYear],
+    queryFn: () => payrollApi.getEmployeeReceipts(employeeId || '', selectedYear),
+    enabled: !!employeeId,
+  });
+
+  const receipts = receiptsData?.data || [];
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
+
+  const handleDownloadPdf = async (receiptId: string, periodName: string) => {
+    try {
+      const response = await payrollApi.downloadReceipt(receiptId, 'pdf');
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `recibo_${periodName.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Recibo descargado');
+    } catch (error) {
+      toast.error('Error al descargar el recibo');
+    }
+  };
+
+  const handleDownloadXml = async (receiptId: string, periodName: string) => {
+    try {
+      const response = await payrollApi.downloadReceipt(receiptId, 'xml');
+      const blob = new Blob([response.data], { type: 'application/xml' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cfdi_${periodName.replace(/\s+/g, '_')}.xml`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('XML descargado');
+    } catch (error) {
+      toast.error('Error al descargar el XML');
+    }
+  };
+
+  // Set first receipt as expanded by default
+  if (receipts.length > 0 && expandedId === null) {
+    setExpandedId(receipts[0].id);
+  }
+
+  if (isLoadingEmployee) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!employeeId) {
+    return (
+      <div className="card text-center py-12">
+        <ExclamationTriangleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          No hay empleado vinculado
+        </h2>
+        <p className="text-gray-500">
+          Tu cuenta no esta vinculada a un registro de empleado.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -300,43 +310,72 @@ export default function MyPayrollPage() {
         </div>
         <div className="flex items-center gap-2">
           <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
-          <select className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm">
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm"
+          >
+            {[2026, 2025, 2024, 2023].map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* Current/Latest Paystub */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          {t('payroll.myPayroll.currentPaystub')}
-        </h2>
-        {mockPaystubs.length > 0 && (
-          <PaystubCard
-            paystub={mockPaystubs[0]}
-            isExpanded={expandedId === mockPaystubs[0].id}
-            onToggle={() => toggleExpand(mockPaystubs[0].id)}
-          />
-        )}
-      </div>
-
-      {/* Payment History */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          {t('payroll.myPayroll.payHistory')}
-        </h2>
-        <div className="space-y-4">
-          {mockPaystubs.slice(1).map((paystub) => (
-            <PaystubCard
-              key={paystub.id}
-              paystub={paystub}
-              isExpanded={expandedId === paystub.id}
-              onToggle={() => toggleExpand(paystub.id)}
-            />
-          ))}
+      {isLoadingReceipts ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
-      </div>
+      ) : receipts.length === 0 ? (
+        <div className="card text-center py-12">
+          <BanknotesIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            No hay recibos disponibles
+          </h3>
+          <p className="text-gray-500 mt-2">
+            No tienes recibos de nomina para el ano {selectedYear}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Current/Latest Receipt */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              {t('payroll.myPayroll.currentPaystub')}
+            </h2>
+            {receipts.length > 0 && (
+              <PaystubCard
+                receipt={receipts[0]}
+                isExpanded={expandedId === receipts[0].id}
+                onToggle={() => toggleExpand(receipts[0].id)}
+                onDownloadPdf={() => handleDownloadPdf(receipts[0].id, `P${receipts[0].payrollPeriod?.periodNumber || ''}_${selectedYear}`)}
+                onDownloadXml={() => handleDownloadXml(receipts[0].id, `P${receipts[0].payrollPeriod?.periodNumber || ''}_${selectedYear}`)}
+              />
+            )}
+          </div>
+
+          {/* Payment History */}
+          {receipts.length > 1 && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                {t('payroll.myPayroll.payHistory')}
+              </h2>
+              <div className="space-y-4">
+                {receipts.slice(1).map((receipt: any) => (
+                  <PaystubCard
+                    key={receipt.id}
+                    receipt={receipt}
+                    isExpanded={expandedId === receipt.id}
+                    onToggle={() => toggleExpand(receipt.id)}
+                    onDownloadPdf={() => handleDownloadPdf(receipt.id, `P${receipt.payrollPeriod?.periodNumber || ''}_${selectedYear}`)}
+                    onDownloadXml={() => handleDownloadXml(receipt.id, `P${receipt.payrollPeriod?.periodNumber || ''}_${selectedYear}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
