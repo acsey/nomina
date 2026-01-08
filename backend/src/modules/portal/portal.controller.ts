@@ -27,10 +27,29 @@ export class PortalController {
   constructor(private readonly portalService: PortalService) {}
 
   /**
+   * Gets the employeeId for the current user.
+   * For EMPLOYEE role users without employeeId in token, looks it up by email.
+   */
+  private async getEffectiveEmployeeId(user: any): Promise<string | null> {
+    if (user.employeeId) {
+      return user.employeeId;
+    }
+
+    // For EMPLOYEE role, look up by email
+    const userRole = normalizeRole(user.role) as RoleName;
+    if (userRole === RoleName.EMPLOYEE && user.email) {
+      const employee = await this.portalService.getEmployeeByEmail(user.email);
+      return employee?.id || null;
+    }
+
+    return null;
+  }
+
+  /**
    * Validates that the user can access the requested employeeId.
    * Admins can access any employee, regular users only their own.
    */
-  private validateEmployeeAccess(user: any, targetEmployeeId: string): void {
+  private async validateEmployeeAccess(user: any, targetEmployeeId: string): Promise<void> {
     const userRole = normalizeRole(user.role) as RoleName;
     const adminRoles = [
       RoleName.SYSTEM_ADMIN,
@@ -44,7 +63,10 @@ export class PortalController {
       return; // Admins can access any employee
     }
 
-    if (targetEmployeeId !== user.employeeId) {
+    // Get the effective employeeId for the user
+    const userEmployeeId = await this.getEffectiveEmployeeId(user);
+
+    if (targetEmployeeId !== userEmployeeId) {
       throw new ForbiddenException('No tienes permiso para acceder a datos de otro empleado');
     }
   }
@@ -62,11 +84,11 @@ export class PortalController {
 
   @Get('documents/:employeeId')
   @ApiOperation({ summary: 'Obtener documentos del empleado' })
-  getMyDocuments(
+  async getMyDocuments(
     @Param('employeeId') employeeId: string,
     @CurrentUser() user: any,
   ) {
-    this.validateEmployeeAccess(user, employeeId);
+    await this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyDocuments(employeeId);
   }
 
@@ -168,11 +190,11 @@ export class PortalController {
 
   @Get('recognitions/me/:employeeId')
   @ApiOperation({ summary: 'Obtener mis reconocimientos' })
-  getMyRecognitions(
+  async getMyRecognitions(
     @Param('employeeId') employeeId: string,
     @CurrentUser() user: any,
   ) {
-    this.validateEmployeeAccess(user, employeeId);
+    await this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyRecognitions(employeeId);
   }
 
@@ -205,11 +227,11 @@ export class PortalController {
 
   @Get('points/:employeeId')
   @ApiOperation({ summary: 'Obtener puntos del empleado' })
-  getEmployeePoints(
+  async getEmployeePoints(
     @Param('employeeId') employeeId: string,
     @CurrentUser() user: any,
   ) {
-    this.validateEmployeeAccess(user, employeeId);
+    await this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getEmployeePoints(employeeId);
   }
 
@@ -225,11 +247,11 @@ export class PortalController {
 
   @Get('courses/me/:employeeId')
   @ApiOperation({ summary: 'Obtener mis cursos' })
-  getMyCourses(
+  async getMyCourses(
     @Param('employeeId') employeeId: string,
     @CurrentUser() user: any,
   ) {
-    this.validateEmployeeAccess(user, employeeId);
+    await this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyCourses(employeeId);
   }
 
@@ -280,11 +302,11 @@ export class PortalController {
 
   @Get('badges/me/:employeeId')
   @ApiOperation({ summary: 'Obtener mis insignias' })
-  getMyBadges(
+  async getMyBadges(
     @Param('employeeId') employeeId: string,
     @CurrentUser() user: any,
   ) {
-    this.validateEmployeeAccess(user, employeeId);
+    await this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyBadges(employeeId);
   }
 
@@ -372,11 +394,11 @@ export class PortalController {
 
   @Get('benefits/:employeeId')
   @ApiOperation({ summary: 'Obtener prestaciones del empleado' })
-  getMyBenefits(
+  async getMyBenefits(
     @Param('employeeId') employeeId: string,
     @CurrentUser() user: any,
   ) {
-    this.validateEmployeeAccess(user, employeeId);
+    await this.validateEmployeeAccess(user, employeeId);
     return this.portalService.getMyBenefits(employeeId);
   }
 }

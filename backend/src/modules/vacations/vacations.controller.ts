@@ -230,6 +230,23 @@ export class VacationsController {
     return this.vacationsService.rejectRequest(id, reason, user.sub, stage);
   }
 
+  /**
+   * Cancel own vacation request (for employee portal)
+   */
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancelar mi solicitud de vacaciones' })
+  async cancelRequest(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentUser() user: any,
+  ) {
+    const employee = await this.vacationsService.getEmployeeByEmail(user.email);
+    if (!employee) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.vacationsService.cancelRequest(id, employee.id, reason);
+  }
+
   @Get('balance/:employeeId')
   @ApiOperation({ summary: 'Obtener balance de vacaciones' })
   async getBalance(

@@ -12,6 +12,20 @@ export class PortalService {
   ) {}
 
   // =====================================
+  // EMPLOYEE LOOKUP
+  // =====================================
+
+  /**
+   * Get employee by email address
+   */
+  async getEmployeeByEmail(email: string) {
+    return this.prisma.employee.findFirst({
+      where: { email },
+      select: { id: true, companyId: true },
+    });
+  }
+
+  // =====================================
   // EMPLOYEE DOCUMENTS
   // =====================================
 
@@ -670,7 +684,7 @@ export class PortalService {
     }
 
     // Create response with answers
-    return this.prisma.surveyResponse.create({
+    const response = await this.prisma.surveyResponse.create({
       data: {
         surveyId,
         employeeId: survey.isAnonymous ? null : employeeId,
@@ -687,6 +701,49 @@ export class PortalService {
         answers: true,
       },
     });
+
+    // Send notification to HR/creator
+    try {
+      // Get response count
+      const responseCount = await this.prisma.surveyResponse.count({
+        where: { surveyId },
+      });
+
+      // Get respondent name if not anonymous
+      let respondentName: string | undefined;
+      if (!survey.isAnonymous && employeeId) {
+        const employee = await this.prisma.employee.findUnique({
+          where: { id: employeeId },
+          select: { firstName: true, lastName: true },
+        });
+        if (employee) {
+          respondentName = `${employee.firstName} ${employee.lastName}`;
+        }
+      }
+
+      // Get RH users for the company
+      const rhUserIds = await this.notificationsService.getRHUserIds(survey.companyId);
+
+      // Send notification
+      if (survey.createdById || rhUserIds.length > 0) {
+        await this.notificationsService.notifySurveyResponse({
+          surveyTitle: survey.title,
+          surveyId: survey.id,
+          isAnonymous: survey.isAnonymous,
+          respondentName,
+          responseCount,
+          creatorUserId: survey.createdById || rhUserIds[0],
+          rhUserIds,
+          companyId: survey.companyId,
+        });
+        this.logger.log(`Survey response notification sent for survey ${surveyId}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send survey response notification: ${error.message}`);
+      // Don't throw - notification failure shouldn't break response submission
+    }
+
+    return response;
   }
 
   async createSurvey(companyId: string, data: {
@@ -752,7 +809,19 @@ export class PortalService {
           },
           orderBy: { orderIndex: 'asc' },
         },
-        responses: true,
+        responses: {
+          include: {
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                department: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: { submittedAt: 'desc' },
+        },
       },
     });
 
@@ -760,9 +829,32 @@ export class PortalService {
       throw new NotFoundException('Encuesta no encontrada');
     }
 
+    // For non-anonymous surveys, include respondent list
+    const respondents = !survey.isAnonymous
+      ? survey.responses.map(r => ({
+          responseId: r.id,
+          submittedAt: r.submittedAt,
+          employee: r.employee ? {
+            id: r.employee.id,
+            name: `${r.employee.firstName} ${r.employee.lastName}`,
+            department: r.employee.department?.name,
+          } : null,
+        }))
+      : null;
+
     return {
-      survey,
+      survey: {
+        id: survey.id,
+        title: survey.title,
+        description: survey.description,
+        type: survey.type,
+        isAnonymous: survey.isAnonymous,
+        startsAt: survey.startsAt,
+        endsAt: survey.endsAt,
+        isPublished: survey.isPublished,
+      },
       totalResponses: survey.responses.length,
+      respondents, // null for anonymous surveys
       questionResults: survey.questions.map(q => ({
         questionId: q.id,
         questionText: q.questionText,
