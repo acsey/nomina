@@ -26,8 +26,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 export default function DashboardPage() {
   const { user } = useAuth();
   const { multiCompanyEnabled } = useSystemConfig();
-  const isEmployee = user?.role === 'employee';
-  const isAdmin = user?.role === 'admin';
+  // Check for both lowercase and uppercase role names for backwards compatibility
+  const isEmployee = user?.role === 'employee' || user?.role === 'EMPLOYEE';
+  const isAdmin = user?.role === 'admin' || user?.role === 'SYSTEM_ADMIN';
 
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const selectedYear = new Date().getFullYear();

@@ -95,13 +95,16 @@ export default function CompanyConfigPage() {
   const isAdmin = user?.role === 'admin';
 
   // Obtener empresas
-  const { data: companiesData, isLoading } = useQuery({
+  const { data: companiesData, isLoading, isFetching } = useQuery({
     queryKey: ['companies'],
     queryFn: () => catalogsApi.getCompanies(),
     select: (res) => res.data,
+    staleTime: 0, // Always fetch fresh data on first load
+    refetchOnMount: true,
   });
 
   const companies = companiesData || [];
+  const isDataReady = !isLoading && !isFetching && companiesData !== undefined;
 
   // Obtener proveedores PAC del catálogo
   const { data: pacProvidersData } = useQuery({
@@ -220,7 +223,8 @@ export default function CompanyConfigPage() {
     updateMutation.mutate(data);
   };
 
-  if (isLoading) {
+  // Show loading while fetching data
+  if (isLoading || isFetching || !isDataReady) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -228,7 +232,8 @@ export default function CompanyConfigPage() {
     );
   }
 
-  if (companies.length === 0) {
+  // Only show "no company" message after data is fully loaded
+  if (isDataReady && companies.length === 0) {
     return (
       <div className="card text-center py-12">
         <ExclamationTriangleIcon className="h-12 w-12 text-amber-500 mx-auto mb-4" />
