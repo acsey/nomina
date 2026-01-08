@@ -13,6 +13,8 @@ import {
   XCircleIcon,
   XMarkIcon,
   UserGroupIcon,
+  ArrowDownTrayIcon,
+  StarIcon,
 } from '@heroicons/react/24/outline';
 import { portalApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -82,6 +84,7 @@ export default function SurveysManagementPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [selectedResults, setSelectedResults] = useState<SurveyResults | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'draft' | 'published' | 'closed'>('all');
@@ -291,6 +294,49 @@ export default function SurveysManagementPage() {
     return 'published';
   };
 
+  const handlePreview = (survey: Survey) => {
+    setSelectedSurvey(survey);
+    setShowPreviewModal(true);
+  };
+
+  const exportToExcel = (results: SurveyResults) => {
+    // Create CSV content (Excel-compatible)
+    let csvContent = 'data:text/csv;charset=utf-8,';
+
+    // Header
+    csvContent += `Encuesta:,${results.survey.title}\n`;
+    csvContent += `Total Respuestas:,${results.totalResponses}\n`;
+    csvContent += `Fecha Exportacion:,${dayjs().format('DD/MM/YYYY HH:mm')}\n\n`;
+
+    // Questions and results
+    csvContent += 'Pregunta,Tipo,Total Respuestas,Promedio/Distribucion\n';
+
+    results.questionResults.forEach((qr) => {
+      let resultData = '';
+      if (qr.averageRating !== null) {
+        resultData = `Promedio: ${qr.averageRating.toFixed(2)}`;
+      } else if (qr.optionCounts) {
+        resultData = Object.entries(qr.optionCounts)
+          .map(([opt, count]) => `${opt}: ${count}`)
+          .join(' | ');
+      } else {
+        resultData = `${qr.totalAnswers} respuestas`;
+      }
+      csvContent += `"${qr.questionText}",${qr.type},${qr.totalAnswers},"${resultData}"\n`;
+    });
+
+    // Download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `encuesta_${results.survey.title.replace(/\s+/g, '_')}_resultados.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success('Resultados exportados exitosamente');
+  };
+
   const filteredSurveys = activeTab === 'all'
     ? surveys
     : surveys.filter(s => getSurveyStatus(s) === activeTab);
@@ -474,8 +520,9 @@ export default function SurveysManagementPage() {
                       <ChartBarIcon className="h-5 w-5" />
                     </button>
                     <button
+                      onClick={() => handlePreview(survey)}
                       className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                      title="Ver encuesta"
+                      title="Vista previa"
                     >
                       <EyeIcon className="h-5 w-5" />
                     </button>
@@ -762,10 +809,140 @@ export default function SurveysManagementPage() {
               )}
             </div>
 
-            <div className="flex justify-end p-6 border-t dark:border-gray-700">
+            <div className="flex justify-between p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => selectedResults && exportToExcel(selectedResults)}
+                className="btn btn-secondary inline-flex items-center gap-2"
+                disabled={selectedResults?.totalResponses === 0}
+              >
+                <ArrowDownTrayIcon className="h-4 w-4" />
+                Exportar a Excel
+              </button>
               <button onClick={() => setShowResultsModal(false)} className="btn btn-secondary">
                 Cerrar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreviewModal && selectedSurvey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <div>
+                <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700 mb-2 inline-block">
+                  Vista Previa
+                </span>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {selectedSurvey.title}
+                </h2>
+                {selectedSurvey.description && (
+                  <p className="text-sm text-gray-500 mt-1">{selectedSurvey.description}</p>
+                )}
+              </div>
+              <button onClick={() => setShowPreviewModal(false)} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {selectedSurvey.questions.map((question, index) => (
+                <div key={question.id} className="p-4 border dark:border-gray-700 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-full flex items-center justify-center text-sm font-medium">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {question.questionText}
+                        {question.isRequired && <span className="text-red-500 ml-1">*</span>}
+                      </p>
+
+                      {/* Render question type preview */}
+                      <div className="mt-3">
+                        {question.type === 'RATING' && (
+                          <div className="flex items-center gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <StarIcon key={star} className="h-8 w-8 text-gray-300 hover:text-yellow-400 cursor-pointer" />
+                            ))}
+                          </div>
+                        )}
+
+                        {question.type === 'SCALE' && (
+                          <div className="flex items-center gap-2">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                              <button
+                                key={num}
+                                className="w-8 h-8 border rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:border-primary-500"
+                              >
+                                {num}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {question.type === 'YES_NO' && (
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="radio" name={`q-${question.id}`} className="text-primary-600" disabled />
+                              <span className="text-gray-700 dark:text-gray-300">Si</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="radio" name={`q-${question.id}`} className="text-primary-600" disabled />
+                              <span className="text-gray-700 dark:text-gray-300">No</span>
+                            </label>
+                          </div>
+                        )}
+
+                        {question.type === 'MULTIPLE_CHOICE' && question.options && (
+                          <div className="space-y-2">
+                            {(Array.isArray(question.options) ? question.options : []).map((option: string, optIdx: number) => (
+                              <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name={`q-${question.id}`} className="text-primary-600" disabled />
+                                <span className="text-gray-700 dark:text-gray-300">{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        {question.type === 'TEXT' && (
+                          <textarea
+                            className="input w-full"
+                            rows={3}
+                            placeholder="Escribe tu respuesta aqui..."
+                            disabled
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <p className="text-sm text-gray-500">
+                {selectedSurvey.isAnonymous ? 'Esta encuesta es anonima' : 'Las respuestas se guardaran con tu nombre'}
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowPreviewModal(false)} className="btn btn-secondary">
+                  Cerrar
+                </button>
+                {!selectedSurvey.isPublished && (
+                  <button
+                    onClick={() => {
+                      publishMutation.mutate(selectedSurvey.id);
+                      setShowPreviewModal(false);
+                    }}
+                    className="btn btn-primary inline-flex items-center gap-2"
+                  >
+                    <PaperAirplaneIcon className="h-4 w-4" />
+                    Publicar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

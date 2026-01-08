@@ -563,6 +563,128 @@ export class NotificationsService {
     return this.createMany(notifications);
   }
 
+  // =========================================
+  // Métodos para notificaciones de documentos
+  // =========================================
+
+  /**
+   * Notificar a RH cuando un empleado sube un documento
+   */
+  async notifyDocumentUploaded(data: {
+    employeeName: string;
+    employeeId: string;
+    documentType: string;
+    documentName: string;
+    rhUserIds: string[];
+    companyId: string;
+  }) {
+    const notifications: CreateNotificationDto[] = [];
+
+    for (const rhUserId of data.rhUserIds) {
+      notifications.push({
+        type: NotificationType.DOCUMENT_UPLOADED,
+        title: 'Nuevo documento subido',
+        message: `${data.employeeName} ha subido un documento: ${data.documentName} (${data.documentType})`,
+        userId: rhUserId,
+        companyId: data.companyId,
+        priority: NotificationPriority.NORMAL,
+        metadata: {
+          employeeId: data.employeeId,
+          employeeName: data.employeeName,
+          documentType: data.documentType,
+          documentName: data.documentName,
+          action: 'PENDING_VALIDATION',
+        },
+      });
+    }
+
+    if (notifications.length > 0) {
+      return this.createMany(notifications);
+    }
+    return null;
+  }
+
+  /**
+   * Notificar al empleado cuando su documento es validado/aprobado
+   */
+  async notifyDocumentValidated(data: {
+    employeeName: string;
+    employeeUserId: string;
+    documentType: string;
+    documentName: string;
+    validatedBy: string;
+    companyId: string;
+  }) {
+    return this.create({
+      type: NotificationType.DOCUMENT_VALIDATED,
+      title: 'Documento aprobado',
+      message: `Tu documento "${data.documentName}" (${data.documentType}) ha sido aprobado.`,
+      userId: data.employeeUserId,
+      companyId: data.companyId,
+      priority: NotificationPriority.NORMAL,
+      metadata: {
+        documentType: data.documentType,
+        documentName: data.documentName,
+        validatedBy: data.validatedBy,
+        status: 'APPROVED',
+      },
+    });
+  }
+
+  /**
+   * Notificar al empleado cuando su documento es rechazado
+   */
+  async notifyDocumentRejected(data: {
+    employeeName: string;
+    employeeUserId: string;
+    documentType: string;
+    documentName: string;
+    rejectedBy: string;
+    reason?: string;
+    companyId: string;
+  }) {
+    const message = data.reason
+      ? `Tu documento "${data.documentName}" (${data.documentType}) fue rechazado. Motivo: ${data.reason}`
+      : `Tu documento "${data.documentName}" (${data.documentType}) fue rechazado. Por favor, sube un nuevo documento.`;
+
+    return this.create({
+      type: NotificationType.DOCUMENT_REJECTED,
+      title: 'Documento rechazado',
+      message,
+      userId: data.employeeUserId,
+      companyId: data.companyId,
+      priority: NotificationPriority.HIGH,
+      metadata: {
+        documentType: data.documentType,
+        documentName: data.documentName,
+        rejectedBy: data.rejectedBy,
+        reason: data.reason,
+        status: 'REJECTED',
+      },
+    });
+  }
+
+  /**
+   * Obtener el userId vinculado a un empleado (por email)
+   */
+  async getEmployeeUserId(employeeId: string): Promise<string | null> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { email: true },
+    });
+
+    if (!employee?.email) {
+      return null;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: employee.email },
+      select: { id: true },
+    });
+
+    return user?.id || null;
+  }
+
   /**
    * Obtener usuarios de RH de una empresa
    */

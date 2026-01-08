@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { SystemConfigProvider } from './contexts/SystemConfigContext';
 import Layout from './components/Layout';
 import PortalLayout from './components/PortalLayout';
+import { PortalGuard, normalizeRole, isOperationalRole } from './components/guards';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
@@ -64,12 +65,24 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function RoleBasedRedirect() {
   const { user } = useAuth();
 
-  // Employees should go directly to portal feed (Muro)
-  if (user?.role === 'EMPLOYEE' || user?.role === 'employee') {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const role = normalizeRole(user.role);
+
+  // Pure EMPLOYEE role goes to portal
+  if (role === 'EMPLOYEE') {
     return <Navigate to="/portal/feed" replace />;
   }
 
-  // Admins and other roles go to dashboard
+  // Operational roles with employeeId can choose, but default to dashboard
+  // They can access portal via the sidebar/menu if needed
+  if (isOperationalRole(user.role) && user.employeeId) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Operational roles without employeeId go to dashboard
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -121,13 +134,13 @@ function App() {
               <Route path="documents-management" element={<DocumentsManagementPage />} />
               </Route>
 
-              {/* Employee Portal Routes */}
+              {/* Employee Portal Routes - Protected by PortalGuard */}
               <Route
                 path="/portal"
                 element={
-                  <PrivateRoute>
+                  <PortalGuard redirectTo="/dashboard">
                     <PortalLayout />
-                  </PrivateRoute>
+                  </PortalGuard>
                 }
               >
                 <Route index element={<Navigate to="/portal/feed" replace />} />

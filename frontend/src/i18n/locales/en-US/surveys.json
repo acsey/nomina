@@ -1,0 +1,122 @@
+{
+  "title": "Surveys",
+  "management": {
+    "title": "Survey Management",
+    "subtitle": "Create and manage surveys for your organization",
+    "create": "Create survey",
+    "edit": "Edit survey",
+    "delete": "Delete survey",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "preview": "Preview",
+    "duplicate": "Duplicate",
+    "results": "View results"
+  },
+  "form": {
+    "basicInfo": "Basic information",
+    "title": "Survey title",
+    "titlePlaceholder": "E.g.: Workplace climate survey 2024",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the purpose of this survey...",
+    "type": "Survey type",
+    "isAnonymous": "Anonymous survey",
+    "anonymousHelp": "Responses will not be linked to specific employees",
+    "targetAudience": "Target audience",
+    "allEmployees": "All employees",
+    "byDepartment": "By department",
+    "byPosition": "By position",
+    "schedule": "Schedule",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "noEndDate": "No end date"
+  },
+  "types": {
+    "CLIMATE": "Workplace climate",
+    "SATISFACTION": "Satisfaction",
+    "ENGAGEMENT": "Engagement",
+    "ONBOARDING": "Onboarding",
+    "EXIT": "Exit",
+    "FEEDBACK": "Feedback",
+    "TRAINING": "Training",
+    "CUSTOM": "Custom"
+  },
+  "questions": {
+    "title": "Questions",
+    "add": "Add question",
+    "edit": "Edit question",
+    "delete": "Delete question",
+    "reorder": "Reorder questions",
+    "questionText": "Question text",
+    "questionPlaceholder": "Type your question here...",
+    "questionType": "Question type",
+    "required": "Required question",
+    "options": "Response options",
+    "addOption": "Add option",
+    "types": {
+      "TEXT": "Free text",
+      "RATING": "Rating (1-5)",
+      "SCALE": "Scale (1-10)",
+      "MULTIPLE_CHOICE": "Multiple choice",
+      "YES_NO": "Yes/No",
+      "DATE": "Date"
+    }
+  },
+  "status": {
+    "DRAFT": "Draft",
+    "PUBLISHED": "Published",
+    "ACTIVE": "Active",
+    "CLOSED": "Closed",
+    "ARCHIVED": "Archived"
+  },
+  "list": {
+    "noSurveys": "No surveys",
+    "createFirst": "Create your first survey",
+    "responses": "{{count}} responses",
+    "questionsCount": "{{count}} questions",
+    "endsIn": "Ends in {{days}} days",
+    "ended": "Ended",
+    "startsIn": "Starts in {{days}} days"
+  },
+  "results": {
+    "title": "Survey results",
+    "summary": "Summary",
+    "totalResponses": "Total responses",
+    "completionRate": "Completion rate",
+    "averageRating": "Average rating",
+    "byQuestion": "By question",
+    "exportExcel": "Export to Excel",
+    "exportPDF": "Export to PDF",
+    "noResponses": "No responses yet",
+    "distribution": "Response distribution",
+    "trends": "Trends"
+  },
+  "respond": {
+    "title": "Respond to survey",
+    "progress": "Question {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "submit": "Submit responses",
+    "submitConfirm": "Are you sure you want to submit your responses? This action cannot be undone.",
+    "thankYou": "Thank you for completing the survey",
+    "yourFeedback": "Your feedback is very valuable to us",
+    "alreadyCompleted": "You have already completed this survey",
+    "notAvailable": "This survey is not available"
+  },
+  "validation": {
+    "titleRequired": "Title is required",
+    "atLeastOneQuestion": "Survey must have at least one question",
+    "questionTextRequired": "Question text is required",
+    "optionsRequired": "Multiple choice questions require at least 2 options",
+    "startDateRequired": "Start date is required",
+    "endDateAfterStart": "End date must be after start date"
+  },
+  "messages": {
+    "created": "Survey created successfully",
+    "updated": "Survey updated successfully",
+    "deleted": "Survey deleted successfully",
+    "published": "Survey published successfully",
+    "unpublished": "Survey unpublished",
+    "responseSaved": "Response saved",
+    "responseSubmitted": "Responses submitted successfully"
+  }
+}
