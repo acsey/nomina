@@ -9,6 +9,30 @@ export class PortalService {
   // EMPLOYEE DOCUMENTS
   // =====================================
 
+  async getCompanyDocuments(companyId: string) {
+    return this.prisma.employeeDocument.findMany({
+      where: {
+        employee: {
+          companyId,
+        },
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeNumber: true,
+            department: {
+              select: { name: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async getMyDocuments(employeeId: string) {
     return this.prisma.employeeDocument.findMany({
       where: { employeeId },

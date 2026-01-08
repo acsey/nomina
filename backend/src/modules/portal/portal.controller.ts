@@ -26,6 +26,13 @@ export class PortalController {
   // EMPLOYEE DOCUMENTS
   // =====================================
 
+  @Get('documents/company')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @ApiOperation({ summary: 'Obtener todos los documentos de la empresa (RH)' })
+  getCompanyDocuments(@CurrentUser('companyId') companyId: string) {
+    return this.portalService.getCompanyDocuments(companyId);
+  }
+
   @Get('documents/:employeeId')
   @ApiOperation({ summary: 'Obtener documentos del empleado' })
   getMyDocuments(@Param('employeeId') employeeId: string) {
