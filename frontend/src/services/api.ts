@@ -709,19 +709,27 @@ export const notificationsApi = {
 export const portalApi = {
   // Documents
   getMyDocuments: (employeeId: string) => api.get(`/portal/documents/${employeeId}`),
-  uploadDocument: (data: {
-    employeeId: string;
+  uploadDocument: (employeeId: string, file: File, data: {
     type: string;
     name: string;
-    path: string;
-    fileSize?: number;
-    mimeType?: string;
     description?: string;
     expiresAt?: string;
-  }) => api.post('/portal/documents', data),
+  }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', data.name);
+    formData.append('type', data.type);
+    if (data.description) formData.append('description', data.description);
+    if (data.expiresAt) formData.append('expiresAt', data.expiresAt);
+    return api.post(`/uploads/employees/${employeeId}/documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   validateDocument: (id: string, data: { status: 'APPROVED' | 'REJECTED'; notes?: string }) =>
     api.patch(`/portal/documents/${id}/validate`, data),
-  deleteDocument: (id: string) => api.delete(`/portal/documents/${id}`),
+  deleteDocument: (employeeId: string, documentId: string) =>
+    api.delete(`/uploads/employees/${employeeId}/documents/${documentId}`),
+  downloadDocument: (path: string) => api.get(path, { responseType: 'blob' }),
 
   // Discounts
   getDiscounts: () => api.get('/portal/discounts'),

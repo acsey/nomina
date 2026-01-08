@@ -8,6 +8,7 @@ import notifications from './notifications.json';
 import nav from './nav.json';
 import portal from './portal.json';
 import settings from './settings.json';
+import documents from './documents.json';
 
 const enUS = {
   common,
@@ -20,6 +21,7 @@ const enUS = {
   nav,
   portal,
   settings,
+  documents,
 };
 
 export default enUS;

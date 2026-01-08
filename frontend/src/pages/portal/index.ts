@@ -7,3 +7,4 @@ export { default as PortalDocumentsPage } from './PortalDocumentsPage';
 export { default as PortalBenefitsPage } from './PortalBenefitsPage';
 export { default as PortalRecognitionPage } from './PortalRecognitionPage';
 export { default as PortalSurveysPage } from './PortalSurveysPage';
+export { default as PortalPeoplePage } from './PortalPeoplePage';

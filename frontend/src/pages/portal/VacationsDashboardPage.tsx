@@ -109,7 +109,7 @@ function RequestVacationModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl">
           <div className="p-6 border-b dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('vacations.request.title')}
+              {t('vacations.request.new')}
             </h2>
           </div>
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -223,7 +223,7 @@ export default function VacationsDashboardPage() {
           </div>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{mockBalance.earnedDays}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {t('vacations.balance.seniorityYears')}: {mockBalance.seniorityYears}
+            {t('vacations.balance.seniorityYears', { years: mockBalance.seniorityYears })}
           </p>
         </div>
 
@@ -252,10 +252,10 @@ export default function VacationsDashboardPage() {
           <ExclamationTriangleIcon className="h-6 w-6 text-orange-600 dark:text-orange-400 flex-shrink-0" />
           <div>
             <p className="font-medium text-orange-800 dark:text-orange-200">
-              {t('vacations.balance.expiring')}: {mockBalance.expiringDays} {t('vacations.request.days')}
+              {t('vacations.balance.expiring', { days: mockBalance.expiringDays })}
             </p>
             <p className="text-sm text-orange-600 dark:text-orange-300 mt-1">
-              {t('vacations.balance.expiringTooltip')} {formatDate(mockBalance.expiringDate)}
+              {t('vacations.balance.expiringTooltip', { date: formatDate(mockBalance.expiringDate) })}
             </p>
           </div>
         </div>
@@ -271,16 +271,16 @@ export default function VacationsDashboardPage() {
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
           <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-            <span className="text-gray-500">Ano 1:</span> <strong>12 dias</strong>
+            <span className="text-gray-500">{t('vacations.entitlement.year', { number: 1 })}:</span> <strong>12 {t('common.days')}</strong>
           </div>
           <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-            <span className="text-gray-500">Ano 2:</span> <strong>14 dias</strong>
+            <span className="text-gray-500">{t('vacations.entitlement.year', { number: 2 })}:</span> <strong>14 {t('common.days')}</strong>
           </div>
           <div className={`p-2 rounded ${mockBalance.seniorityYears === 3 ? 'bg-primary-100 dark:bg-primary-900/30 ring-2 ring-primary-500' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
-            <span className="text-gray-500">Ano 3:</span> <strong>16 dias</strong>
+            <span className="text-gray-500">{t('vacations.entitlement.year', { number: 3 })}:</span> <strong>16 {t('common.days')}</strong>
           </div>
           <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-            <span className="text-gray-500">Ano 4:</span> <strong>18 dias</strong>
+            <span className="text-gray-500">{t('vacations.entitlement.year', { number: 4 })}:</span> <strong>18 {t('common.days')}</strong>
           </div>
         </div>
       </div>
@@ -295,7 +295,7 @@ export default function VacationsDashboardPage() {
         <div className="divide-y dark:divide-gray-700">
           {mockRequests.length === 0 ? (
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              {t('vacations.history.noRecords')}
+              {t('vacations.history.noRequests')}
             </div>
           ) : (
             mockRequests.map((request) => {

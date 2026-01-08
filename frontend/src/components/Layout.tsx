@@ -33,6 +33,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  ClipboardDocumentListIcon,
   RectangleGroupIcon,
 } from '@heroicons/react/24/outline';
 
@@ -53,6 +54,7 @@ const navigation: NavItem[] = [
   { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
   { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
   { name: 'Organigrama', href: '/org-chart', icon: RectangleGroupIcon, category: 'personal' },
+  { name: 'Encuestas', href: '/surveys', icon: ClipboardDocumentListIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
   { name: 'Nomina', href: '/payroll', icon: BanknotesIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
   { name: 'Recibos', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
   { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'nomina' },
