@@ -31,7 +31,13 @@ export default function AuthCallbackPage() {
         setAuthData(user, token);
 
         toast.success('Bienvenido');
-        navigate('/dashboard');
+
+        // Redirect employees to their portal, others to dashboard
+        if (user.role === 'EMPLOYEE' || user.role === 'employee') {
+          navigate('/portal/feed');
+        } else {
+          navigate('/dashboard');
+        }
       } catch (err) {
         toast.error('Error al procesar la autenticación');
         navigate('/login');
