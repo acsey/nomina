@@ -234,6 +234,14 @@ model Company {
   // Configuraciones de PAC
   pacConfigs CompanyPacConfig[]
 
+  // Portal del empleado
+  discounts   CompanyDiscount[]
+  agreements  CompanyAgreement[]
+  recognitions Recognition[]
+  courses     Course[]
+  badges      Badge[]
+  surveys     Survey[]
+
   @@map("companies")
 }
 
@@ -361,6 +369,13 @@ model Employee {
   approvedRequests           VacationRequest[] @relation("RequestApprover")
   rejectedRequests           VacationRequest[] @relation("RequestRejecter")
 
+  // Portal del empleado
+  recognitionsReceived Recognition[]     @relation("RecognitionReceiver")
+  recognitionsGiven    Recognition[]     @relation("RecognitionGiver")
+  courseEnrollments    CourseEnrollment[]
+  badges               EmployeeBadge[]
+  surveyResponses      SurveyResponse[]
+
   @@map("employees")
 }
 
@@ -400,10 +415,32 @@ model EmployeeDocument {
   type        DocumentType
   name        String
   path        String
+  fileSize    Int?     @map("file_size") // Tamaño en bytes
+  mimeType    String?  @map("mime_type")
+  description String?
   expiresAt   DateTime? @map("expires_at")
+
+  // Estado de validación por RH
+  validationStatus DocumentValidationStatus @default(PENDING) @map("validation_status")
+  validatedById    String?  @map("validated_by_id")
+  validatedAt      DateTime? @map("validated_at")
+  validationNotes  String?  @map("validation_notes") @db.Text
+
+  // Campos adicionales
+  isRequired  Boolean  @default(false) @map("is_required") // Si es documento obligatorio
+  uploadedById String? @map("uploaded_by_id") // Quién subió el documento (empleado o RH)
+
   createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("employee_documents")
+}
+
+enum DocumentValidationStatus {
+  PENDING     // Pendiente de validación
+  APPROVED    // Aprobado
+  REJECTED    // Rechazado (requiere volver a subir)
+  EXPIRED     // Documento vencido
 }
 
 model SalaryHistory {
@@ -2222,5 +2259,301 @@ model MfaConfig {
 
   @@index([status])
   @@map("mfa_config")
+}
+
+// ============================================
+// MÓDULO: PORTAL DEL EMPLEADO
+// ============================================
+
+// Descuentos corporativos (descuentos de empresas externas)
+model CompanyDiscount {
+  id          String    @id @default(uuid())
+  companyId   String    @map("company_id")
+  company     Company   @relation(fields: [companyId], references: [id])
+
+  partnerCompany String  @map("partner_company") // Nombre de la empresa que da el descuento
+  logo        String?   // URL del logo
+  description String
+  discount    String    // Ej: "30%", "2x1", "$500 OFF"
+  category    DiscountCategory
+  code        String?   // Código de descuento si aplica
+  url         String?   // URL del sitio web
+  validFrom   DateTime? @map("valid_from") @db.Date
+  validUntil  DateTime? @map("valid_until") @db.Date
+  terms       String?   @db.Text // Términos y condiciones
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("company_discounts")
+}
+
+enum DiscountCategory {
+  HEALTH         // Salud (gimnasios, ópticas)
+  EDUCATION      // Educación
+  ENTERTAINMENT  // Entretenimiento (cines, parques)
+  FOOD           // Alimentos y restaurantes
+  TRAVEL         // Viajes
+  RETAIL         // Tiendas
+  SERVICES       // Servicios
+  OTHER          // Otros
+}
+
+// Convenios institucionales (FONACOT, INFONAVIT, Cajas de Ahorro, etc.)
+model CompanyAgreement {
+  id          String    @id @default(uuid())
+  companyId   String    @map("company_id")
+  company     Company   @relation(fields: [companyId], references: [id])
+
+  institutionName String @map("institution_name")
+  logo        String?
+  description String
+  benefits    Json      @default("[]") // Array de beneficios como strings
+  contact     String?   // Email o teléfono de contacto
+  url         String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("company_agreements")
+}
+
+// Reconocimientos de empleados
+model Recognition {
+  id          String    @id @default(uuid())
+  companyId   String    @map("company_id")
+  company     Company   @relation(fields: [companyId], references: [id])
+
+  employeeId  String    @map("employee_id")
+  employee    Employee  @relation("RecognitionReceiver", fields: [employeeId], references: [id])
+
+  givenById   String    @map("given_by_id")
+  givenBy     Employee  @relation("RecognitionGiver", fields: [givenById], references: [id])
+
+  type        RecognitionType
+  title       String
+  message     String    @db.Text
+  points      Int       @default(0) // Puntos ganados
+  isPublic    Boolean   @default(true) @map("is_public") // Si se muestra en el muro
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("recognitions")
+}
+
+enum RecognitionType {
+  TEAMWORK        // Trabajo en equipo
+  INNOVATION      // Innovación
+  LEADERSHIP      // Liderazgo
+  EXCELLENCE      // Excelencia
+  CUSTOMER_SERVICE // Servicio al cliente
+  COLLABORATION   // Colaboración
+  IMPROVEMENT     // Mejora continua
+  ANNIVERSARY     // Aniversario
+  OTHER           // Otro
+}
+
+// Cursos y capacitaciones
+model Course {
+  id            String    @id @default(uuid())
+  companyId     String    @map("company_id")
+  company       Company   @relation(fields: [companyId], references: [id])
+
+  title         String
+  description   String    @db.Text
+  provider      String?   // Proveedor del curso
+  category      CourseCategory
+  duration      String?   // Ej: "8 horas", "3 días"
+  url           String?   // URL del curso si es online
+  imageUrl      String?   @map("image_url")
+  points        Int       @default(0) // Puntos por completar
+  isMandatory   Boolean   @default(false) @map("is_mandatory")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  enrollments   CourseEnrollment[]
+
+  @@map("courses")
+}
+
+enum CourseCategory {
+  ONBOARDING      // Inducción
+  COMPLIANCE      // Cumplimiento normativo
+  TECHNICAL       // Técnico
+  SOFT_SKILLS     // Habilidades blandas
+  LEADERSHIP      // Liderazgo
+  SAFETY          // Seguridad
+  LANGUAGE        // Idiomas
+  CERTIFICATION   // Certificaciones
+  OTHER           // Otros
+}
+
+// Inscripciones/progreso en cursos
+model CourseEnrollment {
+  id          String    @id @default(uuid())
+  courseId    String    @map("course_id")
+  course      Course    @relation(fields: [courseId], references: [id])
+
+  employeeId  String    @map("employee_id")
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  status      EnrollmentStatus @default(NOT_STARTED)
+  progress    Int       @default(0) // 0-100
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  score       Int?      // Calificación si aplica
+  certificateUrl String? @map("certificate_url")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([courseId, employeeId])
+  @@map("course_enrollments")
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED   // No iniciado
+  IN_PROGRESS   // En progreso
+  COMPLETED     // Completado
+  FAILED        // No aprobado
+  EXPIRED       // Expirado
+}
+
+// Insignias/Badges
+model Badge {
+  id          String    @id @default(uuid())
+  companyId   String    @map("company_id")
+  company     Company   @relation(fields: [companyId], references: [id])
+
+  name        String
+  description String
+  iconUrl     String?   @map("icon_url")
+  color       String    @default("#3B82F6") // Color del badge
+  category    BadgeCategory
+  criteria    String?   @db.Text // Criterios para obtener el badge
+  points      Int       @default(0) // Puntos que otorga
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  employeeBadges EmployeeBadge[]
+
+  @@map("badges")
+}
+
+enum BadgeCategory {
+  ACHIEVEMENT     // Logros
+  MILESTONE       // Hitos (antigüedad)
+  TRAINING        // Capacitación
+  PERFORMANCE     // Desempeño
+  RECOGNITION     // Reconocimiento
+  SPECIAL         // Especiales
+}
+
+// Badges obtenidos por empleados
+model EmployeeBadge {
+  id          String    @id @default(uuid())
+  badgeId     String    @map("badge_id")
+  badge       Badge     @relation(fields: [badgeId], references: [id])
+
+  employeeId  String    @map("employee_id")
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  earnedAt    DateTime  @default(now()) @map("earned_at")
+  reason      String?   // Razón específica
+
+  @@unique([badgeId, employeeId])
+  @@map("employee_badges")
+}
+
+// Encuestas
+model Survey {
+  id          String    @id @default(uuid())
+  companyId   String    @map("company_id")
+  company     Company   @relation(fields: [companyId], references: [id])
+
+  title       String
+  description String?   @db.Text
+  type        SurveyType
+  startsAt    DateTime  @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  isAnonymous Boolean   @default(true) @map("is_anonymous")
+  isPublished Boolean   @default(false) @map("is_published")
+  targetAudience String? @map("target_audience") // "ALL", "DEPARTMENT:xxx", "POSITION:xxx"
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  questions   SurveyQuestion[]
+  responses   SurveyResponse[]
+
+  @@map("surveys")
+}
+
+enum SurveyType {
+  CLIMATE         // Clima laboral
+  SATISFACTION    // Satisfacción
+  FEEDBACK        // Retroalimentación
+  PULSE           // Pulso (cortas y frecuentes)
+  EXIT            // Entrevista de salida
+  ONBOARDING      // Inducción
+  CUSTOM          // Personalizada
+}
+
+// Preguntas de encuesta
+model SurveyQuestion {
+  id          String    @id @default(uuid())
+  surveyId    String    @map("survey_id")
+  survey      Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  questionText String   @map("question_text") @db.Text
+  type        QuestionType
+  options     Json?     // Opciones para multiple choice
+  isRequired  Boolean   @default(true) @map("is_required")
+  orderIndex  Int       @map("order_index")
+
+  answers     SurveyAnswer[]
+
+  @@map("survey_questions")
+}
+
+enum QuestionType {
+  RATING          // Escala 1-5 o 1-10
+  TEXT            // Texto libre
+  MULTIPLE_CHOICE // Opción múltiple
+  YES_NO          // Sí/No
+  SCALE           // Escala numérica personalizada
+}
+
+// Respuestas a encuestas (por empleado)
+model SurveyResponse {
+  id          String    @id @default(uuid())
+  surveyId    String    @map("survey_id")
+  survey      Survey    @relation(fields: [surveyId], references: [id])
+
+  employeeId  String?   @map("employee_id") // Null si es anónima
+  employee    Employee? @relation(fields: [employeeId], references: [id])
+
+  completedAt DateTime  @default(now()) @map("completed_at")
+
+  answers     SurveyAnswer[]
+
+  @@unique([surveyId, employeeId])
+  @@map("survey_responses")
+}
+
+// Respuestas individuales a preguntas
+model SurveyAnswer {
+  id          String    @id @default(uuid())
+  responseId  String    @map("response_id")
+  response    SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  questionId  String    @map("question_id")
+  question    SurveyQuestion @relation(fields: [questionId], references: [id])
+
+  answerText  String?   @map("answer_text") @db.Text // Para texto libre
+  answerValue Int?      @map("answer_value") // Para rating/scale
+  answerOption String?  @map("answer_option") // Para multiple choice
+
+  @@map("survey_answers")
 }
 
