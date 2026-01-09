@@ -115,4 +115,31 @@ export class AttendanceController {
   ) {
     return this.attendanceService.updateAttendanceRecord(recordId, data);
   }
+
+  @Get('report')
+  @ApiOperation({ summary: 'Reporte de asistencia por rango de fechas' })
+  getAttendanceReport(
+    @Query('companyId') companyId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('employeeId') employeeId?: string,
+  ) {
+    return this.attendanceService.getAttendanceReport(
+      companyId,
+      new Date(startDate),
+      new Date(endDate),
+      departmentId,
+      employeeId,
+    );
+  }
+
+  @Get('schedules-report')
+  @ApiOperation({ summary: 'Reporte de horarios de todos los empleados' })
+  getSchedulesReport(
+    @Query('companyId') companyId: string,
+    @Query('departmentId') departmentId?: string,
+  ) {
+    return this.attendanceService.getEmployeeSchedulesReport(companyId, departmentId);
+  }
 }
