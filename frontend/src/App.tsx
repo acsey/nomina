@@ -4,7 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { SystemConfigProvider } from './contexts/SystemConfigContext';
 import Layout from './components/Layout';
 import PortalLayout from './components/PortalLayout';
-import { PortalGuard, canAccessPortal } from './components/guards';
+import { PortalGuard, AdminGuard, canAccessPortal } from './components/guards';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
@@ -98,32 +98,36 @@ function App() {
               >
               <Route index element={<RoleBasedRedirect />} />
               <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="employees" element={<EmployeesPage />} />
-              <Route path="employees/new" element={<EmployeeFormPage />} />
-              <Route path="employees/:id" element={<EmployeeDetailPage />} />
-              <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
-              <Route path="departments" element={<DepartmentsPage />} />
-              <Route path="payroll" element={<PayrollPage />} />
-              <Route path="payroll/receipts" element={<PayrollReceiptsPage />} />
-              <Route path="incidents" element={<IncidentsPage />} />
-              <Route path="attendance" element={<AttendancePage />} />
-              <Route path="vacations" element={<VacationsPage />} />
-              <Route path="benefits" element={<BenefitsPage />} />
-              <Route path="reports" element={<ReportsPage />} />
-              <Route path="bulk-upload" element={<BulkUploadPage />} />
-              <Route path="companies" element={<CompaniesPage />} />
-              <Route path="company-config" element={<CompanyConfigPage />} />
-              <Route path="users" element={<UsersPage />} />
-              <Route path="accounting-config" element={<AccountingConfigPage />} />
-              <Route path="work-schedules" element={<WorkSchedulesPage />} />
-              <Route path="devices" element={<DevicesPage />} />
-              <Route path="system-settings" element={<SystemSettingsPage />} />
+
+              {/* Admin Routes - Protected by AdminGuard */}
+              <Route path="employees" element={<AdminGuard><EmployeesPage /></AdminGuard>} />
+              <Route path="employees/new" element={<AdminGuard><EmployeeFormPage /></AdminGuard>} />
+              <Route path="employees/:id" element={<AdminGuard><EmployeeDetailPage /></AdminGuard>} />
+              <Route path="employees/:id/edit" element={<AdminGuard><EmployeeFormPage /></AdminGuard>} />
+              <Route path="departments" element={<AdminGuard><DepartmentsPage /></AdminGuard>} />
+              <Route path="payroll" element={<AdminGuard><PayrollPage /></AdminGuard>} />
+              <Route path="payroll/receipts" element={<AdminGuard><PayrollReceiptsPage /></AdminGuard>} />
+              <Route path="incidents" element={<AdminGuard><IncidentsPage /></AdminGuard>} />
+              <Route path="attendance" element={<AdminGuard><AttendancePage /></AdminGuard>} />
+              <Route path="vacations" element={<AdminGuard><VacationsPage /></AdminGuard>} />
+              <Route path="benefits" element={<AdminGuard><BenefitsPage /></AdminGuard>} />
+              <Route path="reports" element={<AdminGuard><ReportsPage /></AdminGuard>} />
+              <Route path="bulk-upload" element={<AdminGuard><BulkUploadPage /></AdminGuard>} />
+              <Route path="companies" element={<AdminGuard><CompaniesPage /></AdminGuard>} />
+              <Route path="company-config" element={<AdminGuard><CompanyConfigPage /></AdminGuard>} />
+              <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
+              <Route path="accounting-config" element={<AdminGuard><AccountingConfigPage /></AdminGuard>} />
+              <Route path="work-schedules" element={<AdminGuard><WorkSchedulesPage /></AdminGuard>} />
+              <Route path="devices" element={<AdminGuard><DevicesPage /></AdminGuard>} />
+              <Route path="system-settings" element={<AdminGuard><SystemSettingsPage /></AdminGuard>} />
+              <Route path="surveys" element={<AdminGuard><SurveysManagementPage /></AdminGuard>} />
+              <Route path="documents-management" element={<AdminGuard><DocumentsManagementPage /></AdminGuard>} />
+
+              {/* Routes accessible to all authenticated users */}
               <Route path="my-portal" element={<EmployeePortalPage />} />
               <Route path="help" element={<HelpPage />} />
               <Route path="org-chart" element={<OrgChartPage />} />
               <Route path="timeclock" element={<WebTimeclockPage />} />
-              <Route path="surveys" element={<SurveysManagementPage />} />
-              <Route path="documents-management" element={<DocumentsManagementPage />} />
               </Route>
 
               {/* Employee Portal Routes - Protected by PortalGuard */}
