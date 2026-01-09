@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 /**
  * Role names matching the backend RoleName enum
@@ -212,21 +213,66 @@ export function PortalGuard({ children, redirectTo = '/dashboard' }: PortalGuard
 
 interface AdminGuardProps {
   children: ReactNode;
-  redirectTo?: string;
+  showToast?: boolean;
 }
 
 /**
- * AdminGuard - Ensures only admin roles can access the content
+ * Roles permitidos para rutas administrativas
  */
-export function AdminGuard({ children, redirectTo = '/portal' }: AdminGuardProps) {
-  return (
-    <RoleGuard
-      allowedRoles={['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'AUDITOR']}
-      redirectTo={redirectTo}
-    >
-      {children}
-    </RoleGuard>
-  );
+export const ADMIN_ALLOWED_ROLES: RoleName[] = [
+  'SYSTEM_ADMIN',
+  'COMPANY_ADMIN',
+  'HR_ADMIN',
+  'PAYROLL_ADMIN',
+  'MANAGER',
+  'AUDITOR',
+];
+
+/**
+ * AdminGuard - Protege rutas administrativas
+ *
+ * Roles permitidos: SYSTEM_ADMIN, COMPANY_ADMIN, HR_ADMIN, PAYROLL_ADMIN, MANAGER, AUDITOR
+ * EMPLOYEE puro NO tiene acceso.
+ *
+ * Redirige a:
+ * - /portal/feed si el usuario tiene employeeId
+ * - /dashboard si no tiene employeeId
+ */
+export function AdminGuard({ children, showToast = true }: AdminGuardProps) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+  const hasShownToast = useRef(false);
+
+  // Determinar redirect basado en employeeId
+  const redirectTo = canAccessPortal(user) ? '/portal/feed' : '/dashboard';
+
+  // Verificar acceso
+  const hasAccess = user && hasRoleAccess(user.role, ADMIN_ALLOWED_ROLES);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user && !hasAccess && showToast && !hasShownToast.current) {
+      toast.error('No tienes permisos para acceder a esta sección');
+      hasShownToast.current = true;
+    }
+  }, [isLoading, isAuthenticated, user, hasAccess, showToast]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!hasAccess) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return <>{children}</>;
 }
 
 /**

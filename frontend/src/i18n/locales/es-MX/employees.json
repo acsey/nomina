@@ -4,7 +4,9 @@
   "newEmployee": "Nuevo empleado",
   "editEmployee": "Editar empleado",
   "employeeDetails": "Detalles del empleado",
-  "searchPlaceholder": "Buscar por nombre, RFC o número de empleado...",
+  "searchPlaceholder": "Buscar por nombre, RFC, CURP...",
+  "noEmployeesFound": "No se encontraron empleados",
+  "viewDetail": "Ver detalle",
 
   "tabs": {
     "all": "Todos",
