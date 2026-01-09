@@ -96,6 +96,32 @@ export function isOperationalRole(role: string): boolean {
   return OPERATIONAL_ROLES.includes(normalizedRole);
 }
 
+// ============================================================
+// PORTAL ACCESS - REGLA ÚNICA CENTRALIZADA
+// ============================================================
+
+interface UserLike {
+  employeeId?: string | null;
+  role?: string;
+}
+
+/**
+ * canAccessPortal - REGLA ÚNICA para acceso al portal del empleado
+ *
+ * REGLA: El usuario DEBE tener un employeeId válido (no null/undefined/empty)
+ *
+ * NO usar role === 'EMPLOYEE' para decidir acceso al portal.
+ * Un EMPLOYEE sin employeeId NO puede acceder al portal.
+ * Un MANAGER con employeeId SÍ puede acceder al portal.
+ *
+ * @param user - Usuario autenticado
+ * @returns true si el usuario puede acceder al portal
+ */
+export function canAccessPortal(user: UserLike | null | undefined): boolean {
+  if (!user) return false;
+  return Boolean(user.employeeId);
+}
+
 interface RoleGuardProps {
   children: ReactNode;
   allowedRoles: RoleName[];
@@ -148,7 +174,11 @@ interface PortalGuardProps {
 }
 
 /**
- * PortalGuard - Ensures only employees (or users with employeeId) can access portal
+ * PortalGuard - Asegura que solo usuarios con employeeId puedan acceder al portal
+ *
+ * REGLA ÚNICA: canAccessPortal(user) === true
+ *
+ * NO se usa el role para decidir acceso. Solo employeeId.
  *
  * Usage:
  * <PortalGuard>
@@ -171,23 +201,12 @@ export function PortalGuard({ children, redirectTo = '/dashboard' }: PortalGuard
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const normalizedRole = normalizeRole(user.role);
-
-  // EMPLOYEE role always has portal access
-  if (normalizedRole === 'EMPLOYEE') {
-    return <>{children}</>;
-  }
-
-  // Operational roles can only access portal if they have an employeeId
-  if (isOperationalRole(user.role)) {
-    if (user.employeeId) {
-      return <>{children}</>;
-    }
-    // Operational role without employeeId - redirect to dashboard
+  // REGLA ÚNICA: El usuario debe tener employeeId
+  if (!canAccessPortal(user)) {
+    // Redirigir a dashboard con mensaje implícito
     return <Navigate to={redirectTo} replace />;
   }
 
-  // Unknown role - allow access (fail open for flexibility)
   return <>{children}</>;
 }
 

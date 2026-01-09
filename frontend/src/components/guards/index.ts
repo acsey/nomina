@@ -6,6 +6,7 @@ export {
   normalizeRole,
   hasRoleAccess,
   isOperationalRole,
+  canAccessPortal,
   OPERATIONAL_ROLES,
 } from './RoleGuard';
 

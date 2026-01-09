@@ -4,7 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { SystemConfigProvider } from './contexts/SystemConfigContext';
 import Layout from './components/Layout';
 import PortalLayout from './components/PortalLayout';
-import { PortalGuard, normalizeRole, isOperationalRole } from './components/guards';
+import { PortalGuard, canAccessPortal } from './components/guards';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
@@ -61,7 +61,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 }
 
-// Determines where to redirect based on user role
+// Determines where to redirect based on portal access
 function RoleBasedRedirect() {
   const { user } = useAuth();
 
@@ -69,20 +69,12 @@ function RoleBasedRedirect() {
     return <Navigate to="/login" replace />;
   }
 
-  const role = normalizeRole(user.role);
-
-  // Pure EMPLOYEE role goes to portal
-  if (role === 'EMPLOYEE') {
+  // REGLA ÚNICA: Si puede acceder al portal, va al portal
+  // Si no, va al dashboard
+  if (canAccessPortal(user)) {
     return <Navigate to="/portal/feed" replace />;
   }
 
-  // Operational roles with employeeId can choose, but default to dashboard
-  // They can access portal via the sidebar/menu if needed
-  if (isOperationalRole(user.role) && user.employeeId) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // Operational roles without employeeId go to dashboard
   return <Navigate to="/dashboard" replace />;
 }
 
