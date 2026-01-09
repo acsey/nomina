@@ -1,18 +1,28 @@
 {
   "main": {
     "dashboard": "Dashboard",
+    "myPortal": "My Portal",
     "employees": "Employees",
     "departments": "Departments",
-    "positions": "Positions",
-    "companies": "Companies",
+    "users": "Users",
+    "orgChart": "Org Chart",
+    "surveys": "Surveys",
+    "documents": "Documents",
     "payroll": "Payroll",
+    "receipts": "Receipts",
+    "incidents": "Incidents",
+    "webClock": "Web Clock",
     "attendance": "Attendance",
+    "workSchedules": "Schedules",
+    "devices": "Devices",
     "vacations": "Vacations",
     "benefits": "Benefits",
     "reports": "Reports",
-    "settings": "Settings",
-    "users": "Users",
-    "audit": "Audit Logs",
+    "bulkUpload": "Bulk Upload",
+    "companies": "Companies",
+    "companyConfig": "Company Config",
+    "accountingConfig": "Accounting Config",
+    "systemSettings": "System Settings",
     "help": "Help"
   },
 
@@ -45,8 +55,23 @@
     "switchToPortal": "Switch to Employee Portal"
   },
 
-  "breadcrumb": {
-    "home": "Home",
-    "back": "Back"
-  }
+  "sections": {
+    "principal": "Main",
+    "personal": "HR",
+    "payroll": "Payroll",
+    "control": "Time & Attendance",
+    "benefits": "Benefits",
+    "reports": "Reports",
+    "config": "Settings",
+    "help": "Help"
+  },
+
+  "actions": {
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode"
+  },
+
+  "brand": "Nomina"
 }

@@ -1,20 +1,28 @@
 {
   "main": {
     "dashboard": "Dashboard",
+    "myPortal": "Mi Portal",
     "employees": "Empleados",
     "departments": "Departamentos",
+    "users": "Usuarios",
+    "orgChart": "Organigrama",
+    "surveys": "Encuestas",
+    "documents": "Documentos",
     "payroll": "Nómina",
+    "receipts": "Recibos",
+    "incidents": "Incidencias",
+    "webClock": "Checador Web",
     "attendance": "Asistencia",
+    "workSchedules": "Horarios",
+    "devices": "Dispositivos",
     "vacations": "Vacaciones",
     "benefits": "Prestaciones",
-    "incidents": "Incidencias",
     "reports": "Reportes",
-    "settings": "Configuración",
-    "users": "Usuarios",
+    "bulkUpload": "Carga Masiva",
     "companies": "Empresas",
-    "audit": "Auditoría",
-    "systemSettings": "Configuración del sistema",
-    "webClock": "Checador Web",
+    "companyConfig": "Config. Empresa",
+    "accountingConfig": "Config. Contable",
+    "systemSettings": "Config. Sistema",
     "help": "Ayuda"
   },
 
@@ -51,6 +59,20 @@
   "sections": {
     "principal": "Principal",
     "personal": "Personal",
+    "payroll": "Nómina",
+    "control": "Control",
+    "benefits": "Prestaciones",
+    "reports": "Reportes",
+    "config": "Configuración",
     "help": "Ayuda"
-  }
+  },
+
+  "actions": {
+    "expand": "Expandir",
+    "collapse": "Colapsar",
+    "lightMode": "Modo claro",
+    "darkMode": "Modo oscuro"
+  },
+
+  "brand": "Nómina"
 }
