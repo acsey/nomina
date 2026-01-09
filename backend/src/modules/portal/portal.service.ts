@@ -26,6 +26,16 @@ export class PortalService {
   }
 
   /**
+   * Get employee companyId - for cross-company access validation
+   */
+  async getEmployeeCompanyId(employeeId: string) {
+    return this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { companyId: true },
+    });
+  }
+
+  /**
    * Get employee profile with details
    */
   async getEmployeeProfile(employeeId: string) {

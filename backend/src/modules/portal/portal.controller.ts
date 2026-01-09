@@ -9,11 +9,13 @@ import {
   Query,
   UseGuards,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PortalService } from './portal.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CompanyGuard } from '../auth/guards/company.guard';
 import { PortalGuard, EmployeeOwnershipGuard } from '../auth/guards/portal.guard';
 import { Roles, CurrentUser } from '@/common/decorators';
 import { normalizeRole } from '@/common/decorators';
@@ -21,9 +23,10 @@ import { RoleName } from '@/common/constants/roles';
 
 @ApiTags('portal')
 @Controller('portal')
-@UseGuards(JwtAuthGuard, RolesGuard, PortalGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PortalGuard, CompanyGuard)
 @ApiBearerAuth()
 export class PortalController {
+  private readonly logger = new Logger(PortalController.name);
   constructor(private readonly portalService: PortalService) {}
 
   /**
@@ -47,7 +50,9 @@ export class PortalController {
 
   /**
    * Validates that the user can access the requested employeeId.
-   * Admins can access any employee, regular users only their own.
+   * - Non-admin users can only access their own data
+   * - Admin users can access employees within their own company
+   * - Super admin (SYSTEM_ADMIN without companyId) can access any employee
    */
   private async validateEmployeeAccess(user: any, targetEmployeeId: string): Promise<void> {
     const userRole = normalizeRole(user.role) as RoleName;
@@ -59,15 +64,30 @@ export class PortalController {
       RoleName.MANAGER,
     ];
 
-    if (adminRoles.includes(userRole)) {
-      return; // Admins can access any employee
+    // Non-admin users can only access their own data
+    if (!adminRoles.includes(userRole)) {
+      const userEmployeeId = await this.getEffectiveEmployeeId(user);
+      if (targetEmployeeId !== userEmployeeId) {
+        this.logger.warn(`Access denied: User ${user.email} tried to access employeeId ${targetEmployeeId}`);
+        throw new ForbiddenException('No tienes permiso para acceder a datos de otro empleado');
+      }
+      return;
     }
 
-    // Get the effective employeeId for the user
-    const userEmployeeId = await this.getEffectiveEmployeeId(user);
+    // Super admin without companyId can access any employee
+    if (userRole === RoleName.SYSTEM_ADMIN && !user.companyId) {
+      return;
+    }
 
-    if (targetEmployeeId !== userEmployeeId) {
-      throw new ForbiddenException('No tienes permiso para acceder a datos de otro empleado');
+    // Admin users must verify target employee is in their company
+    if (user.companyId) {
+      const targetEmployee = await this.portalService.getEmployeeCompanyId(targetEmployeeId);
+      if (targetEmployee?.companyId !== user.companyId) {
+        this.logger.warn(
+          `Cross-company access attempt: User ${user.email} (company: ${user.companyId}) tried to access employee from company ${targetEmployee?.companyId}`,
+        );
+        throw new ForbiddenException('No tienes acceso a empleados de otra empresa');
+      }
     }
   }
 
@@ -198,11 +218,10 @@ export class PortalController {
 
   @Post('documents')
   @ApiOperation({ summary: 'Subir documento' })
-  uploadDocument(
+  async uploadDocument(
     @Body() uploadDto: any,
     @CurrentUser() user: any,
   ) {
-    // Employee can only upload to their own profile
     const userRole = normalizeRole(user.role) as RoleName;
     const adminRoles = [
       RoleName.SYSTEM_ADMIN,
@@ -210,10 +229,19 @@ export class PortalController {
       RoleName.HR_ADMIN,
     ];
 
-    const targetEmployeeId = uploadDto.employeeId || user.employeeId;
+    // Determine target employeeId
+    let targetEmployeeId: string;
 
-    if (!adminRoles.includes(userRole) && targetEmployeeId !== user.employeeId) {
-      throw new ForbiddenException('Solo puedes subir documentos a tu propio expediente');
+    if (adminRoles.includes(userRole) && uploadDto.employeeId) {
+      // Admin uploading to specific employee - validate cross-company access
+      targetEmployeeId = uploadDto.employeeId;
+      await this.validateEmployeeAccess(user, targetEmployeeId);
+    } else {
+      // Non-admin OR admin without specifying employeeId - use own employeeId
+      targetEmployeeId = user.employeeId;
+      if (!targetEmployeeId) {
+        throw new ForbiddenException('No tienes un perfil de empleado para subir documentos');
+      }
     }
 
     return this.portalService.uploadDocument({
@@ -417,10 +445,13 @@ export class PortalController {
   @Post('badges/:badgeId/award')
   @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Otorgar insignia a empleado' })
-  awardBadge(
+  async awardBadge(
     @Param('badgeId') badgeId: string,
     @Body() awardDto: { employeeId: string; reason?: string },
+    @CurrentUser() user: any,
   ) {
+    // Validate admin can access this employee (cross-company check)
+    await this.validateEmployeeAccess(user, awardDto.employeeId);
     return this.portalService.awardBadge(awardDto.employeeId, badgeId, awardDto.reason);
   }
 
