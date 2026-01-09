@@ -48,7 +48,7 @@ export class PortalService {
             jobPosition: { select: { name: true } },
           },
         },
-        company: { select: { id: true, businessName: true, logoUrl: true } },
+        company: { select: { id: true, name: true, logo: true } },
       },
     });
 
@@ -110,8 +110,6 @@ export class PortalService {
         firstName: true,
         lastName: true,
         hireDate: true,
-        vacationDaysAvailable: true,
-        vacationDaysUsed: true,
       },
     });
 
@@ -136,8 +134,10 @@ export class PortalService {
         hireDate: employee.hireDate,
       },
       balance: {
-        available: employee.vacationDaysAvailable || 0,
-        used: employee.vacationDaysUsed || 0,
+        available: 0, // Calculated from company vacation policy
+        used: requests
+          .filter((r: { status: string }) => r.status === 'APPROVED')
+          .reduce((sum: number, r: { totalDays: number | null }) => sum + (r.totalDays || 0), 0),
         pending: requests
           .filter((r: { status: string }) => r.status === 'PENDING')
           .reduce((sum: number, r: { totalDays: number | null }) => sum + (r.totalDays || 0), 0),
@@ -766,9 +766,6 @@ export class PortalService {
         _count: {
           select: { responses: true },
         },
-        createdBy: {
-          select: { firstName: true, lastName: true },
-        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -777,9 +774,6 @@ export class PortalService {
       ...survey,
       totalQuestions: survey.questions.length,
       totalResponses: survey._count.responses,
-      createdByName: survey.createdBy
-        ? `${survey.createdBy.firstName} ${survey.createdBy.lastName}`
-        : null,
     }));
   }
 
@@ -997,7 +991,7 @@ export class PortalService {
               },
             },
           },
-          orderBy: { submittedAt: 'desc' },
+          orderBy: { completedAt: 'desc' },
         },
       },
     });
@@ -1008,9 +1002,9 @@ export class PortalService {
 
     // For non-anonymous surveys, include respondent list
     const respondents = !survey.isAnonymous
-      ? survey.responses.map(r => ({
+      ? survey.responses.map((r: any) => ({
           responseId: r.id,
-          submittedAt: r.submittedAt,
+          completedAt: r.completedAt,
           employee: r.employee ? {
             id: r.employee.id,
             name: `${r.employee.firstName} ${r.employee.lastName}`,
@@ -1032,18 +1026,18 @@ export class PortalService {
       },
       totalResponses: survey.responses.length,
       respondents, // null for anonymous surveys
-      questionResults: survey.questions.map(q => ({
+      questionResults: survey.questions.map((q: any) => ({
         questionId: q.id,
         questionText: q.questionText,
         type: q.type,
         totalAnswers: q.answers.length,
         // For rating questions, calculate average
         averageRating: q.type === 'RATING' || q.type === 'SCALE'
-          ? q.answers.reduce((sum, a) => sum + (a.answerValue || 0), 0) / (q.answers.length || 1)
+          ? q.answers.reduce((sum: number, a: any) => sum + (a.answerValue || 0), 0) / (q.answers.length || 1)
           : null,
         // For multiple choice, count each option
         optionCounts: q.type === 'MULTIPLE_CHOICE' || q.type === 'YES_NO'
-          ? q.answers.reduce((acc, a) => {
+          ? q.answers.reduce((acc: Record<string, number>, a: any) => {
               const opt = a.answerOption || 'N/A';
               acc[opt] = (acc[opt] || 0) + 1;
               return acc;
