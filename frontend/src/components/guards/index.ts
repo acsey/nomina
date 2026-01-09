@@ -8,6 +8,7 @@ export {
   isOperationalRole,
   canAccessPortal,
   OPERATIONAL_ROLES,
+  ADMIN_ALLOWED_ROLES,
 } from './RoleGuard';
 
 export type { RoleName } from './RoleGuard';

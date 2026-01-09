@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { employeesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function EmployeesPage() {
+  const { t } = useTranslation();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -28,10 +30,10 @@ export default function EmployeesPage() {
   return (
     <div>
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Empleados</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('employees.title')}</h1>
         <Link to="/employees/new" className="btn btn-primary">
           <PlusIcon className="h-5 w-5 mr-2" />
-          Nuevo Empleado
+          {t('employees.newEmployee')}
         </Link>
       </div>
 
@@ -41,7 +43,7 @@ export default function EmployeesPage() {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por nombre, RFC, CURP..."
+            placeholder={t('employees.searchPlaceholder')}
             className="input pl-10"
             value={search}
             onChange={(e) => {
@@ -60,19 +62,19 @@ export default function EmployeesPage() {
           </div>
         ) : employees.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            No se encontraron empleados
+            {t('employees.noEmployeesFound')}
           </div>
         ) : (
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
-                  <th>No. Empleado</th>
-                  <th>Nombre</th>
-                  <th>Empresa</th>
-                  <th>Departamento</th>
-                  <th>Puesto</th>
-                  <th>Estado</th>
+                  <th>{t('employees.fields.employeeNumber')}</th>
+                  <th>{t('common.name')}</th>
+                  <th>{t('common.company')}</th>
+                  <th>{t('common.department')}</th>
+                  <th>{t('common.position')}</th>
+                  <th>{t('common.status')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -94,7 +96,7 @@ export default function EmployeesPage() {
                             : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {employee.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                        {employee.status === 'ACTIVE' ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     <td>
@@ -102,7 +104,7 @@ export default function EmployeesPage() {
                         to={`/employees/${employee.id}`}
                         className="text-primary-600 hover:text-primary-800 font-medium text-sm"
                       >
-                        Ver detalle
+                        {t('employees.viewDetail')}
                       </Link>
                     </td>
                   </tr>
@@ -116,8 +118,7 @@ export default function EmployeesPage() {
         {meta.totalPages > 1 && (
           <div className="px-6 py-4 border-t flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Mostrando {(page - 1) * limit + 1} -{' '}
-              {Math.min(page * limit, meta.total)} de {meta.total} empleados
+              {t('common.showing', { from: (page - 1) * limit + 1, to: Math.min(page * limit, meta.total), total: meta.total })}
             </p>
             <div className="flex gap-2">
               <button
@@ -125,14 +126,14 @@ export default function EmployeesPage() {
                 disabled={page === 1}
                 className="btn btn-secondary text-sm disabled:opacity-50"
               >
-                Anterior
+                {t('common.previous')}
               </button>
               <button
                 onClick={() => setPage(page + 1)}
                 disabled={page === meta.totalPages}
                 className="btn btn-secondary text-sm disabled:opacity-50"
               >
-                Siguiente
+                {t('common.next')}
               </button>
             </div>
           </div>

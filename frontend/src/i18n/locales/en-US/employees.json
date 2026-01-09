@@ -5,7 +5,13 @@
   "editEmployee": "Edit Employee",
   "viewEmployee": "View Employee",
   "deleteEmployee": "Delete Employee",
-  "searchPlaceholder": "Search by name, email or employee number...",
+  "searchPlaceholder": "Search by name, RFC, CURP...",
+  "noEmployeesFound": "No employees found",
+  "viewDetail": "View detail",
+
+  "fields": {
+    "employeeNumber": "Employee #"
+  },
 
   "tabs": {
     "all": "All",
