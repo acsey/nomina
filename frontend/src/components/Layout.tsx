@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -38,7 +39,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 interface NavItem {
-  name: string;
+  i18nKey: string;
   href: string;
   icon: typeof HomeIcon;
   roles?: string[];
@@ -49,48 +50,50 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, category: 'principal' },
+  { i18nKey: 'nav.main.dashboard', href: '/dashboard', icon: HomeIcon, category: 'principal' },
   // Mi Portal visible for EMPLOYEE role OR any user with employeeId
-  { name: 'Mi Portal', href: '/portal', icon: UserIcon, requiresEmployeeId: true, category: 'principal' },
-  { name: 'Empleados', href: '/employees', icon: UsersIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
-  { name: 'Departamentos', href: '/departments', icon: BuildingOfficeIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
-  { name: 'Usuarios', href: '/users', icon: UserGroupIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
-  { name: 'Organigrama', href: '/org-chart', icon: RectangleGroupIcon, category: 'personal' },
-  { name: 'Encuestas', href: '/surveys', icon: ClipboardDocumentListIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
-  { name: 'Documentos', href: '/documents-management', icon: DocumentTextIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
-  { name: 'Nomina', href: '/payroll', icon: BanknotesIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
-  { name: 'Recibos', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
-  { name: 'Incidencias', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'nomina' },
-  { name: 'Checador Web', href: '/timeclock', icon: ClockIcon, category: 'principal' },
-  { name: 'Asistencia', href: '/attendance', icon: ClockIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'control' },
-  { name: 'Horarios', href: '/work-schedules', icon: ClockIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh', 'company_admin'], category: 'control' },
-  { name: 'Dispositivos', href: '/devices', icon: ComputerDesktopIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh', 'company_admin'], category: 'control' },
-  { name: 'Vacaciones', href: '/vacations', icon: CalendarDaysIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'prestaciones' },
-  { name: 'Prestaciones', href: '/benefits', icon: GiftIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'prestaciones' },
-  { name: 'Reportes', href: '/reports', icon: DocumentChartBarIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'AUDITOR', 'admin', 'rh', 'company_admin'], category: 'reportes' },
-  { name: 'Carga Masiva', href: '/bulk-upload', icon: ArrowUpTrayIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'reportes' },
-  { name: 'Empresas', href: '/companies', icon: BuildingOffice2Icon, roles: ['SYSTEM_ADMIN', 'admin'], requiresMultiCompany: true, category: 'config' },
-  { name: 'Config. Empresa', href: '/company-config', icon: CogIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'config' },
-  { name: 'Config. Contable', href: '/accounting-config', icon: CalculatorIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'admin', 'company_admin'], category: 'config' },
-  { name: 'Config. Sistema', href: '/system-settings', icon: Cog8ToothIcon, roles: ['SYSTEM_ADMIN'], requiresSuperAdmin: true, category: 'config' },
-  { name: 'Ayuda', href: '/help', icon: QuestionMarkCircleIcon, category: 'ayuda' },
+  { i18nKey: 'nav.main.myPortal', href: '/portal', icon: UserIcon, requiresEmployeeId: true, category: 'principal' },
+  { i18nKey: 'nav.main.employees', href: '/employees', icon: UsersIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
+  { i18nKey: 'nav.main.departments', href: '/departments', icon: BuildingOfficeIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
+  { i18nKey: 'nav.main.users', href: '/users', icon: UserGroupIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'personal' },
+  { i18nKey: 'nav.main.orgChart', href: '/org-chart', icon: RectangleGroupIcon, category: 'personal' },
+  { i18nKey: 'nav.main.surveys', href: '/surveys', icon: ClipboardDocumentListIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
+  { i18nKey: 'nav.main.documents', href: '/documents-management', icon: DocumentTextIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'personal' },
+  { i18nKey: 'nav.main.payroll', href: '/payroll', icon: BanknotesIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
+  { i18nKey: 'nav.main.receipts', href: '/payroll/receipts', icon: DocumentTextIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'admin', 'rh'], category: 'nomina' },
+  { i18nKey: 'nav.main.incidents', href: '/incidents', icon: ExclamationTriangleIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'nomina' },
+  { i18nKey: 'nav.main.webClock', href: '/timeclock', icon: ClockIcon, category: 'principal' },
+  { i18nKey: 'nav.main.attendance', href: '/attendance', icon: ClockIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'control' },
+  { i18nKey: 'nav.main.workSchedules', href: '/work-schedules', icon: ClockIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh', 'company_admin'], category: 'control' },
+  { i18nKey: 'nav.main.devices', href: '/devices', icon: ComputerDesktopIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh', 'company_admin'], category: 'control' },
+  { i18nKey: 'nav.main.vacations', href: '/vacations', icon: CalendarDaysIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER', 'admin', 'rh', 'manager'], category: 'prestaciones' },
+  { i18nKey: 'nav.main.benefits', href: '/benefits', icon: GiftIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'prestaciones' },
+  { i18nKey: 'nav.main.reports', href: '/reports', icon: DocumentChartBarIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'PAYROLL_ADMIN', 'AUDITOR', 'admin', 'rh', 'company_admin'], category: 'reportes' },
+  { i18nKey: 'nav.main.bulkUpload', href: '/bulk-upload', icon: ArrowUpTrayIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'reportes' },
+  { i18nKey: 'nav.main.companies', href: '/companies', icon: BuildingOffice2Icon, roles: ['SYSTEM_ADMIN', 'admin'], requiresMultiCompany: true, category: 'config' },
+  { i18nKey: 'nav.main.companyConfig', href: '/company-config', icon: CogIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'admin', 'rh'], category: 'config' },
+  { i18nKey: 'nav.main.accountingConfig', href: '/accounting-config', icon: CalculatorIcon, roles: ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'admin', 'company_admin'], category: 'config' },
+  { i18nKey: 'nav.main.systemSettings', href: '/system-settings', icon: Cog8ToothIcon, roles: ['SYSTEM_ADMIN'], requiresSuperAdmin: true, category: 'config' },
+  { i18nKey: 'nav.main.help', href: '/help', icon: QuestionMarkCircleIcon, category: 'ayuda' },
 ];
 
-const categoryConfig: Record<string, { label: string; defaultOpen: boolean }> = {
-  principal: { label: 'Principal', defaultOpen: true },
-  personal: { label: 'Personal', defaultOpen: true },
-  nomina: { label: 'Nomina', defaultOpen: true },
-  control: { label: 'Control', defaultOpen: false },
-  prestaciones: { label: 'Prestaciones', defaultOpen: false },
-  reportes: { label: 'Reportes', defaultOpen: false },
-  config: { label: 'Configuracion', defaultOpen: false },
-  ayuda: { label: 'Ayuda', defaultOpen: true },
+// Category configuration with i18n keys
+const categoryConfig: Record<string, { i18nKey: string; defaultOpen: boolean }> = {
+  principal: { i18nKey: 'nav.sections.principal', defaultOpen: true },
+  personal: { i18nKey: 'nav.sections.personal', defaultOpen: true },
+  nomina: { i18nKey: 'nav.sections.payroll', defaultOpen: true },
+  control: { i18nKey: 'nav.sections.control', defaultOpen: false },
+  prestaciones: { i18nKey: 'nav.sections.benefits', defaultOpen: false },
+  reportes: { i18nKey: 'nav.sections.reports', defaultOpen: false },
+  config: { i18nKey: 'nav.sections.config', defaultOpen: false },
+  ayuda: { i18nKey: 'nav.sections.help', defaultOpen: true },
 };
 
 const SIDEBAR_COLLAPSED_KEY = 'nomina-sidebar-collapsed';
 const SIDEBAR_CATEGORIES_KEY = 'nomina-sidebar-categories';
 
 export default function Layout() {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
@@ -184,29 +187,33 @@ export default function Layout() {
     return items.some(item => location.pathname.startsWith(item.href));
   };
 
-  const renderNavItem = (item: NavItem, onClick?: () => void) => (
-    <NavLink
-      key={item.name}
-      to={item.href}
-      onClick={onClick}
-      title={sidebarCollapsed ? item.name : undefined}
-      className={({ isActive }) =>
-        `flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-2'} py-1.5 text-sm rounded-md transition-colors ${
-          isActive
-            ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 font-medium'
-            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-        }`
-      }
-    >
-      <item.icon className={`h-4 w-4 ${sidebarCollapsed ? '' : 'mr-2'} flex-shrink-0`} />
-      {!sidebarCollapsed && <span className="truncate">{item.name}</span>}
-    </NavLink>
-  );
+  const renderNavItem = (item: NavItem, onClick?: () => void) => {
+    const itemName = t(item.i18nKey);
+    return (
+      <NavLink
+        key={item.i18nKey}
+        to={item.href}
+        onClick={onClick}
+        title={sidebarCollapsed ? itemName : undefined}
+        className={({ isActive }) =>
+          `flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-2'} py-1.5 text-sm rounded-md transition-colors ${
+            isActive
+              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 font-medium'
+              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+          }`
+        }
+      >
+        <item.icon className={`h-4 w-4 ${sidebarCollapsed ? '' : 'mr-2'} flex-shrink-0`} />
+        {!sidebarCollapsed && <span className="truncate">{itemName}</span>}
+      </NavLink>
+    );
+  };
 
   const renderCategorySection = (category: string, items: NavItem[], isMobile?: boolean) => {
     const config = categoryConfig[category];
     const isExpanded = expandedCategories[category] ?? config?.defaultOpen ?? true;
     const isActive = isActiveCategory(items);
+    const categoryLabel = config?.i18nKey ? t(config.i18nKey) : category;
 
     if (sidebarCollapsed && !isMobile) {
       // When collapsed, show only icons with tooltip
@@ -227,7 +234,7 @@ export default function Layout() {
               : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
           }`}
         >
-          <span>{config?.label || category}</span>
+          <span>{categoryLabel}</span>
           <ChevronDownIcon
             className={`h-3 w-3 transition-transform ${isExpanded ? '' : '-rotate-90'}`}
           />
@@ -254,7 +261,7 @@ export default function Layout() {
 
         <div className="fixed inset-y-0 left-0 flex w-56 flex-col bg-white dark:bg-gray-800">
           <div className="flex h-12 items-center justify-between px-3 border-b dark:border-gray-700">
-            <span className="text-base font-bold text-primary-600">Nomina</span>
+            <span className="text-base font-bold text-primary-600">{t('nav.brand')}</span>
             <button
               onClick={() => setSidebarOpen(false)}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -278,12 +285,12 @@ export default function Layout() {
         <div className="flex flex-col flex-1 bg-white dark:bg-gray-800 border-r dark:border-gray-700">
           <div className={`flex h-12 items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between px-3'} border-b dark:border-gray-700`}>
             {!sidebarCollapsed && (
-              <span className="text-base font-bold text-primary-600">Nomina</span>
+              <span className="text-base font-bold text-primary-600">{t('nav.brand')}</span>
             )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="p-1 rounded text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-              title={sidebarCollapsed ? 'Expandir' : 'Colapsar'}
+              title={sidebarCollapsed ? t('nav.actions.expand') : t('nav.actions.collapse')}
             >
               {sidebarCollapsed ? (
                 <ChevronRightIcon className="h-4 w-4" />
@@ -322,7 +329,7 @@ export default function Layout() {
             <button
               onClick={toggleDarkMode}
               className="p-1.5 rounded text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
-              title={isDark ? 'Modo claro' : 'Modo oscuro'}
+              title={isDark ? t('nav.actions.lightMode') : t('nav.actions.darkMode')}
             >
               {isDark ? (
                 <SunIcon className="h-5 w-5" />
@@ -367,7 +374,7 @@ export default function Layout() {
                         className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         <UserIcon className="h-4 w-4" />
-                        Mi Portal
+                        {t('nav.main.myPortal')}
                       </NavLink>
                     )}
                     <NavLink
@@ -376,7 +383,7 @@ export default function Layout() {
                       className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       <QuestionMarkCircleIcon className="h-4 w-4" />
-                      Ayuda
+                      {t('nav.user.help')}
                     </NavLink>
                   </div>
                   <div className="border-t dark:border-gray-700 py-1">
@@ -385,7 +392,7 @@ export default function Layout() {
                       className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                       <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                      Cerrar sesion
+                      {t('nav.user.logout')}
                     </button>
                   </div>
                 </div>
