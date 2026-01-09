@@ -12,7 +12,7 @@ export class PortalService {
   ) {}
 
   // =====================================
-  // EMPLOYEE LOOKUP
+  // EMPLOYEE LOOKUP & PROFILE
   // =====================================
 
   /**
@@ -22,6 +22,153 @@ export class PortalService {
     return this.prisma.employee.findFirst({
       where: { email },
       select: { id: true, companyId: true },
+    });
+  }
+
+  /**
+   * Get employee profile with details
+   */
+  async getEmployeeProfile(employeeId: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        department: { select: { id: true, name: true } },
+        jobPosition: { select: { id: true, name: true } },
+        workSchedule: {
+          include: {
+            scheduleDetails: { orderBy: { dayOfWeek: 'asc' } },
+          },
+        },
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            jobPosition: { select: { name: true } },
+          },
+        },
+        company: { select: { id: true, businessName: true, logoUrl: true } },
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
+    return employee;
+  }
+
+  /**
+   * Get employee's attendance for today
+   */
+  async getMyAttendance(employeeId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const record = await this.prisma.attendanceRecord.findUnique({
+      where: {
+        employeeId_date: {
+          employeeId,
+          date: today,
+        },
+      },
+    });
+
+    // Also get the employee's schedule for today
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        workSchedule: {
+          include: {
+            scheduleDetails: true,
+          },
+        },
+      },
+    });
+
+    const dayOfWeek = today.getDay();
+    const todaySchedule = employee?.workSchedule?.scheduleDetails?.find(
+      (d: { dayOfWeek: number }) => d.dayOfWeek === dayOfWeek,
+    );
+
+    return {
+      record,
+      schedule: todaySchedule || null,
+      scheduleName: employee?.workSchedule?.name || null,
+    };
+  }
+
+  /**
+   * Get employee's vacation requests
+   */
+  async getMyVacations(employeeId: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        hireDate: true,
+        vacationDaysAvailable: true,
+        vacationDaysUsed: true,
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
+    const requests = await this.prisma.vacationRequest.findMany({
+      where: { employeeId },
+      include: {
+        approvedBy: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      employee: {
+        id: employee.id,
+        name: `${employee.firstName} ${employee.lastName}`,
+        hireDate: employee.hireDate,
+      },
+      balance: {
+        available: employee.vacationDaysAvailable || 0,
+        used: employee.vacationDaysUsed || 0,
+        pending: requests
+          .filter((r: { status: string }) => r.status === 'PENDING')
+          .reduce((sum: number, r: { totalDays: number | null }) => sum + (r.totalDays || 0), 0),
+      },
+      requests,
+    };
+  }
+
+  /**
+   * Get employee's payroll receipts
+   */
+  async getMyPayrolls(employeeId: string) {
+    return this.prisma.payrollDetail.findMany({
+      where: { employeeId },
+      include: {
+        payrollPeriod: {
+          select: {
+            id: true,
+            periodNumber: true,
+            year: true,
+            periodType: true,
+            startDate: true,
+            endDate: true,
+            paymentDate: true,
+          },
+        },
+      },
+      orderBy: {
+        payrollPeriod: { paymentDate: 'desc' },
+      },
+      take: 24, // Last 24 pay periods
     });
   }
 
