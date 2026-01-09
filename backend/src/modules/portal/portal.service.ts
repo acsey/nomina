@@ -39,7 +39,7 @@ export class PortalService {
             scheduleDetails: { orderBy: { dayOfWeek: 'asc' } },
           },
         },
-        manager: {
+        supervisor: {
           select: {
             id: true,
             firstName: true,
