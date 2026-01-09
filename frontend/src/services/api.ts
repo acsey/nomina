@@ -337,6 +337,18 @@ export const benefitsApi = {
 };
 
 export const reportsApi = {
+  // Attendance reports
+  getAttendanceReport: (params: {
+    companyId: string;
+    startDate: string;
+    endDate: string;
+    departmentId?: string;
+    employeeId?: string;
+  }) => api.get('/attendance/report', { params }),
+  getSchedulesReport: (companyId: string, departmentId?: string) =>
+    api.get('/attendance/schedules-report', { params: { companyId, departmentId } }),
+
+  // Payroll reports
   getPayrollSummary: (periodId: string) => api.get(`/reports/payroll/${periodId}`),
   downloadPayrollExcel: (periodId: string) =>
     api.get(`/reports/payroll/${periodId}/excel`, { responseType: 'blob' }),
