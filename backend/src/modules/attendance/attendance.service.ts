@@ -329,4 +329,217 @@ export class AttendanceService {
       data,
     });
   }
+
+  /**
+   * Get detailed attendance report for date range
+   */
+  async getAttendanceReport(
+    companyId: string,
+    startDate: Date,
+    endDate: Date,
+    departmentId?: string,
+    employeeId?: string,
+  ) {
+    const whereEmployee: any = {
+      companyId,
+      isActive: true,
+    };
+
+    if (departmentId) {
+      whereEmployee.departmentId = departmentId;
+    }
+
+    if (employeeId) {
+      whereEmployee.id = employeeId;
+    }
+
+    // Get all employees with their attendance in the date range
+    const employees = await this.prisma.employee.findMany({
+      where: whereEmployee,
+      include: {
+        department: { select: { id: true, name: true } },
+        jobPosition: { select: { id: true, name: true } },
+        workSchedule: {
+          include: {
+            scheduleDetails: true,
+          },
+        },
+        attendanceRecords: {
+          where: {
+            date: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          orderBy: { date: 'asc' },
+        },
+      },
+      orderBy: [
+        { department: { name: 'asc' } },
+        { lastName: 'asc' },
+      ],
+    });
+
+    // Calculate working days in range (excluding weekends for simplicity)
+    const totalDays = dayjs(endDate).diff(dayjs(startDate), 'day') + 1;
+
+    // Process each employee
+    const employeeReports = employees.map((emp: any) => {
+      const records = emp.attendanceRecords;
+      const stats = {
+        totalDays,
+        daysPresent: records.filter((r: any) => r.status === 'PRESENT' || r.status === 'LATE').length,
+        daysLate: records.filter((r: any) => r.status === 'LATE').length,
+        daysAbsent: records.filter((r: any) => r.status === 'ABSENT').length,
+        daysVacation: records.filter((r: any) => r.status === 'VACATION').length,
+        daysSickLeave: records.filter((r: any) => r.status === 'SICK_LEAVE').length,
+        totalHoursWorked: records.reduce((sum: number, r: any) => sum + (r.hoursWorked || 0), 0),
+        noRecord: totalDays - records.length,
+      };
+
+      return {
+        employee: {
+          id: emp.id,
+          employeeNumber: emp.employeeNumber,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          department: emp.department?.name || null,
+          jobPosition: emp.jobPosition?.name || null,
+          schedule: emp.workSchedule?.name || null,
+        },
+        stats,
+        records: records.map((r: any) => ({
+          date: r.date,
+          checkIn: r.checkIn,
+          checkOut: r.checkOut,
+          breakStart: r.breakStart,
+          breakEnd: r.breakEnd,
+          status: r.status,
+          hoursWorked: r.hoursWorked,
+          notes: r.notes,
+        })),
+      };
+    });
+
+    // Calculate global summary
+    const summary = {
+      totalEmployees: employees.length,
+      periodStart: startDate,
+      periodEnd: endDate,
+      totalDays,
+      totals: {
+        present: employeeReports.reduce((sum, e) => sum + e.stats.daysPresent, 0),
+        late: employeeReports.reduce((sum, e) => sum + e.stats.daysLate, 0),
+        absent: employeeReports.reduce((sum, e) => sum + e.stats.daysAbsent, 0),
+        vacation: employeeReports.reduce((sum, e) => sum + e.stats.daysVacation, 0),
+        sickLeave: employeeReports.reduce((sum, e) => sum + e.stats.daysSickLeave, 0),
+        hoursWorked: employeeReports.reduce((sum, e) => sum + e.stats.totalHoursWorked, 0),
+      },
+    };
+
+    return {
+      summary,
+      employees: employeeReports,
+    };
+  }
+
+  /**
+   * Get all employees with their assigned schedules
+   */
+  async getEmployeeSchedulesReport(companyId: string, departmentId?: string) {
+    const where: any = {
+      companyId,
+      isActive: true,
+    };
+
+    if (departmentId) {
+      where.departmentId = departmentId;
+    }
+
+    const employees = await this.prisma.employee.findMany({
+      where,
+      include: {
+        department: { select: { id: true, name: true } },
+        jobPosition: { select: { id: true, name: true } },
+        workSchedule: {
+          include: {
+            scheduleDetails: {
+              orderBy: { dayOfWeek: 'asc' },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { department: { name: 'asc' } },
+        { lastName: 'asc' },
+      ],
+    });
+
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    const employeesWithSchedules = employees.map((emp: any) => ({
+      employee: {
+        id: emp.id,
+        employeeNumber: emp.employeeNumber,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        department: emp.department?.name || null,
+        jobPosition: emp.jobPosition?.name || null,
+      },
+      schedule: emp.workSchedule ? {
+        id: emp.workSchedule.id,
+        name: emp.workSchedule.name,
+        description: emp.workSchedule.description,
+        isActive: emp.workSchedule.isActive,
+        details: emp.workSchedule.scheduleDetails.map((d: any) => ({
+          dayOfWeek: d.dayOfWeek,
+          dayName: dayNames[d.dayOfWeek],
+          isWorkDay: d.isWorkDay,
+          startTime: d.startTime,
+          endTime: d.endTime,
+          breakStart: d.breakStart,
+          breakEnd: d.breakEnd,
+        })),
+        weeklyHours: emp.workSchedule.scheduleDetails
+          .filter((d: any) => d.isWorkDay)
+          .reduce((sum: number, d: any) => {
+            if (!d.startTime || !d.endTime) return sum;
+            const start = dayjs(`2000-01-01 ${d.startTime}`);
+            const end = dayjs(`2000-01-01 ${d.endTime}`);
+            let hours = end.diff(start, 'hour', true);
+            // Subtract break time if exists
+            if (d.breakStart && d.breakEnd) {
+              const breakStart = dayjs(`2000-01-01 ${d.breakStart}`);
+              const breakEnd = dayjs(`2000-01-01 ${d.breakEnd}`);
+              hours -= breakEnd.diff(breakStart, 'hour', true);
+            }
+            return sum + hours;
+          }, 0),
+      } : null,
+      hasSchedule: !!emp.workSchedule,
+    }));
+
+    // Summary by schedule
+    const scheduleGroups: Record<string, number> = {};
+    let withoutSchedule = 0;
+
+    employeesWithSchedules.forEach((e) => {
+      if (e.schedule) {
+        const key = e.schedule.name;
+        scheduleGroups[key] = (scheduleGroups[key] || 0) + 1;
+      } else {
+        withoutSchedule++;
+      }
+    });
+
+    return {
+      summary: {
+        totalEmployees: employees.length,
+        withSchedule: employees.length - withoutSchedule,
+        withoutSchedule,
+        bySchedule: Object.entries(scheduleGroups).map(([name, count]) => ({ name, count })),
+      },
+      employees: employeesWithSchedules,
+    };
+  }
 }
