@@ -800,6 +800,7 @@ export const portalApi = {
   createBadge: (data: any) => api.post('/portal/badges', data),
 
   // Surveys
+  getAllSurveys: () => api.get('/portal/surveys/all'),
   getAvailableSurveys: () => api.get('/portal/surveys/available'),
   getSurveyDetails: (id: string) => api.get(`/portal/surveys/${id}`),
   submitSurveyResponse: (surveyId: string, answers: any[]) =>

@@ -438,6 +438,13 @@ export class PortalController {
   // SURVEYS
   // =====================================
 
+  @Get('surveys/all')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @ApiOperation({ summary: 'Obtener todas las encuestas (RH)' })
+  getAllSurveys(@CurrentUser('companyId') companyId: string) {
+    return this.portalService.getAllSurveys(companyId);
+  }
+
   @Get('surveys/available')
   @ApiOperation({ summary: 'Obtener encuestas disponibles' })
   getAvailableSurveys(

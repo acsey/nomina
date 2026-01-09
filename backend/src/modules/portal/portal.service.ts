@@ -753,6 +753,36 @@ export class PortalService {
   // SURVEYS
   // =====================================
 
+  /**
+   * Get all surveys for HR management (including drafts)
+   */
+  async getAllSurveys(companyId: string) {
+    const surveys = await this.prisma.survey.findMany({
+      where: { companyId },
+      include: {
+        questions: {
+          orderBy: { orderIndex: 'asc' },
+        },
+        _count: {
+          select: { responses: true },
+        },
+        createdBy: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return surveys.map((survey: any) => ({
+      ...survey,
+      totalQuestions: survey.questions.length,
+      totalResponses: survey._count.responses,
+      createdByName: survey.createdBy
+        ? `${survey.createdBy.firstName} ${survey.createdBy.lastName}`
+        : null,
+    }));
+  }
+
   async getAvailableSurveys(companyId: string, employeeId: string) {
     const now = new Date();
 
