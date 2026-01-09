@@ -719,6 +719,25 @@ export const notificationsApi = {
 
 // Portal API - Employee Portal
 export const portalApi = {
+  // =====================================
+  // /ME ENDPOINTS - Use JWT token, no employeeId needed
+  // These are preferred for employee self-service
+  // =====================================
+  getMyProfile: () => api.get('/portal/me/profile'),
+  getMyOwnDocuments: () => api.get('/portal/me/documents'),
+  getMyOwnRecognitions: () => api.get('/portal/me/recognitions'),
+  getMyOwnPoints: () => api.get('/portal/me/points'),
+  getMyOwnCourses: () => api.get('/portal/me/courses'),
+  getMyOwnBadges: () => api.get('/portal/me/badges'),
+  getMyOwnBenefits: () => api.get('/portal/me/benefits'),
+  getMyOwnAttendance: () => api.get('/portal/me/attendance'),
+  getMyOwnVacations: () => api.get('/portal/me/vacations'),
+  getMyOwnPayrolls: () => api.get('/portal/me/payrolls'),
+
+  // =====================================
+  // LEGACY ENDPOINTS - Keep for admin access to specific employees
+  // =====================================
+
   // Documents
   getMyDocuments: (employeeId: string) => api.get(`/portal/documents/${employeeId}`),
   uploadDocument: (employeeId: string, file: File, data: {
@@ -781,6 +800,7 @@ export const portalApi = {
   createBadge: (data: any) => api.post('/portal/badges', data),
 
   // Surveys
+  getAllSurveys: () => api.get('/portal/surveys/all'),
   getAvailableSurveys: () => api.get('/portal/surveys/available'),
   getSurveyDetails: (id: string) => api.get(`/portal/surveys/${id}`),
   submitSurveyResponse: (surveyId: string, answers: any[]) =>

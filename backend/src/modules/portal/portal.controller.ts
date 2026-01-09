@@ -72,7 +72,111 @@ export class PortalController {
   }
 
   // =====================================
-  // EMPLOYEE DOCUMENTS
+  // /ME ENDPOINTS - Use JWT employeeId, no URL param needed
+  // =====================================
+
+  @Get('me/profile')
+  @ApiOperation({ summary: 'Obtener mi perfil de empleado' })
+  async getMyProfile(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getEmployeeProfile(employeeId);
+  }
+
+  @Get('me/documents')
+  @ApiOperation({ summary: 'Obtener mis documentos' })
+  async getMyOwnDocuments(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyDocuments(employeeId);
+  }
+
+  @Get('me/recognitions')
+  @ApiOperation({ summary: 'Obtener mis reconocimientos' })
+  async getMyOwnRecognitions(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyRecognitions(employeeId);
+  }
+
+  @Get('me/points')
+  @ApiOperation({ summary: 'Obtener mis puntos' })
+  async getMyOwnPoints(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getEmployeePoints(employeeId);
+  }
+
+  @Get('me/courses')
+  @ApiOperation({ summary: 'Obtener mis cursos' })
+  async getMyOwnCourses(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyCourses(employeeId);
+  }
+
+  @Get('me/badges')
+  @ApiOperation({ summary: 'Obtener mis insignias' })
+  async getMyOwnBadges(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyBadges(employeeId);
+  }
+
+  @Get('me/benefits')
+  @ApiOperation({ summary: 'Obtener mis prestaciones' })
+  async getMyOwnBenefits(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyBenefits(employeeId);
+  }
+
+  @Get('me/attendance')
+  @ApiOperation({ summary: 'Obtener mi asistencia de hoy' })
+  async getMyOwnAttendance(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyAttendance(employeeId);
+  }
+
+  @Get('me/vacations')
+  @ApiOperation({ summary: 'Obtener mis vacaciones' })
+  async getMyOwnVacations(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyVacations(employeeId);
+  }
+
+  @Get('me/payrolls')
+  @ApiOperation({ summary: 'Obtener mis recibos de nomina' })
+  async getMyOwnPayrolls(@CurrentUser() user: any) {
+    const employeeId = await this.getEffectiveEmployeeId(user);
+    if (!employeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyPayrolls(employeeId);
+  }
+
+  // =====================================
+  // EMPLOYEE DOCUMENTS (Legacy with :employeeId - kept for admin access)
   // =====================================
 
   @Get('documents/company')
@@ -83,8 +187,8 @@ export class PortalController {
   }
 
   @Get('documents/:employeeId')
-  @ApiOperation({ summary: 'Obtener documentos del empleado' })
-  async getMyDocuments(
+  @ApiOperation({ summary: 'Obtener documentos del empleado (admin access)' })
+  async getEmployeeDocuments(
     @Param('employeeId') employeeId: string,
     @CurrentUser() user: any,
   ) {
@@ -333,6 +437,13 @@ export class PortalController {
   // =====================================
   // SURVEYS
   // =====================================
+
+  @Get('surveys/all')
+  @Roles('admin', 'rh', 'SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @ApiOperation({ summary: 'Obtener todas las encuestas (RH)' })
+  getAllSurveys(@CurrentUser('companyId') companyId: string) {
+    return this.portalService.getAllSurveys(companyId);
+  }
 
   @Get('surveys/available')
   @ApiOperation({ summary: 'Obtener encuestas disponibles' })

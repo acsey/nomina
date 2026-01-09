@@ -103,61 +103,12 @@ export default function SurveysManagementPage() {
     ],
   });
 
-  // Fetch surveys (using mock data for now)
+  // Fetch surveys from API
   const { data: surveysData, isLoading } = useQuery({
     queryKey: ['hr-surveys'],
     queryFn: async () => {
-      // For now return mock data - replace with API call
-      return {
-        data: [
-          {
-            id: '1',
-            title: 'Encuesta de Clima Laboral 2026',
-            description: 'Encuesta anual para medir el clima organizacional',
-            type: 'CLIMATE',
-            isPublished: true,
-            isAnonymous: true,
-            startsAt: '2026-01-01T00:00:00Z',
-            endsAt: '2026-01-31T23:59:59Z',
-            createdAt: '2025-12-20T00:00:00Z',
-            questions: [
-              { id: 'q1', questionText: 'Que tan satisfecho estas con tu trabajo?', type: 'RATING', isRequired: true, orderIndex: 0 },
-              { id: 'q2', questionText: 'Recomendarias la empresa?', type: 'YES_NO', isRequired: true, orderIndex: 1 },
-            ],
-            totalResponses: 45,
-          },
-          {
-            id: '2',
-            title: 'Evaluacion de Capacitacion - Seguridad',
-            description: 'Evalua el curso de seguridad de la informacion',
-            type: 'TRAINING',
-            isPublished: true,
-            isAnonymous: false,
-            startsAt: '2026-01-05T00:00:00Z',
-            endsAt: '2026-01-15T23:59:59Z',
-            createdAt: '2026-01-05T00:00:00Z',
-            questions: [
-              { id: 'q1', questionText: 'Como calificarias el contenido?', type: 'RATING', isRequired: true, orderIndex: 0 },
-            ],
-            totalResponses: 23,
-          },
-          {
-            id: '3',
-            title: 'Preferencias de Beneficios 2026',
-            description: 'Conoce las preferencias de los empleados',
-            type: 'FEEDBACK',
-            isPublished: false,
-            isAnonymous: true,
-            startsAt: '2026-02-01T00:00:00Z',
-            endsAt: '2026-02-28T23:59:59Z',
-            createdAt: '2026-01-08T00:00:00Z',
-            questions: [
-              { id: 'q1', questionText: 'Que beneficio te gustaria mas?', type: 'MULTIPLE_CHOICE', isRequired: true, orderIndex: 0, options: ['Vales de despensa', 'Seguro de gastos medicos', 'Fondo de ahorro'] },
-            ],
-            totalResponses: 0,
-          },
-        ] as Survey[]
-      };
+      const response = await portalApi.getAllSurveys();
+      return response;
     },
   });
 

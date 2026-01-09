@@ -14,7 +14,7 @@ import {
   EyeIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { portalApi, employeesApi } from '../../services/api';
+import { portalApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
@@ -100,29 +100,19 @@ export default function PortalDocumentsPage() {
     file: null as File | null,
   });
 
-  // Get employee data
-  const { data: employeeData, isLoading: isLoadingEmployee } = useQuery({
-    queryKey: ['my-employee', user?.email],
-    queryFn: async () => {
-      const response = await employeesApi.getByEmail(user?.email || '');
-      return response.data;
-    },
-    enabled: !!user?.email,
-  });
-
-  const employeeId = employeeData?.id;
-
-  // Get documents
+  // Get documents using /me endpoint (no employeeId needed)
   const { data: documentsData, isLoading: isLoadingDocuments } = useQuery({
-    queryKey: ['my-documents', employeeId],
+    queryKey: ['my-documents'],
     queryFn: async () => {
-      const response = await portalApi.getMyDocuments(employeeId!);
+      const response = await portalApi.getMyOwnDocuments();
       return response.data as Document[];
     },
-    enabled: !!employeeId,
   });
 
   const documents = documentsData || [];
+
+  // Get employee ID for upload (still needed for upload endpoint)
+  const employeeId = user?.employeeId;
 
   // Upload mutation
   const uploadMutation = useMutation({
@@ -216,7 +206,7 @@ export default function PortalDocumentsPage() {
   ).length;
   const completionPercent = Math.round((uploadedRequired / requiredDocuments.length) * 100);
 
-  const isLoading = isLoadingEmployee || isLoadingDocuments;
+  const isLoading = isLoadingDocuments;
 
   if (isLoading) {
     return (
