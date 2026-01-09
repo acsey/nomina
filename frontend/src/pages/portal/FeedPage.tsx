@@ -281,7 +281,7 @@ export default function FeedPage() {
         navigate('/portal/people');
         break;
       case 'payroll':
-        navigate('/portal/payroll');
+        navigate('/portal/my-payroll');
         break;
       case 'birthday':
         if (item.metadata?.employeeId || item.metadata?.employeeName) {
@@ -308,7 +308,7 @@ export default function FeedPage() {
         }
         break;
       case 'recognition':
-        navigate('/portal/recognitions');
+        navigate('/portal/recognition');
         break;
       case 'vacation':
         navigate('/portal/vacations');
