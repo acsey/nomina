@@ -307,7 +307,7 @@ export default function DashboardPage() {
             </h2>
             <div className="space-y-3">
               <Link
-                to="/my-portal"
+                to="/portal/attendance"
                 className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center">
@@ -318,7 +318,7 @@ export default function DashboardPage() {
                 </div>
               </Link>
               <Link
-                to="/my-portal"
+                to="/portal/my-payroll"
                 className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center">
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                 </div>
               </Link>
               <Link
-                to="/my-portal"
+                to="/portal/vacations"
                 className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center">

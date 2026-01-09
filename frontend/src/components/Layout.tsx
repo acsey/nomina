@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { canAccessPortal } from './guards';
 import NotificationsDropdown from './NotificationsDropdown';
 import {
   HomeIcon,
@@ -162,11 +163,8 @@ export default function Layout() {
       const meetsMultiCompanyReq = !item.requiresMultiCompany || multiCompanyEnabled;
       // Super admin requirement: must be SYSTEM_ADMIN without companyId
       const meetsSuperAdminReq = !item.requiresSuperAdmin || (user?.role === 'SYSTEM_ADMIN' && !user?.companyId);
-      // Employee ID requirement: user must be EMPLOYEE role OR have an employeeId
-      const meetsEmployeeIdReq = !item.requiresEmployeeId ||
-        user?.role === 'EMPLOYEE' ||
-        user?.role === 'employee' ||
-        !!user?.employeeId;
+      // Employee ID requirement: usa canAccessPortal (regla única)
+      const meetsEmployeeIdReq = !item.requiresEmployeeId || canAccessPortal(user);
       return hasRoleAccess && meetsMultiCompanyReq && meetsSuperAdminReq && meetsEmployeeIdReq;
     });
   }, [user?.role, user?.companyId, user?.employeeId, multiCompanyEnabled]);
@@ -366,8 +364,8 @@ export default function Layout() {
                     </p>
                   </div>
                   <div className="py-1">
-                    {/* Mi Portal for employees OR any user with employeeId */}
-                    {(user?.role === 'EMPLOYEE' || user?.role === 'employee' || user?.employeeId) && (
+                    {/* Mi Portal - usa canAccessPortal (regla única) */}
+                    {canAccessPortal(user) && (
                       <NavLink
                         to="/portal"
                         onClick={() => setUserMenuOpen(false)}

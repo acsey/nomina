@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../services/api';
+import { canAccessPortal } from '../components/guards';
 import toast from 'react-hot-toast';
 import { ShieldCheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
@@ -88,12 +89,11 @@ export default function LoginPage() {
       await login(email, password, mfaCode || undefined);
       toast.success('Bienvenido');
 
-      // Get user from localStorage to check role
+      // REGLA ÚNICA: Si puede acceder al portal, va al portal
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         const userData = JSON.parse(storedUser);
-        // Redirect employees to their portal, others to dashboard
-        if (userData.role === 'EMPLOYEE' || userData.role === 'employee') {
+        if (canAccessPortal(userData)) {
           navigate('/portal/feed');
         } else {
           navigate('/dashboard');
