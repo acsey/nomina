@@ -16,7 +16,7 @@ import { accountingConfigApi, catalogsApi } from '../services/api';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import toast from 'react-hot-toast';
 
-type TabType = 'summary' | 'isn' | 'fiscal' | 'company' | 'isr' | 'imss';
+type TabType = 'summary' | 'isn' | 'fiscal' | 'company' | 'isr' | 'subsidio' | 'imss';
 
 const tabs = [
   { id: 'summary', name: 'Resumen', icon: ChartBarIcon },
@@ -24,6 +24,7 @@ const tabs = [
   { id: 'fiscal', name: 'Valores Fiscales', icon: CurrencyDollarIcon },
   { id: 'company', name: 'Config. Empresa', icon: BuildingOfficeIcon },
   { id: 'isr', name: 'Tablas ISR', icon: CalculatorIcon },
+  { id: 'subsidio', name: 'Subsidio Empleo', icon: CurrencyDollarIcon },
   { id: 'imss', name: 'Tasas IMSS', icon: Cog6ToothIcon },
 ];
 
@@ -128,6 +129,7 @@ export default function AccountingConfigPage() {
         />
       )}
       {activeTab === 'isr' && <IsrTab />}
+      {activeTab === 'subsidio' && <SubsidioTab />}
       {activeTab === 'imss' && <ImssTab />}
     </div>
   );
@@ -1508,7 +1510,7 @@ function IsrTab() {
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="input"
             >
-              {[2025, 2024, 2023].map((year) => (
+              {[2026, 2025, 2024, 2023].map((year) => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
@@ -1733,6 +1735,337 @@ function IsrTab() {
 }
 
 // ============================================
+// SUBSIDIO AL EMPLEO TAB
+// ============================================
+
+function SubsidioTab() {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedPeriodType, setSelectedPeriodType] = useState('MONTHLY');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    year: new Date().getFullYear(),
+    periodType: 'MONTHLY',
+    lowerLimit: '',
+    upperLimit: '',
+    subsidyAmount: '',
+  });
+  const queryClient = useQueryClient();
+
+  const { data: subsidioTables, isLoading } = useQuery({
+    queryKey: ['subsidio-tables'],
+    queryFn: () => accountingConfigApi.getAllSubsidioTables(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => accountingConfigApi.createSubsidioTableRow(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subsidio-tables'] });
+      toast.success('Rango de subsidio creado');
+      closeModal();
+    },
+    onError: () => toast.error('Error al crear rango'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      accountingConfigApi.updateSubsidioTableRow(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subsidio-tables'] });
+      toast.success('Rango de subsidio actualizado');
+      closeModal();
+    },
+    onError: () => toast.error('Error al actualizar'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => accountingConfigApi.deleteSubsidioTableRow(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subsidio-tables'] });
+      toast.success('Rango eliminado');
+      setDeleteConfirm(null);
+    },
+    onError: () => toast.error('Error al eliminar'),
+  });
+
+  const tables = subsidioTables?.data || [];
+  const currentTable = tables.find((t: any) => t.year === selectedYear && t.periodType === selectedPeriodType);
+
+  const openModal = (row?: any) => {
+    if (row) {
+      setEditingRow(row);
+      setFormData({
+        year: selectedYear,
+        periodType: selectedPeriodType,
+        lowerLimit: Number(row.lowerLimit).toString(),
+        upperLimit: Number(row.upperLimit).toString(),
+        subsidyAmount: Number(row.subsidyAmount).toString(),
+      });
+    } else {
+      setEditingRow(null);
+      setFormData({
+        year: selectedYear,
+        periodType: selectedPeriodType,
+        lowerLimit: '',
+        upperLimit: '',
+        subsidyAmount: '',
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingRow(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const data = {
+      year: formData.year,
+      periodType: formData.periodType,
+      lowerLimit: parseFloat(formData.lowerLimit),
+      upperLimit: parseFloat(formData.upperLimit),
+      subsidyAmount: parseFloat(formData.subsidyAmount),
+    };
+    if (editingRow) {
+      updateMutation.mutate({ id: editingRow.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  // Get available years from data
+  const availableYears = [...new Set(tables.map((t: any) => t.year))].sort((a: number, b: number) => b - a);
+  if (availableYears.length === 0) {
+    availableYears.push(new Date().getFullYear());
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Info Card */}
+      <div className="card bg-blue-50 border-blue-200">
+        <div className="flex items-start gap-3">
+          <CurrencyDollarIcon className="h-6 w-6 text-blue-600 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-blue-900">Subsidio al Empleo</h4>
+            <p className="text-sm text-blue-700 mt-1">
+              El subsidio al empleo es un beneficio fiscal que reduce el ISR a retener para trabajadores
+              con ingresos bajos. Los montos aquí configurados se aplican automáticamente en el cálculo de nómina.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="label">Año</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="input"
+            >
+              {availableYears.map((year: number) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Tipo Período</label>
+            <select
+              value={selectedPeriodType}
+              onChange={(e) => setSelectedPeriodType(e.target.value)}
+              className="input"
+            >
+              <option value="WEEKLY">Semanal</option>
+              <option value="BIWEEKLY">Quincenal</option>
+              <option value="MONTHLY">Mensual</option>
+            </select>
+          </div>
+          <button onClick={() => openModal()} className="btn btn-primary flex items-center gap-2">
+            <PlusIcon className="h-5 w-5" />
+            Agregar Rango
+          </button>
+        </div>
+      </div>
+
+      {/* Subsidio Table */}
+      <div className="card">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold">
+            Tabla Subsidio al Empleo {selectedYear} - {selectedPeriodType === 'MONTHLY' ? 'Mensual' : selectedPeriodType === 'BIWEEKLY' ? 'Quincenal' : 'Semanal'}
+          </h3>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-8">Cargando...</div>
+        ) : currentTable ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-right py-3 px-4">Límite Inferior</th>
+                  <th className="text-right py-3 px-4">Límite Superior</th>
+                  <th className="text-right py-3 px-4">Subsidio</th>
+                  <th className="text-right py-3 px-4">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentTable.rows.map((row: any) => (
+                  <tr key={row.id} className="border-b hover:bg-gray-50">
+                    <td className="py-3 px-4 text-right">
+                      ${Number(row.lowerLimit).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      ${Number(row.upperLimit).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className={Number(row.subsidyAmount) > 0 ? 'text-green-600 font-medium' : 'text-gray-500'}>
+                        ${Number(row.subsidyAmount).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openModal(row)}
+                          className="p-1 text-gray-600 hover:text-primary-600"
+                          title="Editar"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(row)}
+                          className="p-1 text-gray-600 hover:text-red-600"
+                          title="Eliminar"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No hay tabla de subsidio para {selectedYear} - {selectedPeriodType}
+            <p className="text-sm mt-2">
+              Haz clic en "Agregar Rango" para crear la primera entrada.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Add/Edit Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editingRow ? 'Editar Rango de Subsidio' : 'Agregar Rango de Subsidio'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Año</label>
+              <input
+                type="number"
+                value={formData.year}
+                onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                className="input w-full"
+                min="2020"
+                max="2030"
+                disabled={!!editingRow}
+              />
+            </div>
+            <div>
+              <label className="label">Tipo Período</label>
+              <select
+                value={formData.periodType}
+                onChange={(e) => setFormData(prev => ({ ...prev, periodType: e.target.value }))}
+                className="input w-full"
+                disabled={!!editingRow}
+              >
+                <option value="WEEKLY">Semanal</option>
+                <option value="BIWEEKLY">Quincenal</option>
+                <option value="MONTHLY">Mensual</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Límite Inferior ($)</label>
+              <input
+                type="number"
+                value={formData.lowerLimit}
+                onChange={(e) => setFormData(prev => ({ ...prev, lowerLimit: e.target.value }))}
+                className="input w-full"
+                step="0.01"
+                min="0"
+                placeholder="0.01"
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Límite Superior ($)</label>
+              <input
+                type="number"
+                value={formData.upperLimit}
+                onChange={(e) => setFormData(prev => ({ ...prev, upperLimit: e.target.value }))}
+                className="input w-full"
+                step="0.01"
+                min="0"
+                placeholder="1768.96"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="label">Monto de Subsidio ($)</label>
+            <input
+              type="number"
+              value={formData.subsidyAmount}
+              onChange={(e) => setFormData(prev => ({ ...prev, subsidyAmount: e.target.value }))}
+              className="input w-full"
+              step="0.01"
+              min="0"
+              placeholder="407.02"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Monto del subsidio que se aplica cuando el ingreso cae en este rango
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={closeModal} className="btn btn-secondary">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <ConfirmDeleteModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => deleteMutation.mutate(deleteConfirm.id)}
+        itemName={`Rango $${Number(deleteConfirm?.lowerLimit || 0).toLocaleString()} - $${Number(deleteConfirm?.upperLimit || 0).toLocaleString()}`}
+        isLoading={deleteMutation.isPending}
+      />
+    </div>
+  );
+}
+
+// ============================================
 // IMSS TAB
 // ============================================
 
@@ -1879,7 +2212,7 @@ function ImssTab() {
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             className="input"
           >
-            {[2025, 2024, 2023].map((year) => (
+            {[2026, 2025, 2024, 2023].map((year) => (
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
