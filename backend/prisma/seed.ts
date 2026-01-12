@@ -1198,6 +1198,15 @@ async function main() {
       smgZfnDaily: 419.88, // SMG Zona Frontera Norte 2025
       effectiveFrom: new Date('2025-01-01'),
     },
+    {
+      year: 2026,
+      umaDaily: 117.89, // UMA 2026 (incremento ~4.2% INPC)
+      umaMonthly: 3583.86,
+      umaYearly: 43029.85,
+      smgDaily: 312.26, // Salario Mínimo General 2026 (incremento ~12% CONASAMI)
+      smgZfnDaily: 468.39, // SMG Zona Frontera Norte 2026
+      effectiveFrom: new Date('2026-01-01'),
+    },
   ];
 
   for (const fiscal of fiscalValues) {
@@ -1224,7 +1233,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Valores fiscales creados (UMA, SMG 2024-2025)');
+  console.log('✅ Valores fiscales creados (UMA, SMG 2024-2026)');
 
   // ============================================
   // TABLA ISR 2025 (Mensual)
@@ -1268,6 +1277,48 @@ async function main() {
   console.log('✅ Tabla ISR 2025 mensual creada');
 
   // ============================================
+  // TABLA ISR 2026 (Mensual)
+  // Ajustada por inflación (~4.2% incremento en rangos)
+  // ============================================
+
+  const isrTableMonthly2026 = [
+    { lowerLimit: 0.01, upperLimit: 777.37, fixedFee: 0, rateOnExcess: 0.0192 },
+    { lowerLimit: 777.38, upperLimit: 6598.01, fixedFee: 14.92, rateOnExcess: 0.0640 },
+    { lowerLimit: 6598.02, upperLimit: 11595.39, fixedFee: 387.49, rateOnExcess: 0.1088 },
+    { lowerLimit: 11595.40, upperLimit: 13479.13, fixedFee: 931.16, rateOnExcess: 0.1600 },
+    { lowerLimit: 13479.14, upperLimit: 16138.19, fixedFee: 1232.56, rateOnExcess: 0.1792 },
+    { lowerLimit: 16138.20, upperLimit: 32548.42, fixedFee: 1709.07, rateOnExcess: 0.2136 },
+    { lowerLimit: 32548.43, upperLimit: 51300.77, fixedFee: 5214.29, rateOnExcess: 0.2352 },
+    { lowerLimit: 51300.78, upperLimit: 97941.64, fixedFee: 9624.84, rateOnExcess: 0.3000 },
+    { lowerLimit: 97941.65, upperLimit: 130588.86, fixedFee: 23617.10, rateOnExcess: 0.3200 },
+    { lowerLimit: 130588.87, upperLimit: 391766.58, fixedFee: 34064.59, rateOnExcess: 0.3400 },
+    { lowerLimit: 391766.59, upperLimit: 999999999.99, fixedFee: 122865.01, rateOnExcess: 0.3500 },
+  ];
+
+  for (const isr of isrTableMonthly2026) {
+    await prisma.isrTable.upsert({
+      where: {
+        year_periodType_lowerLimit: {
+          year: 2026,
+          periodType: 'MONTHLY',
+          lowerLimit: isr.lowerLimit,
+        },
+      },
+      update: { upperLimit: isr.upperLimit, fixedFee: isr.fixedFee, rateOnExcess: isr.rateOnExcess },
+      create: {
+        year: 2026,
+        periodType: 'MONTHLY',
+        lowerLimit: isr.lowerLimit,
+        upperLimit: isr.upperLimit,
+        fixedFee: isr.fixedFee,
+        rateOnExcess: isr.rateOnExcess,
+      },
+    });
+  }
+
+  console.log('✅ Tabla ISR 2026 mensual creada');
+
+  // ============================================
   // TABLA SUBSIDIO AL EMPLEO 2025 (Mensual)
   // ============================================
 
@@ -1306,6 +1357,47 @@ async function main() {
   }
 
   console.log('✅ Tabla Subsidio al Empleo 2025 creada');
+
+  // ============================================
+  // TABLA SUBSIDIO AL EMPLEO 2026 (Mensual)
+  // Ajustada por inflación (~4.2% incremento en rangos)
+  // ============================================
+
+  const subsidioTable2026 = [
+    { lowerLimit: 0.01, upperLimit: 1843.25, subsidyAmount: 424.11 },
+    { lowerLimit: 1843.26, upperLimit: 2764.82, subsidyAmount: 423.92 },
+    { lowerLimit: 2764.83, upperLimit: 3618.70, subsidyAmount: 423.70 },
+    { lowerLimit: 3618.71, upperLimit: 3686.46, subsidyAmount: 409.27 },
+    { lowerLimit: 3686.47, upperLimit: 4632.89, subsidyAmount: 398.52 },
+    { lowerLimit: 4632.90, upperLimit: 4915.30, subsidyAmount: 369.11 },
+    { lowerLimit: 4915.31, upperLimit: 5559.51, subsidyAmount: 338.51 },
+    { lowerLimit: 5559.52, upperLimit: 6486.11, subsidyAmount: 307.01 },
+    { lowerLimit: 6486.12, upperLimit: 7412.68, subsidyAmount: 264.19 },
+    { lowerLimit: 7412.69, upperLimit: 7692.31, subsidyAmount: 226.75 },
+    { lowerLimit: 7692.32, upperLimit: 999999999.99, subsidyAmount: 0 },
+  ];
+
+  for (const sub of subsidioTable2026) {
+    await prisma.subsidioEmpleoTable.upsert({
+      where: {
+        year_periodType_lowerLimit: {
+          year: 2026,
+          periodType: 'MONTHLY',
+          lowerLimit: sub.lowerLimit,
+        },
+      },
+      update: { upperLimit: sub.upperLimit, subsidyAmount: sub.subsidyAmount },
+      create: {
+        year: 2026,
+        periodType: 'MONTHLY',
+        lowerLimit: sub.lowerLimit,
+        upperLimit: sub.upperLimit,
+        subsidyAmount: sub.subsidyAmount,
+      },
+    });
+  }
+
+  console.log('✅ Tabla Subsidio al Empleo 2026 creada');
 
   // ============================================
   // CONFIGURACIÓN DE NÓMINA POR EMPRESA
@@ -1451,6 +1543,57 @@ async function main() {
   }
 
   console.log('✅ Tasas IMSS 2025 creadas');
+
+  // ============================================
+  // TASAS IMSS 2026
+  // Nota: RCV_CESANTIA_PATRONAL aumenta a 5.150% según reforma 2020
+  // La cuota patronal de cesantía aumenta 0.775% anual hasta 2030
+  // ============================================
+
+  const imssRates2026 = [
+    // Enfermedades y Maternidad (EyM) - Prestaciones en especie (Cuota fija)
+    { concept: 'EYM_CUOTA_FIJA', employerRate: 0.2040, employeeRate: 0, salaryBase: 'SMG' },
+    // EyM - Prestaciones en especie (Excedente 3 SMG)
+    { concept: 'EYM_EXCEDENTE', employerRate: 0.0110, employeeRate: 0.0040, salaryBase: 'SBC' },
+    // EyM - Prestaciones en dinero
+    { concept: 'EYM_DINERO', employerRate: 0.0070, employeeRate: 0.0025, salaryBase: 'SBC' },
+    // EyM - Gastos médicos pensionados
+    { concept: 'EYM_PENSIONADOS', employerRate: 0.0105, employeeRate: 0.00375, salaryBase: 'SBC' },
+    // Invalidez y Vida (IV)
+    { concept: 'IV', employerRate: 0.0175, employeeRate: 0.00625, salaryBase: 'SBC' },
+    // Retiro
+    { concept: 'RCV_RETIRO', employerRate: 0.02, employeeRate: 0, salaryBase: 'SBC' },
+    // Cesantía en edad avanzada y vejez (empleador 2026 - INCREMENTO por reforma 2020)
+    { concept: 'RCV_CESANTIA_PATRONAL', employerRate: 0.05150, employeeRate: 0, salaryBase: 'SBC' },
+    // Cesantía en edad avanzada y vejez (trabajador - sin cambio)
+    { concept: 'RCV_CESANTIA_TRABAJADOR', employerRate: 0, employeeRate: 0.01125, salaryBase: 'SBC' },
+    // Riesgo de Trabajo (varía por clase)
+    { concept: 'RT_CLASE_I', employerRate: 0.0054355, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_II', employerRate: 0.0113065, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_III', employerRate: 0.025984, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_IV', employerRate: 0.0465325, employeeRate: 0, salaryBase: 'SBC' },
+    { concept: 'RT_CLASE_V', employerRate: 0.0758875, employeeRate: 0, salaryBase: 'SBC' },
+    // Guarderías y Prestaciones Sociales
+    { concept: 'GUARDERIA', employerRate: 0.01, employeeRate: 0, salaryBase: 'SBC' },
+    // INFONAVIT
+    { concept: 'INFONAVIT', employerRate: 0.05, employeeRate: 0, salaryBase: 'SBC' },
+  ];
+
+  for (const rate of imssRates2026) {
+    await prisma.imssRate.upsert({
+      where: { year_concept: { year: 2026, concept: rate.concept }},
+      update: { employerRate: rate.employerRate, employeeRate: rate.employeeRate, salaryBase: rate.salaryBase as any },
+      create: {
+        year: 2026,
+        concept: rate.concept,
+        employerRate: rate.employerRate,
+        employeeRate: rate.employeeRate,
+        salaryBase: rate.salaryBase as any,
+      },
+    });
+  }
+
+  console.log('✅ Tasas IMSS 2026 creadas (incluye incremento RCV patronal por reforma 2020)');
 
   // ============================================
   // CATÁLOGO DE PACs AUTORIZADOS SAT
