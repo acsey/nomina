@@ -242,6 +242,9 @@ model Company {
   badges      Badge[]
   surveys     Survey[]
 
+  // HARDENING: Reglas fiscales personalizadas
+  fiscalRules FiscalRule[]
+
   @@map("companies")
 }
 
@@ -780,6 +783,17 @@ model PayrollDetail {
   status          PayrollDetailStatus @default(PENDING)
   paidAt          DateTime? @map("paid_at")
 
+  // ============================================
+  // HARDENING: Campos de versionado e inmutabilidad (Ledger Fiscal)
+  // Ningún recálculo debe sobrescribir información previa
+  // ============================================
+  version         Int      @default(1) // Número de versión del recibo
+  parentReceiptId String?  @map("parent_receipt_id") // ID del recibo anterior (para trazabilidad)
+  parentReceipt   PayrollDetail? @relation("ReceiptVersionChain", fields: [parentReceiptId], references: [id])
+  childReceipts   PayrollDetail[] @relation("ReceiptVersionChain") // Recibos que reemplazaron a este
+  active          Boolean  @default(true) // Solo el recibo activo es válido para operaciones
+  supersededAt    DateTime? @map("superseded_at") // Cuándo fue reemplazado por una nueva versión
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -792,7 +806,9 @@ model PayrollDetail {
   rulesetSnapshots ReceiptRulesetSnapshot[] // Snapshots de reglas usadas
   documents       ReceiptDocument[] // Evidencias fiscales (XML, PDF)
 
-  @@unique([payrollPeriodId, employeeId])
+  @@unique([payrollPeriodId, employeeId, version]) // Único por período, empleado y versión
+  @@index([payrollPeriodId, employeeId, active]) // Índice para búsquedas de recibo activo
+  @@index([parentReceiptId])
   @@map("payroll_details")
 }
 
@@ -1217,11 +1233,15 @@ enum PayrollStatus {
 }
 
 enum PayrollDetailStatus {
-  PENDING
-  CALCULATED
-  APPROVED
-  PAID
-  CANCELLED
+  PENDING           // Pendiente de cálculo
+  CALCULATED        // Calculado, pendiente de aprobación
+  APPROVED          // Aprobado, listo para timbrar
+  STAMPING          // En proceso de timbrado
+  STAMP_OK          // Timbrado exitosamente
+  STAMP_ERROR       // Error en timbrado
+  PAID              // Pagado
+  CANCELLED         // Cancelado
+  SUPERSEDED        // Reemplazado por nueva versión (inmutable)
 }
 
 enum ConceptType {
@@ -1775,6 +1795,7 @@ model CompanyCalculationFormula {
 // Auditoría de cálculos fiscales por concepto
 // Cumple: Registrar cada cálculo fiscal con base y regla aplicada
 // MEJORA GOB: Incluye referencia legal obligatoria
+// HARDENING: Incluye snapshots completos para reproducibilidad histórica
 model FiscalCalculationAudit {
   id                String   @id @default(uuid())
   payrollDetailId   String   @map("payroll_detail_id")
@@ -1806,6 +1827,14 @@ model FiscalCalculationAudit {
   legalSource       String?  @map("legal_source") // Fuente (DOF, etc.)
   legalPublishedAt  DateTime? @map("legal_published_at") @db.Date
 
+  // ============================================
+  // HARDENING: Snapshots para auditoría inmutable
+  // Garantiza reproducibilidad incluso si las reglas cambian en el futuro
+  // ============================================
+  inputSnapshot     Json?    @map("input_snapshot")  // Copia profunda de todas las variables de entrada
+  outputSnapshot    Json?    @map("output_snapshot") // Resultado completo del cálculo en JSON
+  appliedRulesSnapshot Json? @map("applied_rules_snapshot") // IDs y versiones exactas de reglas aplicadas
+
   // Metadata
   fiscalYear        Int      @map("fiscal_year")
   periodType        String   @map("period_type")
@@ -1816,6 +1845,70 @@ model FiscalCalculationAudit {
   @@index([conceptType, conceptCode])
   @@index([fiscalYear])
   @@map("fiscal_calculation_audit")
+}
+
+// ============================================
+// HARDENING: Motor de Reglas Fiscales
+// Permite definir reglas fiscales personalizadas por empresa con
+// validación anti-traslapes de fechas y tipado estricto de lógica
+// ============================================
+
+enum FiscalRuleType {
+  ISR                 // Impuesto Sobre la Renta
+  IMSS_EMPLOYEE       // Cuotas IMSS trabajador
+  IMSS_EMPLOYER       // Cuotas IMSS patrón
+  SUBSIDIO_EMPLEO     // Subsidio al empleo
+  ISN                 // Impuesto sobre nómina estatal
+  INFONAVIT           // Aportaciones INFONAVIT
+  RCV                 // Retiro, Cesantía y Vejez
+  AGUINALDO           // Cálculo de aguinaldo
+  PRIMA_VACACIONAL    // Prima vacacional
+  PTU                 // Reparto de utilidades
+  OVERTIME            // Tiempo extra
+  CUSTOM              // Regla personalizada
+}
+
+model FiscalRule {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  // Tipo y nombre de la regla
+  ruleType    FiscalRuleType @map("rule_type")
+  name        String   // Nombre descriptivo
+  description String?  @db.Text
+
+  // Período de vigencia (para validación anti-traslapes)
+  startDate   DateTime @map("start_date") @db.Date
+  endDate     DateTime? @map("end_date") @db.Date // Null = vigente indefinidamente
+
+  // Lógica de la regla en formato JSON estricto
+  // Debe cumplir con interfaz FiscalRuleLogic
+  logicJson   Json     @map("logic_json")
+
+  // Prioridad para casos de múltiples reglas aplicables
+  priority    Int      @default(0)
+
+  // Metadatos de control
+  active      Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")
+  updatedBy   String?  @map("updated_by")
+
+  // Referencia legal obligatoria
+  legalLaw      String?  @map("legal_law")
+  legalArticle  String?  @map("legal_article")
+  legalSource   String?  @map("legal_source")
+
+  // ============================================
+  // HARDENING: Índice compuesto para búsquedas rápidas
+  // y validación de anti-traslapes
+  // ============================================
+  @@index([companyId, ruleType, active])
+  @@index([companyId, ruleType, startDate, endDate])
+  @@map("fiscal_rules")
 }
 
 // ============================================

@@ -495,9 +495,230 @@ export class DocumentStorageService {
   private async readFile(filePath: string): Promise<Buffer> {
     return fs.readFile(filePath);
   }
+
+  // ============================================
+  // HARDENING: Content-Addressable Storage (CAS)
+  // ============================================
+
+  /**
+   * HARDENING: Almacena un archivo usando su hash SHA-256 como nombre
+   *
+   * Ventajas:
+   * - Deduplicación automática: archivos idénticos comparten almacenamiento
+   * - Integridad garantizada: el nombre ES el hash
+   * - Inmutabilidad: no se puede alterar sin cambiar el nombre
+   *
+   * @param content Buffer del archivo a almacenar
+   * @param type Tipo de documento fiscal
+   * @returns Ruta del archivo y hash SHA-256
+   */
+  async storeContentAddressable(
+    content: Buffer,
+    type: FiscalDocumentType,
+  ): Promise<ContentAddressableResult> {
+    // Calcular SHA-256 del contenido
+    const sha256 = crypto.createHash('sha256').update(content).digest('hex');
+
+    // Usar el hash como nombre de archivo
+    const extension = this.getExtension(type);
+    const fileName = `${sha256}${extension}`;
+
+    // Estructura: uploads/cas/{primeros 2 chars}/{siguientes 2 chars}/{hash completo}.ext
+    // Esto evita directorios con demasiados archivos
+    const casPath = path.join(
+      this.baseStoragePath,
+      'cas',
+      sha256.substring(0, 2),
+      sha256.substring(2, 4),
+      fileName,
+    );
+
+    // Verificar si ya existe (deduplicación)
+    const exists = await this.fileExists(casPath);
+
+    if (exists) {
+      this.logger.debug(
+        `CAS: Archivo ya existe (deduplicado): ${sha256.substring(0, 16)}...`,
+      );
+
+      // Verificar integridad del archivo existente
+      const existingContent = await this.readFile(casPath);
+      const existingHash = crypto.createHash('sha256').update(existingContent).digest('hex');
+
+      if (existingHash !== sha256) {
+        // Colisión de hash (extremadamente rara) - guardar con sufijo
+        this.logger.error(`CAS: Colisión de hash detectada para ${sha256}`);
+        const collisionPath = casPath.replace(extension, `_collision_${Date.now()}${extension}`);
+        await this.saveFile(collisionPath, content);
+        return {
+          storagePath: collisionPath,
+          sha256,
+          fileSize: content.length,
+          deduplicated: false,
+          isCollision: true,
+        };
+      }
+
+      return {
+        storagePath: casPath,
+        sha256,
+        fileSize: content.length,
+        deduplicated: true,
+        isCollision: false,
+      };
+    }
+
+    // Guardar nuevo archivo
+    await this.saveFile(casPath, content);
+
+    this.logger.log(
+      `CAS: Nuevo archivo almacenado: ${sha256.substring(0, 16)}... (${content.length} bytes)`,
+    );
+
+    return {
+      storagePath: casPath,
+      sha256,
+      fileSize: content.length,
+      deduplicated: false,
+      isCollision: false,
+    };
+  }
+
+  /**
+   * HARDENING: Recupera un archivo por su hash SHA-256
+   */
+  async getByHash(
+    sha256: string,
+    type: FiscalDocumentType,
+  ): Promise<Buffer | null> {
+    const extension = this.getExtension(type);
+    const casPath = path.join(
+      this.baseStoragePath,
+      'cas',
+      sha256.substring(0, 2),
+      sha256.substring(2, 4),
+      `${sha256}${extension}`,
+    );
+
+    const exists = await this.fileExists(casPath);
+    if (!exists) {
+      return null;
+    }
+
+    const content = await this.readFile(casPath);
+
+    // Verificar integridad
+    const actualHash = crypto.createHash('sha256').update(content).digest('hex');
+    if (actualHash !== sha256) {
+      this.logger.error(
+        `CAS: Integridad comprometida para ${sha256}. Hash actual: ${actualHash}`,
+      );
+      throw new Error(`Integridad comprometida para archivo ${sha256}`);
+    }
+
+    return content;
+  }
+
+  /**
+   * HARDENING: Verifica si un archivo existe por su hash
+   */
+  async existsByHash(sha256: string, type: FiscalDocumentType): Promise<boolean> {
+    const extension = this.getExtension(type);
+    const casPath = path.join(
+      this.baseStoragePath,
+      'cas',
+      sha256.substring(0, 2),
+      sha256.substring(2, 4),
+      `${sha256}${extension}`,
+    );
+
+    return this.fileExists(casPath);
+  }
+
+  /**
+   * HARDENING: Obtiene estadísticas del almacenamiento CAS
+   */
+  async getCasStats(): Promise<CasStorageStats> {
+    const casBasePath = path.join(this.baseStoragePath, 'cas');
+
+    let totalFiles = 0;
+    let totalSize = 0;
+
+    const exists = await this.fileExists(casBasePath);
+    if (!exists) {
+      return {
+        totalFiles: 0,
+        totalSizeBytes: 0,
+        totalSizeMB: 0,
+        averageFileSizeKB: 0,
+      };
+    }
+
+    // Recorrer estructura de directorios
+    const firstLevel = await fs.readdir(casBasePath);
+    for (const dir1 of firstLevel) {
+      const dir1Path = path.join(casBasePath, dir1);
+      const stat1 = await fs.stat(dir1Path);
+      if (!stat1.isDirectory()) continue;
+
+      const secondLevel = await fs.readdir(dir1Path);
+      for (const dir2 of secondLevel) {
+        const dir2Path = path.join(dir1Path, dir2);
+        const stat2 = await fs.stat(dir2Path);
+        if (!stat2.isDirectory()) continue;
+
+        const files = await fs.readdir(dir2Path);
+        for (const file of files) {
+          const filePath = path.join(dir2Path, file);
+          const fileStat = await fs.stat(filePath);
+          if (fileStat.isFile()) {
+            totalFiles++;
+            totalSize += fileStat.size;
+          }
+        }
+      }
+    }
+
+    return {
+      totalFiles,
+      totalSizeBytes: totalSize,
+      totalSizeMB: totalSize / (1024 * 1024),
+      averageFileSizeKB: totalFiles > 0 ? totalSize / totalFiles / 1024 : 0,
+    };
+  }
+
+  private async fileExists(filePath: string): Promise<boolean> {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 // === DTOs e Interfaces ===
+
+/**
+ * HARDENING: Resultado de almacenamiento content-addressable
+ */
+export interface ContentAddressableResult {
+  storagePath: string;
+  sha256: string;
+  fileSize: number;
+  deduplicated: boolean;
+  isCollision: boolean;
+}
+
+/**
+ * HARDENING: Estadísticas de almacenamiento CAS
+ */
+export interface CasStorageStats {
+  totalFiles: number;
+  totalSizeBytes: number;
+  totalSizeMB: number;
+  averageFileSizeKB: number;
+}
 
 export interface StoreDocumentOptions {
   userId?: string;

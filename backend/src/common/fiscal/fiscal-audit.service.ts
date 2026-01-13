@@ -35,6 +35,80 @@ export interface FiscalAuditEntry {
   fiscalYear: number;
   periodType: string;
   calculatedBy?: string;
+  // HARDENING: Campos de snapshot para reproducibilidad
+  inputSnapshot?: Record<string, unknown>;
+  outputSnapshot?: Record<string, unknown>;
+  appliedRulesSnapshot?: Record<string, unknown>;
+}
+
+/**
+ * HARDENING: Interfaz para snapshot completo de entrada
+ */
+export interface FiscalInputSnapshot {
+  capturedAt: string;
+  employee: {
+    id: string;
+    employeeNumber: string;
+    rfc: string;
+    salaryType: string;
+    baseSalary: number;
+    dailySalary: number;
+    sbc?: number;
+  };
+  period: {
+    id: string;
+    type: string;
+    startDate: string;
+    endDate: string;
+    year: number;
+  };
+  calculationInputs: {
+    workedDays: number;
+    absences: number;
+    overtimeHours?: number;
+    incidentsApplied: string[];
+  };
+  fiscalParameters: {
+    uma: number;
+    smg: number;
+    fiscalYear: number;
+  };
+}
+
+/**
+ * HARDENING: Interfaz para snapshot completo de salida
+ */
+export interface FiscalOutputSnapshot {
+  capturedAt: string;
+  conceptType: string;
+  conceptCode: string;
+  calculationBreakdown: Record<string, number>;
+  finalResult: number;
+  intermediateValues: Record<string, unknown>;
+}
+
+/**
+ * HARDENING: Interfaz para snapshot de reglas aplicadas
+ */
+export interface AppliedRulesSnapshot {
+  capturedAt: string;
+  rules: Array<{
+    id: string;
+    type: string;
+    name: string;
+    version: number;
+    logicHash: string;
+    vigencia: {
+      desde: string;
+      hasta: string | null;
+    };
+  }>;
+  tables: Array<{
+    name: string;
+    version: string;
+    rowCount: number;
+    checksum: string;
+  }>;
 }
 
 /**
@@ -250,6 +324,7 @@ export class FiscalAuditService {
 
   /**
    * Crea una entrada de auditoría genérica
+   * HARDENING: Incluye snapshots completos para reproducibilidad histórica
    */
   private async createAuditEntry(entry: FiscalAuditEntry) {
     return this.prisma.fiscalCalculationAudit.create({
@@ -270,8 +345,125 @@ export class FiscalAuditService {
         fiscalYear: entry.fiscalYear,
         periodType: entry.periodType,
         calculatedBy: entry.calculatedBy,
+        // HARDENING: Snapshots para reproducibilidad
+        inputSnapshot: entry.inputSnapshot as any,
+        outputSnapshot: entry.outputSnapshot as any,
+        appliedRulesSnapshot: entry.appliedRulesSnapshot as any,
       },
     });
+  }
+
+  /**
+   * HARDENING: Crea entrada de auditoría con snapshots completos
+   *
+   * Garantiza que si las reglas cambian en el futuro,
+   * la auditoría histórica permanezca intacta y reproducible.
+   */
+  async createAuditWithSnapshots(
+    entry: FiscalAuditEntry,
+    inputSnapshot: FiscalInputSnapshot,
+    outputSnapshot: FiscalOutputSnapshot,
+    appliedRulesSnapshot: AppliedRulesSnapshot,
+  ) {
+    return this.createAuditEntry({
+      ...entry,
+      inputSnapshot,
+      outputSnapshot,
+      appliedRulesSnapshot,
+    });
+  }
+
+  /**
+   * HARDENING: Construye un snapshot de entrada completo
+   */
+  buildInputSnapshot(
+    employee: {
+      id: string;
+      employeeNumber: string;
+      rfc: string;
+      salaryType: string;
+      baseSalary: number;
+      dailySalary?: number;
+      sbc?: number;
+    },
+    period: {
+      id: string;
+      type: string;
+      startDate: Date;
+      endDate: Date;
+      year: number;
+    },
+    calculationInputs: {
+      workedDays: number;
+      absences?: number;
+      overtimeHours?: number;
+      incidentsApplied?: string[];
+    },
+    fiscalParams: {
+      uma: number;
+      smg: number;
+      fiscalYear: number;
+    },
+  ): FiscalInputSnapshot {
+    return {
+      capturedAt: new Date().toISOString(),
+      employee: {
+        id: employee.id,
+        employeeNumber: employee.employeeNumber,
+        rfc: employee.rfc,
+        salaryType: employee.salaryType,
+        baseSalary: employee.baseSalary,
+        dailySalary: employee.dailySalary || employee.baseSalary / 30,
+        sbc: employee.sbc,
+      },
+      period: {
+        id: period.id,
+        type: period.type,
+        startDate: period.startDate.toISOString(),
+        endDate: period.endDate.toISOString(),
+        year: period.year,
+      },
+      calculationInputs: {
+        workedDays: calculationInputs.workedDays,
+        absences: calculationInputs.absences || 0,
+        overtimeHours: calculationInputs.overtimeHours,
+        incidentsApplied: calculationInputs.incidentsApplied || [],
+      },
+      fiscalParameters: {
+        uma: fiscalParams.uma,
+        smg: fiscalParams.smg,
+        fiscalYear: fiscalParams.fiscalYear,
+      },
+    };
+  }
+
+  /**
+   * HARDENING: Construye un snapshot de salida completo
+   */
+  buildOutputSnapshot(
+    conceptType: FiscalConceptType,
+    conceptCode: string,
+    breakdown: Record<string, number>,
+    finalResult: number,
+    intermediates?: Record<string, unknown>,
+  ): FiscalOutputSnapshot {
+    return {
+      capturedAt: new Date().toISOString(),
+      conceptType,
+      conceptCode,
+      calculationBreakdown: breakdown,
+      finalResult,
+      intermediateValues: intermediates || {},
+    };
+  }
+
+  /**
+   * HARDENING: Genera hash de checksum para tabla de reglas
+   */
+  private generateTableChecksum(rows: any[]): string {
+    const crypto = require('crypto');
+    const content = JSON.stringify(rows);
+    return crypto.createHash('sha256').update(content).digest('hex').substring(0, 16);
   }
 
   /**
