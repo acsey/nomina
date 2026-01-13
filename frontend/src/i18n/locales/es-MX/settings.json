@@ -1,6 +1,8 @@
 {
   "title": "Configuración del Sistema",
   "subtitle": "Administra la configuración global del sistema",
+  "language": "Idioma",
+  "languageDescription": "Selecciona el idioma de la interfaz. Esta preferencia se guarda en tu navegador.",
 
   "tabs": {
     "general": "General",
@@ -19,28 +21,48 @@
     "multiCompany": "Modo multi-empresa"
   },
 
-  "language": {
-    "title": "Idioma",
-    "description": "Idioma de la interfaz del sistema",
-    "system": "Idioma del sistema",
-    "systemDescription": "Idioma por defecto para todos los usuarios",
-    "user": "Idioma del usuario",
-    "userDescription": "Cada usuario puede elegir su idioma preferido",
-    "addMore": "Agregar más idiomas",
-    "addMoreDescription": "Para agregar más idiomas, contacte al administrador del sistema"
+  "accessRestricted": {
+    "title": "Acceso Restringido",
+    "description": "Solo el Super Administrador del sistema puede acceder a esta página."
+  },
+
+  "categories": {
+    "general": "General",
+    "branding": "Marca y Apariencia",
+    "azure_ad": "Microsoft Azure AD / Entra ID",
+    "security": "Seguridad",
+    "email": "Configuración de Correo (SMTP)",
+    "notifications": "Notificaciones"
   },
 
   "theme": {
-    "title": "Tema de la interfaz",
-    "description": "Selecciona el tema visual",
+    "title": "Tema de la Interfaz",
+    "description": "Selecciona el tema de la interfaz. Esta preferencia se guarda en tu navegador.",
     "light": "Claro",
+    "lightDescription": "Tema claro",
     "dark": "Oscuro",
-    "system": "Según sistema",
-    "currentlyUsing": "Actualmente usando tema {theme} basado en la preferencia del sistema"
+    "darkDescription": "Tema oscuro",
+    "system": "Sistema",
+    "systemDescription": "Según tu dispositivo",
+    "currentlyUsing": "Actualmente usando tema {{theme}} basado en la preferencia del sistema."
+  },
+
+  "i18nAdd": {
+    "title": "Agregar más idiomas",
+    "description": "Para agregar más idiomas, contacte al administrador del sistema o agregue archivos de traducción en /src/i18n/locales/"
+  },
+
+  "toggleStates": {
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado"
   },
 
   "security": {
     "title": "Seguridad",
+    "warning": {
+      "title": "Advertencia de Seguridad",
+      "description": "Cambiar estas configuraciones afectará cómo los usuarios acceden al sistema. Si habilita \"Forzar SSO\", los usuarios solo podrán iniciar sesión con Microsoft. Si habilita \"MFA Obligatorio\", todos los usuarios deberán configurar autenticación de dos factores."
+    },
     "sso": {
       "title": "Single Sign-On (SSO)",
       "enabled": "SSO Habilitado",
@@ -76,13 +98,17 @@
     "clientId": "Client ID",
     "tenantId": "Tenant ID",
     "clientSecret": "Client Secret",
-    "testConnection": "Probar conexión",
-    "testSuccess": "Conexión exitosa",
-    "testFailed": "Error de conexión"
+    "test": {
+      "title": "Probar Conexión Azure AD",
+      "description": "Guarda los cambios antes de probar. Esto verificará que la configuración de Azure AD es correcta.",
+      "button": "Probar Azure AD"
+    },
+    "testSuccess": "Conexión con Azure AD exitosa",
+    "testFailed": "Error al probar conexión Azure AD"
   },
 
   "smtp": {
-    "title": "Configuración de correo (SMTP)",
+    "title": "Configuración de Correo (SMTP)",
     "host": "Servidor SMTP",
     "port": "Puerto",
     "user": "Usuario",
@@ -90,23 +116,43 @@
     "fromEmail": "Correo de origen",
     "fromName": "Nombre de origen",
     "encryption": "Encriptación",
-    "testConnection": "Probar conexión",
-    "sendTest": "Enviar correo de prueba"
+    "test": {
+      "title": "Probar Configuración SMTP",
+      "description": "Guarda los cambios antes de probar. Las pruebas usarán la configuración guardada en la base de datos.",
+      "connection": "Probar Conexión",
+      "sendTest": "Enviar Prueba",
+      "emailPlaceholder": "correo@ejemplo.com"
+    },
+    "testSuccess": "Conexión SMTP exitosa",
+    "testFailed": "Error de conexión: {{error}}",
+    "emailSent": "Correo de prueba enviado correctamente",
+    "emailFailed": "Error al enviar: {{error}}",
+    "enterEmail": "Ingresa un correo de prueba"
+  },
+
+  "multiCompany": {
+    "disabledTitle": "Modo Empresa Única",
+    "disabledDescription": "Al deshabilitar el modo multiempresa, los selectores de empresa se ocultarán y los usuarios solo verán datos de su empresa asignada."
   },
 
   "actions": {
-    "save": "Guardar cambios",
+    "save": "Guardar Cambios",
     "saving": "Guardando...",
     "saved": "Configuración guardada",
     "cancel": "Cancelar",
-    "reset": "Restablecer valores"
+    "reset": "Restablecer valores",
+    "noChanges": "No hay cambios para guardar",
+    "saveError": "Error al guardar configuración"
   },
 
-  "warnings": {
-    "criticalChange": "Cambio crítico",
-    "criticalChangeDescription": "Está a punto de modificar configuraciones de seguridad que afectarán el acceso de los usuarios",
-    "justification": "Justificación",
-    "justificationRequired": "Por favor ingrese una justificación para este cambio",
-    "confirm": "Confirmar cambios"
+  "confirmModal": {
+    "title": "Confirmar Cambios Críticos",
+    "description": "Está a punto de modificar configuraciones de seguridad que afectarán el acceso de los usuarios al sistema.",
+    "changesLabel": "Cambios a realizar:",
+    "empty": "vacío",
+    "justification": "Justificación (requerida)",
+    "justificationPlaceholder": "Explique el motivo de estos cambios...",
+    "justificationRequired": "Se requiere justificación para cambios críticos",
+    "confirm": "Confirmar Cambios"
   }
 }

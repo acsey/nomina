@@ -71,7 +71,7 @@ export default function SystemSettingsPage() {
   const handleLanguageChange = (lang: LanguageCode) => {
     changeLanguage(lang);
     setCurrentLang(lang);
-    toast.success(lang === 'es-MX' ? 'Idioma cambiado a Español' : 'Language changed to English');
+    toast.success(t('settings.actions.saved'));
   };
 
   // Redirect if not super admin (SYSTEM_ADMIN without companyId)
@@ -81,10 +81,10 @@ export default function SystemSettingsPage() {
         <div className="text-center">
           <ShieldCheckIcon className="h-16 w-16 mx-auto text-gray-400 mb-4" />
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
-            Acceso Restringido
+            {t('settings.accessRestricted.title')}
           </h2>
           <p className="text-gray-500 dark:text-gray-400">
-            Solo el Super Administrador del sistema puede acceder a esta pagina.
+            {t('settings.accessRestricted.description')}
           </p>
         </div>
       </div>
@@ -103,7 +103,7 @@ export default function SystemSettingsPage() {
     mutationFn: (data: { configs: { key: string; value: string }[]; justification?: string }) =>
       systemConfigApi.updateMultiple(data.configs, data.justification),
     onSuccess: () => {
-      toast.success('Configuracion guardada');
+      toast.success(t('settings.actions.saved'));
       queryClient.invalidateQueries({ queryKey: ['system-configs'] });
       setPendingChanges({});
       setJustification('');
@@ -111,7 +111,7 @@ export default function SystemSettingsPage() {
       refreshConfigs();
     },
     onError: () => {
-      toast.error('Error al guardar configuracion');
+      toast.error(t('settings.actions.saveError'));
     },
   });
 
@@ -122,12 +122,12 @@ export default function SystemSettingsPage() {
       const response = await authApi.testMicrosoftConnection();
       setAzureTestResult(response.data);
       if (response.data.success) {
-        toast.success('Conexion con Azure AD exitosa');
+        toast.success(t('settings.azure.testSuccess'));
       } else {
         toast.error(response.data.message);
       }
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Error al probar conexion Azure AD';
+      const errorMsg = error.response?.data?.message || t('settings.azure.testFailed');
       setAzureTestResult({ success: false, message: errorMsg });
       toast.error(errorMsg);
     } finally {
@@ -145,12 +145,12 @@ export default function SystemSettingsPage() {
     try {
       const response = await emailApi.testConnection();
       if (response.data.success) {
-        toast.success('Conexion SMTP exitosa');
+        toast.success(t('settings.smtp.testSuccess'));
       } else {
-        toast.error(`Error de conexion: ${response.data.error}`);
+        toast.error(t('settings.smtp.testFailed', { error: response.data.error }));
       }
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Error al probar conexion SMTP';
+      const errorMsg = error.response?.data?.message || t('settings.smtp.testFailed', { error: 'unknown' });
       toast.error(errorMsg);
     } finally {
       setTestingSmtp(false);
@@ -159,20 +159,20 @@ export default function SystemSettingsPage() {
 
   const handleSendTestEmail = async () => {
     if (!testEmail) {
-      toast.error('Ingresa un correo de prueba');
+      toast.error(t('settings.smtp.enterEmail'));
       return;
     }
     setTestingSmtp(true);
     try {
       const response = await emailApi.testSend(testEmail);
       if (response.data.success) {
-        toast.success('Correo de prueba enviado correctamente');
+        toast.success(t('settings.smtp.emailSent'));
         setTestEmail('');
       } else {
-        toast.error(`Error al enviar: ${response.data.error}`);
+        toast.error(t('settings.smtp.emailFailed', { error: response.data.error }));
       }
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Error al enviar correo de prueba';
+      const errorMsg = error.response?.data?.message || t('settings.smtp.emailFailed', { error: 'unknown' });
       toast.error(errorMsg);
     } finally {
       setTestingSmtp(false);
@@ -194,7 +194,7 @@ export default function SystemSettingsPage() {
     }));
 
     if (changes.length === 0) {
-      toast.error('No hay cambios para guardar');
+      toast.error(t('settings.actions.noChanges'));
       return;
     }
 
@@ -210,7 +210,7 @@ export default function SystemSettingsPage() {
 
   const handleConfirmedSave = () => {
     if (!justification.trim() && hasCriticalChanges) {
-      toast.error('Se requiere justificacion para cambios criticos');
+      toast.error(t('settings.confirmModal.justificationRequired'));
       return;
     }
 
@@ -267,22 +267,10 @@ export default function SystemSettingsPage() {
   };
 
   const getCategoryName = (category: string) => {
-    switch (category) {
-      case 'general':
-        return 'General';
-      case 'branding':
-        return 'Marca y Apariencia';
-      case 'azure_ad':
-        return 'Microsoft Azure AD / Entra ID';
-      case 'security':
-        return 'Seguridad';
-      case 'email':
-        return 'Configuracion de Correo (SMTP)';
-      case 'notifications':
-        return 'Notificaciones';
-      default:
-        return category.charAt(0).toUpperCase() + category.slice(1);
-    }
+    const key = `settings.categories.${category}`;
+    const translated = t(key);
+    // Return translated if key exists, otherwise fallback to capitalized category name
+    return translated !== key ? translated : category.charAt(0).toUpperCase() + category.slice(1);
   };
 
   const toggleSecretVisibility = (key: string) => {
@@ -316,7 +304,7 @@ export default function SystemSettingsPage() {
               />
             </button>
             <span className="ml-3 text-sm text-gray-600 dark:text-gray-400">
-              {value === 'true' ? 'Habilitado' : 'Deshabilitado'}
+              {value === 'true' ? t('settings.toggleStates.enabled') : t('settings.toggleStates.disabled')}
             </span>
           </div>
         );
@@ -381,10 +369,10 @@ export default function SystemSettingsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Configuracion del Sistema
+            {t('settings.title')}
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Administra la configuracion global del sistema
+            {t('settings.subtitle')}
           </p>
         </div>
 
@@ -394,7 +382,7 @@ export default function SystemSettingsPage() {
             disabled={updateMutation.isPending}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
           >
-            {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
+            {updateMutation.isPending ? t('settings.actions.saving') : t('settings.actions.save')}
           </button>
         )}
       </div>
@@ -406,13 +394,13 @@ export default function SystemSettingsPage() {
             <SwatchIcon className="h-5 w-5" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Tema de la Interfaz
+            {t('settings.theme.title')}
           </h2>
         </div>
 
         <div className="p-6">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Selecciona el tema de la interfaz. Esta preferencia se guarda en tu navegador.
+            {t('settings.theme.description')}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -442,10 +430,10 @@ export default function SystemSettingsPage() {
                     ? 'text-primary-700 dark:text-primary-300'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}>
-                  Claro
+                  {t('settings.theme.light')}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Tema claro
+                  {t('settings.theme.lightDescription')}
                 </p>
               </div>
             </button>
@@ -476,10 +464,10 @@ export default function SystemSettingsPage() {
                     ? 'text-primary-700 dark:text-primary-300'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}>
-                  Oscuro
+                  {t('settings.theme.dark')}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Tema oscuro
+                  {t('settings.theme.darkDescription')}
                 </p>
               </div>
             </button>
@@ -510,10 +498,10 @@ export default function SystemSettingsPage() {
                     ? 'text-primary-700 dark:text-primary-300'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}>
-                  Sistema
+                  {t('settings.theme.system')}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Segun tu dispositivo
+                  {t('settings.theme.systemDescription')}
                 </p>
               </div>
             </button>
@@ -521,7 +509,7 @@ export default function SystemSettingsPage() {
 
           {mode === 'system' && (
             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-              Actualmente usando tema {isDark ? 'oscuro' : 'claro'} basado en la preferencia del sistema.
+              {t('settings.theme.currentlyUsing', { theme: isDark ? t('settings.theme.dark').toLowerCase() : t('settings.theme.light').toLowerCase() })}
             </p>
           )}
         </div>
@@ -579,12 +567,10 @@ export default function SystemSettingsPage() {
               <GlobeAltIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  {currentLang === 'es-MX' ? 'Agregar más idiomas' : 'Add more languages'}
+                  {t('settings.i18nAdd.title')}
                 </p>
                 <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                  {currentLang === 'es-MX'
-                    ? 'Para agregar más idiomas, contacte al administrador del sistema o agregue archivos de traducción en /src/i18n/locales/'
-                    : 'To add more languages, contact the system administrator or add translation files in /src/i18n/locales/'}
+                  {t('settings.i18nAdd.description')}
                 </p>
               </div>
             </div>
@@ -601,11 +587,10 @@ export default function SystemSettingsPage() {
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                Modo Empresa Unica
+                {t('settings.multiCompany.disabledTitle')}
               </h3>
               <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                Al deshabilitar el modo multiempresa, los selectores de empresa se ocultaran
-                y los usuarios solo veran datos de su empresa asignada.
+                {t('settings.multiCompany.disabledDescription')}
               </p>
             </div>
           </div>
@@ -652,10 +637,10 @@ export default function SystemSettingsPage() {
                     <div className="flex flex-col gap-4">
                       <div>
                         <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                          Probar Configuracion SMTP
+                          {t('settings.smtp.test.title')}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                          Guarda los cambios antes de probar. Las pruebas usaran la configuracion guardada en la base de datos.
+                          {t('settings.smtp.test.description')}
                         </p>
                       </div>
 
@@ -670,13 +655,13 @@ export default function SystemSettingsPage() {
                           ) : (
                             <EnvelopeIcon className="h-4 w-4" />
                           )}
-                          Probar Conexion
+                          {t('settings.smtp.test.connection')}
                         </button>
 
                         <div className="flex flex-1 gap-2">
                           <input
                             type="email"
-                            placeholder="correo@ejemplo.com"
+                            placeholder={t('settings.smtp.test.emailPlaceholder')}
                             value={testEmail}
                             onChange={(e) => setTestEmail(e.target.value)}
                             className="input flex-1"
@@ -691,7 +676,7 @@ export default function SystemSettingsPage() {
                             ) : (
                               <EnvelopeIcon className="h-4 w-4" />
                             )}
-                            Enviar Prueba
+                            {t('settings.smtp.test.sendTest')}
                           </button>
                         </div>
                       </div>
@@ -705,10 +690,10 @@ export default function SystemSettingsPage() {
                     <div className="flex flex-col gap-4">
                       <div>
                         <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                          Probar Conexion Azure AD
+                          {t('settings.azure.test.title')}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                          Guarda los cambios antes de probar. Esto verificara que la configuracion de Azure AD es correcta.
+                          {t('settings.azure.test.description')}
                         </p>
                       </div>
 
@@ -723,7 +708,7 @@ export default function SystemSettingsPage() {
                           ) : (
                             <CloudIcon className="h-4 w-4" />
                           )}
-                          Probar Azure AD
+                          {t('settings.azure.test.button')}
                         </button>
 
                         {azureTestResult && (
@@ -778,12 +763,10 @@ export default function SystemSettingsPage() {
                       <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                          Advertencia de Seguridad
+                          {t('settings.security.warning.title')}
                         </p>
                         <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                          Cambiar estas configuraciones afectara como los usuarios acceden al sistema.
-                          Si habilita &quot;Forzar SSO&quot;, los usuarios solo podran iniciar sesion con Microsoft.
-                          Si habilita &quot;MFA Obligatorio&quot;, todos los usuarios deberan configurar autenticacion de dos factores.
+                          {t('settings.security.warning.description')}
                         </p>
                       </div>
                     </div>
@@ -804,23 +787,23 @@ export default function SystemSettingsPage() {
                   <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Confirmar Cambios Criticos
+                  {t('settings.confirmModal.title')}
                 </h3>
               </div>
 
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Esta a punto de modificar configuraciones de seguridad que afectaran el acceso de los usuarios al sistema.
+                {t('settings.confirmModal.description')}
               </p>
 
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Cambios a realizar:
+                  {t('settings.confirmModal.changesLabel')}
                 </p>
                 <ul className="space-y-1">
                   {getCriticalChangesList().map((change) => (
                     <li key={change.key} className="text-sm text-gray-700 dark:text-gray-300">
                       <span className="font-medium">{change.key.replace(/_/g, ' ')}:</span>{' '}
-                      <span className="text-red-500">{change.oldValue || 'vacio'}</span>
+                      <span className="text-red-500">{change.oldValue || t('settings.confirmModal.empty')}</span>
                       {' -> '}
                       <span className="text-green-500">{change.newValue}</span>
                     </li>
@@ -830,12 +813,12 @@ export default function SystemSettingsPage() {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Justificacion (requerida)
+                  {t('settings.confirmModal.justification')}
                 </label>
                 <textarea
                   value={justification}
                   onChange={(e) => setJustification(e.target.value)}
-                  placeholder="Explique el motivo de estos cambios..."
+                  placeholder={t('settings.confirmModal.justificationPlaceholder')}
                   className="input w-full h-24 resize-none"
                   required
                 />
@@ -849,14 +832,14 @@ export default function SystemSettingsPage() {
                   }}
                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  Cancelar
+                  {t('settings.actions.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmedSave}
                   disabled={!justification.trim() || updateMutation.isPending}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >
-                  {updateMutation.isPending ? 'Guardando...' : 'Confirmar Cambios'}
+                  {updateMutation.isPending ? t('settings.actions.saving') : t('settings.confirmModal.confirm')}
                 </button>
               </div>
             </div>
