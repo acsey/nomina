@@ -267,17 +267,18 @@ export class PtuCalculatorService {
 
       // Exclude high management if option is set (directors, general managers)
       if (options?.excludeHighManagement) {
-        const highManagementPositions = ['DIRECTOR', 'GENERAL_MANAGER', 'CEO', 'CFO'];
-        const positionCode = emp.jobPosition?.code?.toUpperCase() || '';
-        if (highManagementPositions.some(pos => positionCode.includes(pos))) {
+        const highManagementPositions = ['DIRECTOR', 'GENERAL_MANAGER', 'CEO', 'CFO', 'GERENTE GENERAL'];
+        const positionName = emp.jobPosition?.name?.toUpperCase() || '';
+        if (highManagementPositions.some(pos => positionName.includes(pos))) {
           isEligible = false;
           exclusionReason = 'High management position excluded';
         }
       }
 
       // Domestic workers and personal service workers are excluded (LFT Art. 127)
-      const domesticCategories = ['DOMESTIC', 'PERSONAL_SERVICE'];
-      if (domesticCategories.includes(emp.jobPosition?.category || '')) {
+      const domesticPositions = ['DOMESTIC', 'PERSONAL_SERVICE', 'DOMESTICO', 'SERVICIO PERSONAL'];
+      const positionName = emp.jobPosition?.name?.toUpperCase() || '';
+      if (domesticPositions.some(pos => positionName.includes(pos))) {
         isEligible = false;
         exclusionReason = 'Domestic or personal service worker';
       }
