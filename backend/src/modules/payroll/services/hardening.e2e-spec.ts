@@ -19,17 +19,17 @@ describe('Validación de DTOs Fiscales', () => {
   describe('FiscalRuleType Enum', () => {
     it('debe contener tipos de reglas fiscales válidos', () => {
       expect(FiscalRuleType.ISR).toBeDefined();
-      expect(FiscalRuleType.IMSS).toBeDefined();
+      expect(FiscalRuleType.IMSS_EMPLOYEE).toBeDefined();
       expect(FiscalRuleType.INFONAVIT).toBeDefined();
-      expect(FiscalRuleType.SUBSIDIO).toBeDefined();
+      expect(FiscalRuleType.SUBSIDIO_EMPLEO).toBeDefined();
     });
   });
 
   describe('RuleAction Enum', () => {
     it('debe contener acciones de regla válidas', () => {
       expect(RuleAction.APPLY_TABLE).toBeDefined();
-      expect(RuleAction.FIXED_AMOUNT).toBeDefined();
-      expect(RuleAction.PERCENTAGE).toBeDefined();
+      expect(RuleAction.APPLY_FIXED).toBeDefined();
+      expect(RuleAction.APPLY_RATE).toBeDefined();
     });
   });
 
