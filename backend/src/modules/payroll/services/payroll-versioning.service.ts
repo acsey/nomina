@@ -270,7 +270,7 @@ export class PayrollVersioningService {
       action: CriticalAction.PAYROLL_RECALCULATE,
       entity: 'PayrollDetail',
       entityId: result.id,
-      previousValues: {
+      oldValues: {
         id: payrollDetailId,
         version: currentVersion,
         netPay: Number(currentReceipt.netPay),
