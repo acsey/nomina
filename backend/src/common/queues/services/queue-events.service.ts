@@ -3,8 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { QUEUE_NAMES } from '../queue.constants';
-import { CFDI_EVENTS } from '../processors/cfdi-stamping.processor';
+import { QUEUE_NAMES, CFDI_EVENTS } from '../queue.constants';
 import { PAYROLL_EVENTS } from '../processors/payroll-calculation.processor';
 
 /**

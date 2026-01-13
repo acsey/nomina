@@ -2,11 +2,11 @@ import { Module, Global, DynamicModule, Logger } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { QUEUE_NAMES, RETRY_CONFIG } from './queue.constants';
-import { CfdiStampingProcessor } from './processors/cfdi-stamping.processor';
 import { PayrollCalculationProcessor } from './processors/payroll-calculation.processor';
 import { NotificationsProcessor } from './processors/notifications.processor';
 import { QueueEventsService } from './services/queue-events.service';
 import { QueueService } from './services/queue.service';
+// StampingProcessor is imported dynamically to avoid circular dependencies
 
 // Re-exportar constantes para compatibilidad
 export { QUEUE_NAMES, RETRY_CONFIG } from './queue.constants';
@@ -102,8 +102,8 @@ export class QueuesModule {
     const baseProviders = [QueueEventsService, QueueService];
 
     // Procesadores (solo en modo worker o both)
+    // Note: StampingProcessor (CFDI) is now registered in WorkerModule from modules/cfdi
     const processors = mode === 'api' ? [] : [
-      CfdiStampingProcessor,
       PayrollCalculationProcessor,
       NotificationsProcessor,
     ];

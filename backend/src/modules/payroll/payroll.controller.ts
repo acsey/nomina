@@ -94,8 +94,16 @@ export class PayrollController {
   @Post('periods/:id/approve')
   @Roles('admin', 'company_admin')
   @ApiOperation({ summary: 'Aprobar nomina del periodo (genera y timbra CFDI automaticamente)' })
-  approvePayroll(@Param('id') id: string) {
-    return this.payrollService.approvePayroll(id);
+  approvePayroll(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user?.id;
+    return this.payrollService.approvePayroll(id, userId);
+  }
+
+  @Get('periods/:id/stamping-status')
+  @Roles('admin', 'company_admin', 'rh')
+  @ApiOperation({ summary: 'Obtener estado del timbrado del periodo (para polling en modo async)' })
+  getStampingStatus(@Param('id') id: string) {
+    return this.payrollService.getStampingStatus(id);
   }
 
   @Post('periods/:id/close')

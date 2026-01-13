@@ -92,6 +92,9 @@ services:
       # Queue mode: 'both' for staging (API + Worker in same container)
       QUEUE_MODE: both
 
+      # CFDI Stamp mode: 'sync' for dev/testing, 'async' for staging/prod
+      CFDI_STAMP_MODE: ${CFDI_STAMP_MODE:-async}
+
       # PAC (Proveedor de Timbrado CFDI)
       PAC_MODE: ${PAC_MODE:-sandbox}
       PAC_PROVIDER: ${PAC_PROVIDER:-}

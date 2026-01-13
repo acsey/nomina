@@ -208,6 +208,106 @@ docker builder prune -f
 docker system prune -a
 ```
 
+## Arquitectura de Timbrado CFDI
+
+El sistema soporta dos modos de timbrado controlados por `CFDI_STAMP_MODE`:
+
+### Modo Sync (desarrollo)
+```env
+CFDI_STAMP_MODE=sync
+```
+- Timbrado directo y bloqueante
+- El endpoint `/api/payroll/:id/approve` espera a que todos los CFDIs se timbren
+- Ideal para desarrollo y pruebas rápidas
+
+### Modo Async (staging/producción)
+```env
+CFDI_STAMP_MODE=async
+```
+- Timbrado via cola de BullMQ/Redis
+- El endpoint `/api/payroll/:id/approve` retorna inmediatamente con `batchId`
+- Frontend debe hacer polling a `/api/payroll/:id/stamping-status`
+- Los workers procesan los jobs en segundo plano
+
+### Arquitectura de Colas
+
+```
+┌─────────────────┐     ┌─────────────┐     ┌─────────────────┐
+│   Backend API   │────▶│    Redis    │────▶│ StampingWorker  │
+│  (QUEUE_MODE:   │     │  (BullMQ)   │     │ (QUEUE_MODE:    │
+│      api)       │     │             │     │    worker)      │
+└─────────────────┘     └─────────────┘     └─────────────────┘
+                                                    │
+                                                    ▼
+                                            ┌─────────────┐
+                                            │   PAC (SAT) │
+                                            │   FINKOK    │
+                                            │   SW_SAPIEN │
+                                            └─────────────┘
+```
+
+En staging con `QUEUE_MODE=both`, el mismo contenedor actúa como API y worker.
+
+## Smoke Tests
+
+### 1. Verificar servicios arriba
+```bash
+# Health check de todos los servicios
+curl -s http://localhost/api/health | jq
+# Esperado: { "status": "ok", "version": "..." }
+```
+
+### 2. Verificar autenticación
+```bash
+# Login
+curl -s -X POST http://localhost/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@demo.com","password":"password"}' | jq
+
+# Esperado: { "accessToken": "...", "user": {...} }
+```
+
+### 3. Verificar Redis y colas
+```bash
+# Verificar conexión a Redis
+docker exec nomina-staging-backend sh -c "redis-cli -h redis -a \$REDIS_PASSWORD ping"
+# Esperado: PONG
+
+# Verificar estadísticas de colas
+curl -s -X GET http://localhost/api/queues/stats \
+  -H "Authorization: Bearer <token>" | jq
+# Esperado: { "cfdiStamping": {...}, "payrollCalculation": {...} }
+```
+
+### 4. Verificar modo de timbrado
+```bash
+# Consultar configuración
+docker exec nomina-staging-backend sh -c "echo \$CFDI_STAMP_MODE"
+# Esperado: async (en staging)
+```
+
+### 5. Test completo de nómina (con datos de prueba)
+```bash
+# 1. Crear período de prueba
+curl -s -X POST http://localhost/api/payroll/periods \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"companyId":"...","periodType":"WEEKLY",...}'
+
+# 2. Calcular nómina
+curl -s -X POST http://localhost/api/payroll/periods/<id>/calculate \
+  -H "Authorization: Bearer <token>"
+
+# 3. Aprobar (dispara timbrado)
+curl -s -X POST http://localhost/api/payroll/periods/<id>/approve \
+  -H "Authorization: Bearer <token>"
+
+# 4. Verificar estado de timbrado (modo async)
+curl -s http://localhost/api/payroll/periods/<id>/stamping-status \
+  -H "Authorization: Bearer <token>" | jq
+# Esperado: { "stamping": { "total": N, "stamped": X, "pending": Y, "progress": Z } }
+```
+
 ## Seguridad
 
 - Cambiar todas las contraseñas por defecto

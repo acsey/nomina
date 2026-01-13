@@ -8,7 +8,10 @@ import { FiscalModule } from './common/fiscal/fiscal.module';
 import { FormulaModule } from './common/formulas/formula.module';
 import { UtilsModule } from './common/utils/utils.module';
 import { QUEUE_NAMES, RETRY_CONFIG } from './common/queues/queue.constants';
-import { CfdiStampingProcessor } from './common/queues/processors/cfdi-stamping.processor';
+// CFDI Stamping processor now from modules/cfdi (has real PAC integration)
+import { StampingProcessor } from './modules/cfdi/processors/stamping.processor';
+import { StampingService } from './modules/cfdi/services/stamping.service';
+import { StampingIdempotencyService } from './modules/cfdi/services/stamping-idempotency.service';
 import { PayrollCalculationProcessor } from './common/queues/processors/payroll-calculation.processor';
 import { NotificationsProcessor } from './common/queues/processors/notifications.processor';
 import { QueueEventsService } from './common/queues/services/queue-events.service';
@@ -74,8 +77,11 @@ import { QueueEventsService } from './common/queues/services/queue-events.servic
     ),
   ],
   providers: [
+    // Servicios necesarios para StampingProcessor
+    StampingService,
+    StampingIdempotencyService,
     // Procesadores de colas
-    CfdiStampingProcessor,
+    StampingProcessor, // CFDI stamping with real PAC integration
     PayrollCalculationProcessor,
     NotificationsProcessor,
     // Servicio de eventos de cola
