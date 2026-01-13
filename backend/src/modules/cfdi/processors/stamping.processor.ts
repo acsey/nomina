@@ -195,7 +195,7 @@ export class StampingProcessor extends WorkerHost {
         userId || 'SYSTEM',
         cfdiId,
         stampResult.uuid,
-        payrollDetailId,
+        payrollDetailId || cfdiId, // Use cfdiId as fallback for audit reference
       );
 
       return {
