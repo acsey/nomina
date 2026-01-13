@@ -1,20 +1,39 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Inject, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { XmlBuilderService } from './services/xml-builder.service';
 import { StampingService } from './services/stamping.service';
 import { SecretsService } from '@/common/security/secrets.service';
 import { AuditService } from '@/common/security/audit.service';
+import { QueueService } from '@/common/queues/services/queue.service';
 import { CfdiStatus } from '@/common/types/prisma-enums';
+
+/**
+ * Modo de timbrado CFDI
+ * - sync: Timbrado síncrono directo (desarrollo/pruebas)
+ * - async: Timbrado asíncrono via cola (staging/producción)
+ */
+export type CfdiStampMode = 'sync' | 'async';
 
 @Injectable()
 export class CfdiService {
+  private readonly logger = new Logger(CfdiService.name);
+  private readonly stampMode: CfdiStampMode;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly xmlBuilder: XmlBuilderService,
     private readonly stampingService: StampingService,
     private readonly secretsService: SecretsService,
     private readonly auditService: AuditService,
-  ) {}
+    private readonly configService: ConfigService,
+    @Optional() @Inject(QueueService) private readonly queueService?: QueueService,
+  ) {
+    // Determine stamp mode from environment
+    const mode = this.configService.get<string>('CFDI_STAMP_MODE', 'sync').toLowerCase();
+    this.stampMode = (mode === 'async' ? 'async' : 'sync') as CfdiStampMode;
+    this.logger.log(`CfdiService inicializado en modo: ${this.stampMode}`);
+  }
 
   async generateCfdi(payrollDetailId: string) {
     const payrollDetail = await this.prisma.payrollDetail.findUnique({
@@ -62,7 +81,19 @@ export class CfdiService {
     return cfdi;
   }
 
-  async stampCfdi(cfdiId: string, userId?: string) {
+  /**
+   * Timbrar un CFDI individual
+   *
+   * En modo SYNC: Timbra directamente y retorna el CFDI actualizado
+   * En modo ASYNC: Encola el job y retorna el CFDI con status QUEUED
+   *
+   * @param options.forceSync - Forzar modo síncrono ignorando configuración
+   */
+  async stampCfdi(
+    cfdiId: string,
+    userId?: string,
+    options?: { forceSync?: boolean; payrollDetailId?: string },
+  ) {
     const cfdi = await this.prisma.cfdiNomina.findUnique({
       where: { id: cfdiId },
       include: {
@@ -70,6 +101,9 @@ export class CfdiService {
           include: {
             company: true,
           },
+        },
+        payrollDetail: {
+          select: { id: true },
         },
       },
     });
@@ -87,7 +121,30 @@ export class CfdiService {
     }
 
     const companyId = cfdi.employee.company.id;
+    const payrollDetailId = options?.payrollDetailId || cfdi.payrollDetail?.id;
 
+    // Determine effective mode
+    const useAsync = !options?.forceSync && this.stampMode === 'async' && this.queueService;
+
+    if (useAsync) {
+      // ASYNC MODE: Queue the stamping job
+      return this.stampCfdiAsync(cfdiId, companyId, userId, payrollDetailId);
+    }
+
+    // SYNC MODE: Stamp directly
+    return this.stampCfdiSync(cfdiId, companyId, cfdi.xmlOriginal, cfdi.employeeId, userId);
+  }
+
+  /**
+   * Timbrado síncrono - espera el resultado
+   */
+  private async stampCfdiSync(
+    cfdiId: string,
+    companyId: string,
+    xmlOriginal: string,
+    employeeId: string,
+    userId?: string,
+  ) {
     // Obtener secretos descifrados de forma segura
     const [certificates, pacCredentials] = await Promise.all([
       this.secretsService.getCompanyCertificates(companyId),
@@ -107,7 +164,7 @@ export class CfdiService {
 
     try {
       // Enviar a timbrar al PAC con configuración de la empresa
-      const stampingResult = await this.stampingService.stamp(cfdi.xmlOriginal, companyConfig);
+      const stampingResult = await this.stampingService.stamp(xmlOriginal, companyConfig);
 
       // Actualizar con datos del timbrado
       const updatedCfdi = await this.prisma.cfdiNomina.update({
@@ -129,11 +186,11 @@ export class CfdiService {
         userId || 'SYSTEM',
         cfdiId,
         stampingResult.uuid,
-        cfdi.employeeId,
+        employeeId,
       );
 
       return updatedCfdi;
-    } catch (error) {
+    } catch (error: any) {
       await this.prisma.cfdiNomina.update({
         where: { id: cfdiId },
         data: {
@@ -143,6 +200,44 @@ export class CfdiService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Timbrado asíncrono - encola y retorna inmediatamente
+   */
+  private async stampCfdiAsync(
+    cfdiId: string,
+    companyId: string,
+    userId?: string,
+    payrollDetailId?: string,
+  ) {
+    if (!this.queueService) {
+      throw new BadRequestException('QueueService no disponible para modo async');
+    }
+
+    // Mark as QUEUED
+    const queuedCfdi = await this.prisma.cfdiNomina.update({
+      where: { id: cfdiId },
+      data: {
+        status: 'PENDING', // Will be updated to STAMPED by processor
+      },
+    });
+
+    // Queue the stamping job
+    const jobId = await this.queueService.queueCfdiForStamping(cfdiId, {
+      userId,
+      companyId,
+      payrollDetailId,
+      priority: 'normal',
+    });
+
+    this.logger.log(`CFDI ${cfdiId} encolado para timbrado (job: ${jobId})`);
+
+    return {
+      ...queuedCfdi,
+      queued: true,
+      jobId,
+    };
   }
 
   async cancelCfdi(cfdiId: string, reason: string, userId?: string) {
@@ -281,7 +376,13 @@ export class CfdiService {
     });
   }
 
-  async stampAllPeriod(periodId: string) {
+  /**
+   * Timbrar todos los CFDIs de un período
+   *
+   * En modo SYNC: Timbra secuencialmente (bloqueante)
+   * En modo ASYNC: Encola todo el batch y retorna inmediatamente
+   */
+  async stampAllPeriod(periodId: string, userId?: string) {
     const cfdis = await this.prisma.cfdiNomina.findMany({
       where: {
         status: 'PENDING',
@@ -289,9 +390,46 @@ export class CfdiService {
           payrollPeriodId: periodId,
         },
       },
+      include: {
+        payrollDetail: {
+          select: { id: true },
+        },
+      },
     });
 
+    if (cfdis.length === 0) {
+      return {
+        mode: this.stampMode,
+        total: 0,
+        success: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+    }
+
+    // ASYNC MODE: Use batch queuing
+    if (this.stampMode === 'async' && this.queueService) {
+      const cfdiIds = cfdis.map((c) => c.id);
+      const { batchId, jobIds } = await this.queueService.queueBatchCfdiStamping(cfdiIds, {
+        userId,
+        priority: 'normal',
+      });
+
+      this.logger.log(`Batch ${batchId} creado con ${cfdis.length} CFDIs para período ${periodId}`);
+
+      return {
+        mode: 'async' as const,
+        total: cfdis.length,
+        batchId,
+        jobIds,
+        message: `${cfdis.length} CFDIs encolados para timbrado`,
+      };
+    }
+
+    // SYNC MODE: Process sequentially
     const results = {
+      mode: 'sync' as const,
+      total: cfdis.length,
       success: 0,
       failed: 0,
       errors: [] as string[],
@@ -299,14 +437,34 @@ export class CfdiService {
 
     for (const cfdi of cfdis) {
       try {
-        await this.stampCfdi(cfdi.id);
+        await this.stampCfdi(cfdi.id, userId, {
+          forceSync: true,
+          payrollDetailId: cfdi.payrollDetail?.id,
+        });
         results.success++;
-      } catch (error) {
+      } catch (error: any) {
         results.failed++;
         results.errors.push(`${cfdi.id}: ${error.message}`);
       }
     }
 
     return results;
+  }
+
+  /**
+   * Obtiene el estado de un batch de timbrado
+   */
+  async getBatchStatus(batchId: string) {
+    if (!this.queueService) {
+      return null;
+    }
+    return this.queueService.getBatchStatus(batchId);
+  }
+
+  /**
+   * Obtiene el modo de timbrado actual
+   */
+  getStampMode(): CfdiStampMode {
+    return this.stampMode;
   }
 }

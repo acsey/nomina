@@ -100,6 +100,9 @@ services:
       # Queue mode: 'api' in production (workers run separately)
       QUEUE_MODE: api
 
+      # CFDI Stamp mode: always async in production
+      CFDI_STAMP_MODE: async
+
       # PAC (Proveedor de Timbrado CFDI)
       PAC_MODE: ${PAC_MODE:-production}
       PAC_PROVIDER: ${PAC_PROVIDER}

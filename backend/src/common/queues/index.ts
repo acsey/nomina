@@ -5,7 +5,7 @@ export * from './queue.constants';
 export * from './queues.module';
 
 // Processors
-export * from './processors/cfdi-stamping.processor';
+// Note: CFDI Stamping processor is now in modules/cfdi/processors/stamping.processor.ts
 export * from './processors/payroll-calculation.processor';
 export * from './processors/notifications.processor';
 
