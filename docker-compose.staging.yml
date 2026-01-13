@@ -1,0 +1,204 @@
+version: '3.8'
+
+# =============================================================================
+# Docker Compose - Staging Environment
+# =============================================================================
+#
+# Uso:
+#   1. Copiar .env.staging.example a .env.staging y configurar
+#   2. docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+#
+# Servicios:
+#   - db: PostgreSQL 16 con datos persistentes
+#   - redis: Redis 7 para colas de procesamiento
+#   - backend: API NestJS en modo staging
+#   - frontend: React + Nginx
+#   - nginx: Reverse proxy con SSL (opcional)
+#
+# =============================================================================
+
+services:
+  # ======================
+  # PostgreSQL Database
+  # ======================
+  db:
+    image: postgres:16-alpine
+    container_name: nomina-staging-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - staging_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nomina-staging-network
+    # No exponer puerto externamente en staging
+    # ports:
+    #   - "5432:5432"
+
+  # ======================
+  # Redis (Job Queues)
+  # ======================
+  redis:
+    image: redis:7-alpine
+    container_name: nomina-staging-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - staging_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nomina-staging-network
+
+  # ======================
+  # Backend API (NestJS)
+  # ======================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nomina-staging-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: staging
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+
+      # Security - REQUIRED
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+
+      # Server
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB:-0}
+
+      # Queue mode: 'both' for staging (API + Worker in same container)
+      QUEUE_MODE: both
+
+      # PAC (Proveedor de Timbrado CFDI)
+      PAC_MODE: ${PAC_MODE:-sandbox}
+      PAC_PROVIDER: ${PAC_PROVIDER:-}
+      PAC_USER: ${PAC_USER:-}
+      PAC_PASSWORD: ${PAC_PASSWORD:-}
+
+      # Storage
+      FISCAL_STORAGE_PATH: /app/storage/fiscal
+
+      # Azure AD (SSO) - Optional
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
+      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET:-}
+
+      # SMTP - Optional
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Sistema de Nómina}
+    volumes:
+      - staging_fiscal_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - nomina-staging-network
+    # Backend accessible via nginx proxy
+    expose:
+      - "3000"
+
+  # ======================
+  # Frontend (React + Nginx)
+  # ======================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    container_name: nomina-staging-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - nomina-staging-network
+    expose:
+      - "80"
+
+  # ======================
+  # Nginx Reverse Proxy
+  # ======================
+  nginx:
+    image: nginx:alpine
+    container_name: nomina-staging-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/staging.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - staging_nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - nomina-staging-network
+
+# ======================
+# Volumes (Persistent)
+# ======================
+volumes:
+  staging_postgres_data:
+    driver: local
+    name: nomina_staging_postgres_data
+  staging_redis_data:
+    driver: local
+    name: nomina_staging_redis_data
+  staging_fiscal_storage:
+    driver: local
+    name: nomina_staging_fiscal_storage
+  staging_nginx_logs:
+    driver: local
+    name: nomina_staging_nginx_logs
+
+# ======================
+# Isolated Network
+# ======================
+networks:
+  nomina-staging-network:
+    driver: bridge
+    name: nomina_staging_network
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
