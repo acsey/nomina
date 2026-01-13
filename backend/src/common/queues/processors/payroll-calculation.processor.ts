@@ -211,13 +211,12 @@ export class PayrollCalculationProcessor extends WorkerHost {
     concepts: any[],
     recalculate?: boolean,
   ): Promise<{ totalPerceptions: number; totalDeductions: number; netPay: number }> {
-    // Verificar si ya existe cálculo
-    const existingDetail = await this.prisma.payrollDetail.findUnique({
+    // Verificar si ya existe cálculo (HARDENING: buscar recibo activo)
+    const existingDetail = await this.prisma.payrollDetail.findFirst({
       where: {
-        payrollPeriodId_employeeId: {
-          payrollPeriodId: period.id,
-          employeeId: employee.id,
-        },
+        payrollPeriodId: period.id,
+        employeeId: employee.id,
+        active: true,
       },
     });
 
@@ -264,31 +263,34 @@ export class PayrollCalculationProcessor extends WorkerHost {
 
     const netPay = this.round(totalPerceptions - totalDeductions);
 
-    // Crear o actualizar detalle
-    const payrollDetail = await this.prisma.payrollDetail.upsert({
-      where: {
-        payrollPeriodId_employeeId: {
+    // Crear o actualizar detalle (HARDENING: manejar versionado)
+    let payrollDetail;
+    if (existingDetail) {
+      payrollDetail = await this.prisma.payrollDetail.update({
+        where: { id: existingDetail.id },
+        data: {
+          workedDays,
+          totalPerceptions,
+          totalDeductions,
+          netPay,
+          status: 'CALCULATED',
+        },
+      });
+    } else {
+      payrollDetail = await this.prisma.payrollDetail.create({
+        data: {
           payrollPeriodId: period.id,
           employeeId: employee.id,
+          workedDays,
+          totalPerceptions,
+          totalDeductions,
+          netPay,
+          status: 'CALCULATED',
+          version: 1,
+          active: true,
         },
-      },
-      create: {
-        payrollPeriodId: period.id,
-        employeeId: employee.id,
-        workedDays,
-        totalPerceptions,
-        totalDeductions,
-        netPay,
-        status: 'CALCULATED',
-      },
-      update: {
-        workedDays,
-        totalPerceptions,
-        totalDeductions,
-        netPay,
-        status: 'CALCULATED',
-      },
-    });
+      });
+    }
 
     // Crear percepciones
     const salaryConcept = concepts.find((c: any) => c.code === 'P001');
