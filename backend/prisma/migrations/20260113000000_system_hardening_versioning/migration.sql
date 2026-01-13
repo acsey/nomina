@@ -99,9 +99,5 @@ ALTER TABLE "payroll_details"
   ADD COLUMN IF NOT EXISTS "stamping_attempts" INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS "last_stamping_attempt" TIMESTAMP(3);
 
--- 13. Añadir campo sha256_hash a documents (para CAS)
-ALTER TABLE "documents"
-  ADD COLUMN IF NOT EXISTS "sha256_hash" TEXT;
-
-CREATE INDEX IF NOT EXISTS "documents_sha256_hash_idx"
-  ON "documents"("sha256_hash");
+-- 13. NOTA: receipt_document ya tiene columna sha256 para CAS
+-- No se requiere agregar columna adicional
