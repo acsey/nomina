@@ -73,19 +73,21 @@ export class ImssService {
       },
     });
 
-    const report = employees.map((emp: any) => {
-      const sbc = Number(emp.salarioDiarioIntegrado) || this.calculateSBC(emp);
-      const periodDays = this.getPeriodDays(period?.periodType || 'BIWEEKLY');
+    const report = await Promise.all(
+      employees.map(async (emp: any) => {
+        const sbc = Number(emp.salarioDiarioIntegrado) || this.calculateSBC(emp);
+        const periodDays = this.getPeriodDays(period?.periodType || 'BIWEEKLY');
 
-      return {
-        nss: emp.nss,
-        employeeNumber: emp.employeeNumber,
-        name: `${emp.firstName} ${emp.lastName}`,
-        sbc,
-        periodDays,
-        quotas: this.calculateQuotas(sbc, periodDays, emp.jobPosition?.riskLevel),
-      };
-    });
+        return {
+          nss: emp.nss,
+          employeeNumber: emp.employeeNumber,
+          name: `${emp.firstName} ${emp.lastName}`,
+          sbc,
+          periodDays,
+          quotas: await this.calculateQuotas(sbc, periodDays, emp.jobPosition?.riskLevel),
+        };
+      }),
+    );
 
     const totals = report.reduce(
       (acc: any, emp: any) => ({
@@ -296,12 +298,14 @@ export class ImssService {
     }
   }
 
-  private calculateQuotas(sbc: number, days: number, riskLevel?: string) {
-    const tresSMG = this.SALARIO_MINIMO * 3;
+  private async calculateQuotas(sbc: number, days: number, riskLevel?: string) {
+    const smgDaily = await this.fiscalValues.getSmgDaily();
+    const umaDaily = await this.fiscalValues.getUmaDaily();
+    const tresSMG = smgDaily * 3;
 
     // Cuotas del patrón
     const employer = {
-      cuotaFija: this.UMA_DIARIA * days * 0.204,
+      cuotaFija: umaDaily * days * 0.204,
       excedente: sbc > tresSMG ? (sbc - tresSMG) * days * 0.011 : 0,
       prestacionesDinero: sbc * days * 0.007,
       gastosMedicosPensionados: sbc * days * 0.0105,
