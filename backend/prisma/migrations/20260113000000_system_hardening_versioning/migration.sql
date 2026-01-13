@@ -46,7 +46,7 @@ ALTER TABLE "payroll_details"
   ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- 7. Añadir campos de snapshot a FiscalCalculationAudit
-ALTER TABLE "fiscal_calculation_audits"
+ALTER TABLE "fiscal_calculation_audit"
   ADD COLUMN IF NOT EXISTS "input_snapshot" JSONB,
   ADD COLUMN IF NOT EXISTS "output_snapshot" JSONB,
   ADD COLUMN IF NOT EXISTS "applied_rules_snapshot" JSONB;
