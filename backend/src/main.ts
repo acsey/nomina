@@ -14,11 +14,25 @@ const logger = new Logger('Bootstrap');
 function validateSecurityConfig() {
   const jwtSecret = process.env.JWT_SECRET;
   const encryptionKey = process.env.ENCRYPTION_KEY;
+  const databaseUrl = process.env.DATABASE_URL;
+  const pacMode = process.env.PAC_MODE;
   const nodeEnv = process.env.NODE_ENV || 'development';
 
   const errors: string[] = [];
+  const warnings: string[] = [];
 
-  // Validar JWT_SECRET
+  // ==================================
+  // CRITICAL: DATABASE_URL
+  // ==================================
+  if (!databaseUrl) {
+    errors.push('DATABASE_URL no está configurado - la aplicación no puede iniciar');
+  } else if (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://')) {
+    errors.push('DATABASE_URL debe ser una URL válida de PostgreSQL');
+  }
+
+  // ==================================
+  // CRITICAL: JWT_SECRET
+  // ==================================
   if (!jwtSecret) {
     errors.push('JWT_SECRET no está configurado');
   } else if (jwtSecret.length < 32) {
@@ -31,28 +45,55 @@ function validateSecurityConfig() {
     }
   }
 
-  // Validar ENCRYPTION_KEY para datos sensibles
+  // ==================================
+  // PRODUCTION: ENCRYPTION_KEY
+  // ==================================
   if (!encryptionKey && nodeEnv === 'production') {
     errors.push('ENCRYPTION_KEY es requerida en producción');
   } else if (encryptionKey && encryptionKey.length < 32) {
     errors.push('ENCRYPTION_KEY debe tener al menos 32 caracteres');
   }
 
-  // Fail-fast en producción si hay errores de seguridad
+  // ==================================
+  // PAC_MODE validation
+  // ==================================
+  const validPacModes = ['sandbox', 'production', 'disabled'];
+  if (!pacMode) {
+    warnings.push('PAC_MODE no configurado - usando sandbox por defecto');
+  } else if (!validPacModes.includes(pacMode.toLowerCase())) {
+    errors.push(`PAC_MODE inválido: "${pacMode}". Valores válidos: ${validPacModes.join(', ')}`);
+  } else if (nodeEnv === 'production' && pacMode.toLowerCase() === 'sandbox') {
+    warnings.push('PAC_MODE=sandbox en producción - los CFDIs no serán válidos ante el SAT');
+  }
+
+  // ==================================
+  // Show warnings (all environments)
+  // ==================================
+  if (warnings.length > 0) {
+    logger.warn('='.repeat(60));
+    logger.warn('ADVERTENCIAS DE CONFIGURACIÓN');
+    logger.warn('='.repeat(60));
+    warnings.forEach(w => logger.warn(`  ⚠️  ${w}`));
+    logger.warn('='.repeat(60));
+  }
+
+  // ==================================
+  // Fail-fast on errors
+  // ==================================
   if (errors.length > 0) {
-    if (nodeEnv === 'production') {
+    if (nodeEnv === 'production' || nodeEnv === 'staging') {
       logger.error('='.repeat(60));
-      logger.error('ERRORES DE CONFIGURACIÓN DE SEGURIDAD');
+      logger.error('ERRORES CRÍTICOS DE CONFIGURACIÓN');
       logger.error('='.repeat(60));
-      errors.forEach(e => logger.error(`  - ${e}`));
+      errors.forEach(e => logger.error(`  ❌ ${e}`));
       logger.error('='.repeat(60));
+      logger.error('Abortando inicio de la aplicación...');
       process.exit(1);
     } else {
       logger.warn('='.repeat(60));
-      logger.warn('ADVERTENCIAS DE CONFIGURACIÓN DE SEGURIDAD');
+      logger.warn('ADVERTENCIAS DE CONFIGURACIÓN (serían fatales en producción)');
       logger.warn('='.repeat(60));
-      errors.forEach(e => logger.warn(`  - ${e}`));
-      logger.warn('Estas serían fatales en producción');
+      errors.forEach(e => logger.warn(`  ⚠️  ${e}`));
       logger.warn('='.repeat(60));
     }
   }

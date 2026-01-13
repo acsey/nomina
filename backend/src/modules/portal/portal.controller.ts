@@ -321,13 +321,17 @@ export class PortalController {
   // =====================================
 
   @Get('recognitions/me/:employeeId')
-  @ApiOperation({ summary: 'Obtener mis reconocimientos' })
+  @ApiOperation({ summary: 'Obtener mis reconocimientos - DEPRECATED: usar /me/recognitions' })
   async getMyRecognitions(
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId') _employeeId: string,
     @CurrentUser() user: any,
   ) {
-    await this.validateEmployeeAccess(user, employeeId);
-    return this.portalService.getMyRecognitions(employeeId);
+    // SECURITY: Always use token's employeeId, ignore URL param
+    const effectiveEmployeeId = await this.getEffectiveEmployeeId(user);
+    if (!effectiveEmployeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyRecognitions(effectiveEmployeeId);
   }
 
   @Get('recognitions/company')
@@ -358,13 +362,17 @@ export class PortalController {
   }
 
   @Get('points/:employeeId')
-  @ApiOperation({ summary: 'Obtener puntos del empleado' })
+  @ApiOperation({ summary: 'Obtener puntos del empleado - DEPRECATED: usar /me/points' })
   async getEmployeePoints(
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId') _employeeId: string,
     @CurrentUser() user: any,
   ) {
-    await this.validateEmployeeAccess(user, employeeId);
-    return this.portalService.getEmployeePoints(employeeId);
+    // SECURITY: Always use token's employeeId, ignore URL param
+    const effectiveEmployeeId = await this.getEffectiveEmployeeId(user);
+    if (!effectiveEmployeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getEmployeePoints(effectiveEmployeeId);
   }
 
   // =====================================
@@ -378,13 +386,17 @@ export class PortalController {
   }
 
   @Get('courses/me/:employeeId')
-  @ApiOperation({ summary: 'Obtener mis cursos' })
+  @ApiOperation({ summary: 'Obtener mis cursos - DEPRECATED: usar /me/courses' })
   async getMyCourses(
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId') _employeeId: string,
     @CurrentUser() user: any,
   ) {
-    await this.validateEmployeeAccess(user, employeeId);
-    return this.portalService.getMyCourses(employeeId);
+    // SECURITY: Always use token's employeeId, ignore URL param
+    const effectiveEmployeeId = await this.getEffectiveEmployeeId(user);
+    if (!effectiveEmployeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyCourses(effectiveEmployeeId);
   }
 
   @Post('courses/:courseId/enroll')
@@ -433,13 +445,17 @@ export class PortalController {
   }
 
   @Get('badges/me/:employeeId')
-  @ApiOperation({ summary: 'Obtener mis insignias' })
+  @ApiOperation({ summary: 'Obtener mis insignias - DEPRECATED: usar /me/badges' })
   async getMyBadges(
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId') _employeeId: string,
     @CurrentUser() user: any,
   ) {
-    await this.validateEmployeeAccess(user, employeeId);
-    return this.portalService.getMyBadges(employeeId);
+    // SECURITY: Always use token's employeeId, ignore URL param
+    const effectiveEmployeeId = await this.getEffectiveEmployeeId(user);
+    if (!effectiveEmployeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyBadges(effectiveEmployeeId);
   }
 
   @Post('badges/:badgeId/award')
@@ -535,12 +551,16 @@ export class PortalController {
   // =====================================
 
   @Get('benefits/:employeeId')
-  @ApiOperation({ summary: 'Obtener prestaciones del empleado' })
+  @ApiOperation({ summary: 'Obtener prestaciones del empleado - DEPRECATED: usar /me/benefits' })
   async getMyBenefits(
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId') _employeeId: string,
     @CurrentUser() user: any,
   ) {
-    await this.validateEmployeeAccess(user, employeeId);
-    return this.portalService.getMyBenefits(employeeId);
+    // SECURITY: Always use token's employeeId, ignore URL param
+    const effectiveEmployeeId = await this.getEffectiveEmployeeId(user);
+    if (!effectiveEmployeeId) {
+      throw new ForbiddenException('No tienes un perfil de empleado asociado');
+    }
+    return this.portalService.getMyBenefits(effectiveEmployeeId);
   }
 }

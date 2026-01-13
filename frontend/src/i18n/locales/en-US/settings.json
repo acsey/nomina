@@ -1,6 +1,8 @@
 {
-  "title": "Settings",
-  "subtitle": "System configuration",
+  "title": "System Settings",
+  "subtitle": "Manage global system configuration",
+  "language": "Language",
+  "languageDescription": "Select the interface language. This preference is saved in your browser.",
 
   "tabs": {
     "general": "General",
@@ -8,126 +10,149 @@
     "email": "Email",
     "notifications": "Notifications",
     "integrations": "Integrations",
-    "advanced": "Advanced"
+    "appearance": "Appearance"
   },
 
   "general": {
-    "title": "General Settings",
     "companyName": "Company Name",
-    "companyLogo": "Company Logo",
-    "uploadLogo": "Upload Logo",
     "timezone": "Timezone",
     "dateFormat": "Date Format",
     "currency": "Currency",
-    "language": "Language",
-    "languageDescription": "System interface language"
+    "multiCompany": "Multi-company Mode"
+  },
+
+  "accessRestricted": {
+    "title": "Access Restricted",
+    "description": "Only the System Super Administrator can access this page."
+  },
+
+  "categories": {
+    "general": "General",
+    "branding": "Brand and Appearance",
+    "azure_ad": "Microsoft Azure AD / Entra ID",
+    "security": "Security",
+    "email": "Email Settings (SMTP)",
+    "notifications": "Notifications"
+  },
+
+  "theme": {
+    "title": "Interface Theme",
+    "description": "Select the interface theme. This preference is saved in your browser.",
+    "light": "Light",
+    "lightDescription": "Light theme",
+    "dark": "Dark",
+    "darkDescription": "Dark theme",
+    "system": "System",
+    "systemDescription": "Based on your device",
+    "currentlyUsing": "Currently using {{theme}} theme based on system preference."
+  },
+
+  "i18nAdd": {
+    "title": "Add more languages",
+    "description": "To add more languages, contact the system administrator or add translation files in /src/i18n/locales/"
+  },
+
+  "toggleStates": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   },
 
   "security": {
     "title": "Security",
-    "subtitle": "Authentication and access settings",
-    "passwordPolicy": "Password Policy",
-    "minLength": "Minimum length",
-    "requireUppercase": "Require uppercase",
-    "requireLowercase": "Require lowercase",
-    "requireNumbers": "Require numbers",
-    "requireSpecial": "Require special characters",
-    "passwordExpiration": "Password expiration (days)",
-    "sessionTimeout": "Session timeout (minutes)",
-    "maxLoginAttempts": "Maximum login attempts",
-    "lockoutDuration": "Lockout duration (minutes)"
+    "warning": {
+      "title": "Security Warning",
+      "description": "Changing these settings will affect how users access the system. If you enable \"Enforce SSO\", users will only be able to sign in with Microsoft. If you enable \"Enforce MFA\", all users must set up two-factor authentication."
+    },
+    "sso": {
+      "title": "Single Sign-On (SSO)",
+      "enabled": "SSO Enabled",
+      "enforced": "Enforce SSO only",
+      "enforcedWarning": "If you enable this option, users will only be able to sign in with SSO"
+    },
+    "mfa": {
+      "title": "Two-Factor Authentication (MFA)",
+      "enabled": "MFA Enabled",
+      "enforced": "Enforce MFA",
+      "enforcedWarning": "If you enable this option, all users must set up MFA"
+    },
+    "password": {
+      "title": "Password Policies",
+      "allowClassic": "Allow password login",
+      "minLength": "Minimum length",
+      "requireUppercase": "Require uppercase",
+      "requireNumbers": "Require numbers",
+      "requireSpecial": "Require special characters",
+      "expirationDays": "Expiration (days)",
+      "maxAttempts": "Maximum failed attempts"
+    },
+    "session": {
+      "title": "Sessions",
+      "timeout": "Inactivity timeout (minutes)",
+      "singleSession": "Allow only one active session"
+    }
   },
 
-  "sso": {
-    "title": "Single Sign-On (SSO)",
-    "subtitle": "Azure AD / Microsoft configuration",
-    "enabled": "SSO Enabled",
+  "azure": {
+    "title": "Microsoft Azure AD / Entra ID",
+    "enabled": "Azure AD Enabled",
     "clientId": "Client ID",
     "tenantId": "Tenant ID",
     "clientSecret": "Client Secret",
-    "redirectUri": "Redirect URI",
-    "testConnection": "Test Connection",
-    "connectionSuccess": "Connection successful",
-    "connectionFailed": "Connection failed"
+    "test": {
+      "title": "Test Azure AD Connection",
+      "description": "Save changes before testing. This will verify that the Azure AD configuration is correct.",
+      "button": "Test Azure AD"
+    },
+    "testSuccess": "Azure AD connection successful",
+    "testFailed": "Error testing Azure AD connection"
   },
 
-  "mfa": {
-    "title": "Multi-Factor Authentication",
-    "subtitle": "Two-step verification settings",
-    "enabled": "MFA Enabled",
-    "enforceForAll": "Enforce for all users",
-    "allowRememberDevice": "Allow 'Remember this device'",
-    "rememberDuration": "Remember duration (days)",
-    "methods": "Allowed methods",
-    "authenticatorApp": "Authenticator App",
-    "sms": "SMS",
-    "email": "Email"
+  "smtp": {
+    "title": "Email Settings (SMTP)",
+    "host": "SMTP Server",
+    "port": "Port",
+    "user": "Username",
+    "password": "Password",
+    "fromEmail": "From Email",
+    "fromName": "From Name",
+    "encryption": "Encryption",
+    "test": {
+      "title": "Test SMTP Settings",
+      "description": "Save changes before testing. Tests will use the configuration saved in the database.",
+      "connection": "Test Connection",
+      "sendTest": "Send Test",
+      "emailPlaceholder": "email@example.com"
+    },
+    "testSuccess": "SMTP connection successful",
+    "testFailed": "Connection error: {{error}}",
+    "emailSent": "Test email sent successfully",
+    "emailFailed": "Send error: {{error}}",
+    "enterEmail": "Enter a test email address"
   },
 
-  "email": {
-    "title": "Email Settings",
-    "subtitle": "SMTP server configuration",
-    "smtpHost": "SMTP Host",
-    "smtpPort": "SMTP Port",
-    "smtpUser": "SMTP User",
-    "smtpPassword": "SMTP Password",
-    "smtpFrom": "From Address",
-    "smtpFromName": "From Name",
-    "useTls": "Use TLS",
-    "testEmail": "Send Test Email",
-    "testEmailSent": "Test email sent",
-    "testEmailFailed": "Failed to send test email"
-  },
-
-  "notifications": {
-    "title": "Notifications",
-    "subtitle": "Notification preferences",
-    "emailNotifications": "Email notifications",
-    "payrollNotifications": "Payroll notifications",
-    "vacationNotifications": "Vacation notifications",
-    "attendanceNotifications": "Attendance notifications",
-    "systemNotifications": "System notifications"
-  },
-
-  "integrations": {
-    "title": "Integrations",
-    "subtitle": "External service connections",
-    "sat": "SAT (CFDI)",
-    "imss": "IMSS",
-    "infonavit": "INFONAVIT",
-    "banks": "Banks",
-    "configured": "Configured",
-    "notConfigured": "Not configured",
-    "configure": "Configure",
-    "disconnect": "Disconnect"
-  },
-
-  "advanced": {
-    "title": "Advanced",
-    "subtitle": "Advanced settings",
-    "debugMode": "Debug mode",
-    "maintenanceMode": "Maintenance mode",
-    "exportData": "Export data",
-    "importData": "Import data",
-    "clearCache": "Clear cache",
-    "systemLogs": "System logs"
+  "multiCompany": {
+    "disabledTitle": "Single Company Mode",
+    "disabledDescription": "When multi-company mode is disabled, company selectors will be hidden and users will only see data from their assigned company."
   },
 
   "actions": {
     "save": "Save Changes",
+    "saving": "Saving...",
+    "saved": "Settings saved",
     "cancel": "Cancel",
-    "reset": "Reset to Defaults",
-    "export": "Export Settings",
-    "import": "Import Settings"
+    "reset": "Reset values",
+    "noChanges": "No changes to save",
+    "saveError": "Error saving settings"
   },
 
-  "messages": {
-    "saved": "Settings saved successfully",
-    "saveError": "Error saving settings",
-    "confirmReset": "Are you sure you want to reset to default settings?",
-    "resetSuccess": "Settings reset successfully",
-    "justification": "Change justification",
-    "justificationRequired": "Please provide a justification for this change",
-    "securityWarning": "Security configuration changes are critical. Are you sure?"
+  "confirmModal": {
+    "title": "Confirm Critical Changes",
+    "description": "You are about to modify security settings that will affect user access to the system.",
+    "changesLabel": "Changes to apply:",
+    "empty": "empty",
+    "justification": "Justification (required)",
+    "justificationPlaceholder": "Explain the reason for these changes...",
+    "justificationRequired": "Justification is required for critical changes",
+    "confirm": "Confirm Changes"
   }
 }
