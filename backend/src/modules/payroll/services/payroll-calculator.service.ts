@@ -536,31 +536,44 @@ export class PayrollCalculatorService {
       );
     }
 
-    // Crear o actualizar detalle de nomina
-    const payrollDetail = await this.prisma.payrollDetail.upsert({
+    // Crear o actualizar detalle de nomina (HARDENING: buscar recibo activo por versión)
+    const existingDetail = await this.prisma.payrollDetail.findFirst({
       where: {
-        payrollPeriodId_employeeId: {
-          payrollPeriodId: period.id,
-          employeeId: employee.id,
-        },
-      },
-      create: {
         payrollPeriodId: period.id,
         employeeId: employee.id,
-        workedDays,
-        totalPerceptions,
-        totalDeductions,
-        netPay,
-        status: 'CALCULATED',
-      },
-      update: {
-        workedDays,
-        totalPerceptions,
-        totalDeductions,
-        netPay,
-        status: 'CALCULATED',
+        active: true,
       },
     });
+
+    let payrollDetail;
+    if (existingDetail) {
+      // Actualizar el recibo activo existente
+      payrollDetail = await this.prisma.payrollDetail.update({
+        where: { id: existingDetail.id },
+        data: {
+          workedDays,
+          totalPerceptions,
+          totalDeductions,
+          netPay,
+          status: 'CALCULATED',
+        },
+      });
+    } else {
+      // Crear nuevo recibo con versión 1
+      payrollDetail = await this.prisma.payrollDetail.create({
+        data: {
+          payrollPeriodId: period.id,
+          employeeId: employee.id,
+          workedDays,
+          totalPerceptions,
+          totalDeductions,
+          netPay,
+          status: 'CALCULATED',
+          version: 1,
+          active: true,
+        },
+      });
+    }
 
     // Eliminar percepciones y deducciones anteriores
     await this.prisma.payrollPerception.deleteMany({

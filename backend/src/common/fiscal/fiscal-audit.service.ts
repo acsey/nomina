@@ -73,6 +73,7 @@ export interface FiscalInputSnapshot {
     smg: number;
     fiscalYear: number;
   };
+  [key: string]: unknown;
 }
 
 /**
@@ -85,6 +86,7 @@ export interface FiscalOutputSnapshot {
   calculationBreakdown: Record<string, number>;
   finalResult: number;
   intermediateValues: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 /**
@@ -109,6 +111,7 @@ export interface AppliedRulesSnapshot {
     rowCount: number;
     checksum: string;
   }>;
+  [key: string]: unknown;
 }
 
 /**

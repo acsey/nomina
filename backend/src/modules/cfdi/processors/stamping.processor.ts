@@ -137,14 +137,14 @@ export class StampingProcessor extends WorkerHost {
       // HARDENING: Llamar al PAC con idempotency key
       // ========================================
       const stampResult = await this.stampingService.stamp(xml, {
-        pacProvider: company.pacProvider,
-        pacUser: company.pacUser,
-        pacPassword: company.pacPassword,
-        pacMode: company.pacMode,
-        certificadoCer: company.certificadoCer,
-        certificadoKey: company.certificadoKey,
-        certificadoPassword: company.certificadoPassword,
-        noCertificado: company.noCertificado,
+        pacProvider: company.pacProvider ?? undefined,
+        pacUser: company.pacUser ?? undefined,
+        pacPassword: company.pacPassword ?? undefined,
+        pacMode: company.pacMode ?? undefined,
+        certificadoCer: company.certificadoCer ?? undefined,
+        certificadoKey: company.certificadoKey ?? undefined,
+        certificadoPassword: company.certificadoPassword ?? undefined,
+        noCertificado: company.noCertificado ?? undefined,
       });
 
       // ========================================
@@ -185,16 +185,12 @@ export class StampingProcessor extends WorkerHost {
       );
 
       // Auditar
-      await this.auditService.log({
-        userId: userId || 'SYSTEM',
-        action: 'CFDI_STAMPED',
-        entity: 'CfdiNomina',
-        entityId: cfdiId,
-        newValues: {
-          uuid: stampResult.uuid,
-          fechaTimbrado: stampResult.fechaTimbrado,
-        },
-      });
+      await this.auditService.logCfdiStamp(
+        userId || 'SYSTEM',
+        cfdiId,
+        stampResult.uuid,
+        payrollDetailId,
+      );
 
       return {
         success: true,
@@ -401,7 +397,11 @@ export class StampingProcessor extends WorkerHost {
         where: { id: cfdiId },
         data: {
           status: 'ERROR',
-          errorMessage: errorMessage.substring(0, 500),
+          pacResponse: {
+            error: true,
+            errorMessage: errorMessage.substring(0, 500),
+            timestamp: new Date().toISOString(),
+          },
         },
       });
     });
