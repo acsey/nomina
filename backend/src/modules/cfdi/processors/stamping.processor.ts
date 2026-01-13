@@ -8,23 +8,27 @@ import {
   StampingErrorType,
 } from '../services/stamping-idempotency.service';
 import { AuditService } from '@/common/security/audit.service';
+import { QUEUE_NAMES } from '@/common/queues/queue.constants';
 
 /**
- * Nombre de la cola de timbrado
+ * Nombre de la cola de timbrado (usar constante centralizada)
+ * @deprecated Use QUEUE_NAMES.CFDI_STAMPING instead
  */
-export const STAMPING_QUEUE = 'stamping';
+export const STAMPING_QUEUE = QUEUE_NAMES.CFDI_STAMPING;
 
 /**
  * Datos del job de timbrado
+ * Compatible con timbrado individual y masivo (batch)
  */
 export interface StampingJobData {
   cfdiId: string;
-  payrollDetailId: string;
-  receiptVersion: number;
-  companyId: string;
+  payrollDetailId?: string; // Optional for direct CFDI stamping
+  receiptVersion?: number;  // Optional, defaults to 1
+  companyId?: string;       // Can be inferred from CFDI if not provided
   userId?: string;
-  priority?: 'normal' | 'high';
+  priority?: 'normal' | 'high' | 'low';
   retryCount?: number;
+  batchId?: string;         // For batch/bulk stamping tracking
 }
 
 /**
@@ -51,7 +55,7 @@ export interface StampingJobResult {
  *   - Errores de validación fiscal -> Marcar como ERROR, no reintentar
  * - Auditoría completa de cada intento
  */
-@Processor(STAMPING_QUEUE)
+@Processor(QUEUE_NAMES.CFDI_STAMPING)
 @Injectable()
 export class StampingProcessor extends WorkerHost {
   private readonly logger = new Logger(StampingProcessor.name);
@@ -70,11 +74,11 @@ export class StampingProcessor extends WorkerHost {
    * Procesa un job de timbrado
    */
   async process(job: Job<StampingJobData>): Promise<StampingJobResult> {
-    const { cfdiId, payrollDetailId, receiptVersion, companyId, userId } = job.data;
+    const { cfdiId, payrollDetailId, receiptVersion = 1, companyId, userId, batchId } = job.data;
     const attemptNumber = (job.attemptsMade || 0) + 1;
 
     this.logger.log(
-      `[${job.id}] Iniciando timbrado CFDI ${cfdiId} (intento ${attemptNumber})`,
+      `[${job.id}] Iniciando timbrado CFDI ${cfdiId} (intento ${attemptNumber})${batchId ? ` [batch: ${batchId}]` : ''}`,
     );
 
     // ========================================
@@ -165,13 +169,15 @@ export class StampingProcessor extends WorkerHost {
           },
         });
 
-        // Actualizar PayrollDetail
-        await tx.payrollDetail.update({
-          where: { id: payrollDetailId },
-          data: {
-            status: 'STAMP_OK',
-          },
-        });
+        // Actualizar PayrollDetail (if provided)
+        if (payrollDetailId) {
+          await tx.payrollDetail.update({
+            where: { id: payrollDetailId },
+            data: {
+              status: 'STAMP_OK',
+            },
+          });
+        }
       });
 
       // Liberar lock con éxito
@@ -243,24 +249,19 @@ export class StampingProcessor extends WorkerHost {
    */
   private async preCheckStamping(
     cfdiId: string,
-    payrollDetailId: string,
+    payrollDetailId?: string,
   ): Promise<{
     alreadyStamped: boolean;
     uuid?: string;
     fechaTimbrado?: Date;
   }> {
-    const [cfdi, payrollDetail] = await Promise.all([
-      this.prisma.cfdiNomina.findUnique({
-        where: { id: cfdiId },
-        select: { status: true, uuid: true, fechaTimbrado: true },
-      }),
-      this.prisma.payrollDetail.findUnique({
-        where: { id: payrollDetailId },
-        select: { status: true },
-      }),
-    ]);
+    const cfdi = await this.prisma.cfdiNomina.findUnique({
+      where: { id: cfdiId },
+      select: { status: true, uuid: true, fechaTimbrado: true },
+    });
 
-    if (cfdi?.status === 'STAMPED' || payrollDetail?.status === 'STAMP_OK') {
+    // Check CFDI status
+    if (cfdi?.status === 'STAMPED') {
       return {
         alreadyStamped: true,
         uuid: cfdi?.uuid || undefined,
@@ -268,36 +269,63 @@ export class StampingProcessor extends WorkerHost {
       };
     }
 
+    // Also check PayrollDetail if provided
+    if (payrollDetailId) {
+      const payrollDetail = await this.prisma.payrollDetail.findUnique({
+        where: { id: payrollDetailId },
+        select: { status: true },
+      });
+      if (payrollDetail?.status === 'STAMP_OK') {
+        return {
+          alreadyStamped: true,
+          uuid: cfdi?.uuid || undefined,
+          fechaTimbrado: cfdi?.fechaTimbrado || undefined,
+        };
+      }
+    }
+
     return { alreadyStamped: false };
   }
 
   /**
    * Prepara datos necesarios para el timbrado
+   * Si companyId no se proporciona, lo infiere desde el CFDI
    */
-  private async prepareStampingData(cfdiId: string, companyId: string) {
-    const [cfdi, company] = await Promise.all([
-      this.prisma.cfdiNomina.findUnique({
-        where: { id: cfdiId },
-        select: { xmlOriginal: true },
-      }),
-      this.prisma.company.findUnique({
-        where: { id: companyId },
-        select: {
-          pacProvider: true,
-          pacUser: true,
-          pacPassword: true,
-          pacMode: true,
-          certificadoCer: true,
-          certificadoKey: true,
-          certificadoPassword: true,
-          noCertificado: true,
+  private async prepareStampingData(cfdiId: string, companyId?: string) {
+    // First get CFDI with employee to infer companyId if needed
+    const cfdi = await this.prisma.cfdiNomina.findUnique({
+      where: { id: cfdiId },
+      select: {
+        xmlOriginal: true,
+        employee: {
+          select: { companyId: true },
         },
-      }),
-    ]);
+      },
+    });
 
     if (!cfdi?.xmlOriginal) {
       throw new Error('XML original no encontrado');
     }
+
+    // Use provided companyId or infer from CFDI's employee
+    const effectiveCompanyId = companyId || cfdi.employee?.companyId;
+    if (!effectiveCompanyId) {
+      throw new Error('No se pudo determinar la empresa para el timbrado');
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: effectiveCompanyId },
+      select: {
+        pacProvider: true,
+        pacUser: true,
+        pacPassword: true,
+        pacMode: true,
+        certificadoCer: true,
+        certificadoKey: true,
+        certificadoPassword: true,
+        noCertificado: true,
+      },
+    });
 
     if (!company) {
       throw new Error('Empresa no encontrada');
@@ -383,16 +411,20 @@ export class StampingProcessor extends WorkerHost {
    * Marca el recibo como error permanente
    */
   private async markAsPermanentError(
-    payrollDetailId: string,
+    payrollDetailId: string | undefined,
     cfdiId: string,
     errorMessage: string,
   ) {
     await this.prisma.$transaction(async (tx) => {
-      await tx.payrollDetail.update({
-        where: { id: payrollDetailId },
-        data: { status: 'STAMP_ERROR' },
-      });
+      // Update PayrollDetail if provided
+      if (payrollDetailId) {
+        await tx.payrollDetail.update({
+          where: { id: payrollDetailId },
+          data: { status: 'STAMP_ERROR' },
+        });
+      }
 
+      // Always update CFDI
       await tx.cfdiNomina.update({
         where: { id: cfdiId },
         data: {
@@ -407,7 +439,7 @@ export class StampingProcessor extends WorkerHost {
     });
 
     this.logger.warn(
-      `Recibo ${payrollDetailId} marcado como STAMP_ERROR: ${errorMessage}`,
+      `CFDI ${cfdiId}${payrollDetailId ? ` (recibo ${payrollDetailId})` : ''} marcado como ERROR: ${errorMessage}`,
     );
   }
 

@@ -257,7 +257,20 @@ export class PayrollService {
     });
   }
 
-  async approvePayroll(periodId: string) {
+  /**
+   * Aprobar nómina y procesar timbrado
+   *
+   * FLUJO MEJORADO:
+   * 1. Generar CFDIs para todos los empleados (sync - rápido)
+   * 2. Iniciar timbrado según modo configurado:
+   *    - SYNC: Timbra todos secuencialmente y actualiza a APPROVED
+   *    - ASYNC: Encola batch y actualiza a STAMPING, retorna batchId
+   *
+   * En modo ASYNC el frontend debe:
+   * - Mostrar progreso via polling /api/payroll/:id/stamping-status
+   * - El período pasa a APPROVED cuando el batch completa
+   */
+  async approvePayroll(periodId: string, userId?: string) {
     const period = await this.findPeriod(periodId);
 
     if (period.status !== PayrollStatus.CALCULATED) {
@@ -270,43 +283,77 @@ export class PayrollService {
       select: { id: true },
     });
 
-    // Generar y timbrar CFDI para cada detalle de nómina
-    const stampingResults = {
-      total: payrollDetails.length,
-      success: 0,
-      failed: 0,
+    if (payrollDetails.length === 0) {
+      throw new BadRequestException('No hay recibos para aprobar en este período');
+    }
+
+    this.logger.log(`Iniciando aprobación de nómina para ${payrollDetails.length} recibos del período ${periodId}`);
+
+    // ========================================
+    // PASO 1: Generar CFDIs (sync - rápido)
+    // ========================================
+    const generationResults = {
+      generated: 0,
+      skipped: 0,
       errors: [] as { detailId: string; error: string }[],
     };
 
-    this.logger.log(`Iniciando timbrado automático para ${payrollDetails.length} recibos del período ${periodId}`);
-
     for (const detail of payrollDetails) {
       try {
-        // Generar CFDI XML
-        await this.cfdiService.generateCfdi(detail.id);
-
-        // Obtener el CFDI generado
-        const cfdi = await this.cfdiService.getCfdiByPayrollDetail(detail.id);
-
-        if (cfdi) {
-          // Timbrar el CFDI
-          await this.cfdiService.stampCfdi(cfdi.id);
-          stampingResults.success++;
-          this.logger.log(`CFDI timbrado exitosamente para detalle ${detail.id}`);
+        // Check if CFDI already exists
+        const existing = await this.cfdiService.getCfdiByPayrollDetail(detail.id);
+        if (existing && existing.status === 'STAMPED') {
+          generationResults.skipped++;
+          continue;
         }
+
+        // Generate CFDI XML
+        await this.cfdiService.generateCfdi(detail.id);
+        generationResults.generated++;
       } catch (error: any) {
-        stampingResults.failed++;
-        stampingResults.errors.push({
+        generationResults.errors.push({
           detailId: detail.id,
-          error: error.message || 'Error desconocido',
+          error: error.message || 'Error al generar CFDI',
         });
-        this.logger.error(`Error al timbrar CFDI para detalle ${detail.id}: ${error.message}`);
+        this.logger.error(`Error generando CFDI para detalle ${detail.id}: ${error.message}`);
       }
     }
 
-    this.logger.log(`Timbrado completado: ${stampingResults.success} exitosos, ${stampingResults.failed} fallidos`);
+    this.logger.log(`CFDIs generados: ${generationResults.generated}, omitidos: ${generationResults.skipped}`);
 
-    // Actualizar el período a APPROVED
+    // ========================================
+    // PASO 2: Iniciar timbrado según modo
+    // ========================================
+    const stampingResult = await this.cfdiService.stampAllPeriod(periodId, userId);
+
+    // Determine final status and response based on mode
+    if (stampingResult.mode === 'async' && 'batchId' in stampingResult) {
+      // ASYNC MODE: Update to STAMPING status and return batchId
+      const updatedPeriod = await this.prisma.payrollPeriod.update({
+        where: { id: periodId },
+        data: {
+          // Note: Would need to add STAMPING to PayrollStatus enum
+          // For now, keep as CALCULATED until stamping completes
+          status: PayrollStatus.CALCULATED,
+        },
+      });
+
+      this.logger.log(`Modo ASYNC: Batch ${stampingResult.batchId} creado para período ${periodId}`);
+
+      return {
+        period: updatedPeriod,
+        mode: 'async' as const,
+        generation: generationResults,
+        stamping: {
+          total: stampingResult.total,
+          batchId: stampingResult.batchId,
+          message: stampingResult.message,
+          status: 'processing',
+        },
+      };
+    }
+
+    // SYNC MODE: Stamping already completed
     const updatedPeriod = await this.prisma.payrollPeriod.update({
       where: { id: periodId },
       data: {
@@ -314,9 +361,63 @@ export class PayrollService {
       },
     });
 
+    this.logger.log(`Modo SYNC: Timbrado completado para período ${periodId}`);
+
     return {
       period: updatedPeriod,
-      stamping: stampingResults,
+      mode: 'sync' as const,
+      generation: generationResults,
+      stamping: {
+        total: stampingResult.total,
+        success: 'success' in stampingResult ? stampingResult.success : 0,
+        failed: 'failed' in stampingResult ? stampingResult.failed : 0,
+        errors: 'errors' in stampingResult ? stampingResult.errors : [],
+        status: 'completed',
+      },
+    };
+  }
+
+  /**
+   * Obtiene el estado del timbrado de un período
+   */
+  async getStampingStatus(periodId: string) {
+    const period = await this.findPeriod(periodId);
+
+    // Get CFDI stats for this period
+    const stats = await this.prisma.cfdiNomina.groupBy({
+      by: ['status'],
+      where: {
+        payrollDetail: {
+          payrollPeriodId: periodId,
+        },
+      },
+      _count: true,
+    });
+
+    const statusCounts = stats.reduce(
+      (acc, s) => {
+        acc[s.status] = s._count;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    const total = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+    const stamped = statusCounts['STAMPED'] || 0;
+    const pending = statusCounts['PENDING'] || 0;
+    const error = statusCounts['ERROR'] || 0;
+
+    return {
+      periodId,
+      periodStatus: period.status,
+      stamping: {
+        total,
+        stamped,
+        pending,
+        error,
+        progress: total > 0 ? Math.round((stamped / total) * 100) : 0,
+        isComplete: pending === 0 && total > 0,
+      },
     };
   }
 

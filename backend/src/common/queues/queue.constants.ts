@@ -13,6 +13,16 @@ export const QUEUE_NAMES = {
   IMSS_SYNC: 'imss-sync',
 } as const;
 
+/**
+ * Eventos emitidos por el procesador de CFDI
+ */
+export const CFDI_EVENTS = {
+  STAMPED: 'cfdi.stamped',
+  STAMP_FAILED: 'cfdi.stamp.failed',
+  STAMP_RETRY: 'cfdi.stamp.retry',
+  BATCH_COMPLETED: 'cfdi.batch.completed',
+} as const;
+
 // Configuración de reintentos por tipo de trabajo
 export const RETRY_CONFIG = {
   // Timbrado CFDI - crítico, más reintentos
