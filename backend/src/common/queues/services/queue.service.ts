@@ -33,6 +33,11 @@ export class QueueService {
 
   /**
    * Encola un CFDI para timbrado
+   *
+   * @param cfdiId - ID del CFDI a timbrar
+   * @param options.companyId - ID de empresa (tenant isolation)
+   * @param options.periodId - ID del período (period finalizer)
+   * @param options.payrollDetailId - ID del detalle de nómina
    */
   async queueCfdiForStamping(
     cfdiId: string,
@@ -42,6 +47,7 @@ export class QueueService {
       batchId?: string;
       payrollDetailId?: string;
       companyId?: string;
+      periodId?: string;
     },
   ): Promise<string> {
     const jobData: StampingJobData = {
@@ -51,6 +57,7 @@ export class QueueService {
       batchId: options?.batchId,
       payrollDetailId: options?.payrollDetailId,
       companyId: options?.companyId,
+      periodId: options?.periodId,
     };
 
     const jobOptions: JobsOptions = {
@@ -65,12 +72,19 @@ export class QueueService {
 
   /**
    * Encola múltiples CFDIs para timbrado masivo
+   *
+   * @param cfdiIds - Array de IDs de CFDIs a timbrar
+   * @param options - Opciones de encolado
+   * @param options.companyId - ID de empresa (recomendado para tenant isolation)
+   * @param options.periodId - ID del período (para period finalizer)
    */
   async queueBatchCfdiStamping(
     cfdiIds: string[],
     options?: {
       userId?: string;
       priority?: 'high' | 'normal' | 'low';
+      companyId?: string;
+      periodId?: string;
     },
   ): Promise<{ batchId: string; jobIds: string[] }> {
     const batchId = `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -82,7 +96,9 @@ export class QueueService {
 
     for (const cfdiId of cfdiIds) {
       const jobId = await this.queueCfdiForStamping(cfdiId, {
-        ...options,
+        userId: options?.userId,
+        priority: options?.priority,
+        companyId: options?.companyId,
         batchId,
       });
       jobIds.push(jobId);

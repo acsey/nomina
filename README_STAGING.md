@@ -114,7 +114,27 @@ cp /etc/letsencrypt/live/staging.nomina.example.com/privkey.pem nginx/ssl/
 # Descomentar configuración SSL en nginx/staging.conf
 ```
 
-## Paso 3: Desplegar
+## Paso 3: Verificar y Desplegar
+
+### Opción A: Verificación Automática (Recomendado)
+
+```bash
+# Ejecutar script de verificación (build, start, healthcheck)
+./scripts/verify-staging.sh
+
+# O especificar archivo de entorno:
+./scripts/verify-staging.sh --env-file .env.staging
+```
+
+El script verifica:
+1. Variables de entorno críticas
+2. Docker disponible
+3. Configuración de compose válida
+4. Construye imágenes
+5. Inicia servicios
+6. Espera a que todos los servicios estén healthy
+
+### Opción B: Manual
 
 ```bash
 # Build y despliegue
@@ -389,6 +409,23 @@ curl -s http://localhost/api/payroll/periods/<id>/stamping-status \
 - Rotar secretos periódicamente
 - Realizar backups regulares
 - Monitorear logs de acceso
+
+### Swagger API Documentation
+
+**Por defecto, Swagger está DESHABILITADO en staging/producción** por seguridad.
+
+Para habilitar temporalmente (debugging):
+```bash
+# En .env.staging
+ENABLE_SWAGGER=true
+```
+
+Luego reiniciar el backend:
+```bash
+docker compose -f docker-compose.staging.yml restart backend
+```
+
+**IMPORTANTE:** Nunca dejar Swagger habilitado en producción sin autenticación adicional.
 
 ## Soporte
 

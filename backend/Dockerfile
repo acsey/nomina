@@ -24,38 +24,41 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install netcat for health checks in entrypoint
-RUN apk add --no-cache netcat-openbsd
+# Install required packages:
+# - netcat-openbsd: for TCP connection checks in entrypoint
+# - wget: for healthcheck
+# - curl: alternative for healthcheck and debugging
+RUN apk add --no-cache netcat-openbsd wget curl
 
-# Crear usuario no-root
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Copiar archivos necesarios desde builder
+# Copy build artifacts from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 
-# Copiar y configurar entrypoint
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Copy and configure entrypoint (to /app for consistency)
+COPY --chown=nestjs:nodejs docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
-# Crear directorio de storage y asignar permisos
+# Create storage directory with proper permissions
 RUN mkdir -p /app/storage && chown -R nestjs:nodejs /app
 
-# Cambiar a usuario no-root
+# Switch to non-root user
 USER nestjs
 
-# Exponer puerto
+# Expose API port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Health check using wget (installed above)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-# Entrypoint con validacion
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Entrypoint with absolute path
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
-# Comando de inicio por defecto (backend API)
+# Default command (backend API)
 CMD ["node", "dist/main.js"]
