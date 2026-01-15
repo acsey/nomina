@@ -2,11 +2,14 @@ import { Module, Global, DynamicModule, Logger } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { QUEUE_NAMES, RETRY_CONFIG } from './queue.constants';
+import { CfdiStampingProcessor } from './processors/cfdi-stamping.processor';
 import { PayrollCalculationProcessor } from './processors/payroll-calculation.processor';
 import { NotificationsProcessor } from './processors/notifications.processor';
 import { QueueEventsService } from './services/queue-events.service';
 import { QueueService } from './services/queue.service';
-// StampingProcessor is imported dynamically to avoid circular dependencies
+// CfdiStampingProcessor services (for worker mode)
+import { StampingService } from '@/modules/cfdi/services/stamping.service';
+import { StampingIdempotencyService } from '@/modules/cfdi/services/stamping-idempotency.service';
 
 // Re-exportar constantes para compatibilidad
 export { QUEUE_NAMES, RETRY_CONFIG } from './queue.constants';
@@ -101,9 +104,15 @@ export class QueuesModule {
     // Providers base (siempre incluidos)
     const baseProviders = [QueueEventsService, QueueService];
 
+    // Services needed for CfdiStampingProcessor (only in worker/both mode)
+    const stampingServices = mode === 'api' ? [] : [
+      StampingService,
+      StampingIdempotencyService,
+    ];
+
     // Procesadores (solo en modo worker o both)
-    // Note: StampingProcessor (CFDI) is now registered in WorkerModule from modules/cfdi
     const processors = mode === 'api' ? [] : [
+      CfdiStampingProcessor, // CFDI stamping with real PAC integration
       PayrollCalculationProcessor,
       NotificationsProcessor,
     ];
@@ -119,7 +128,7 @@ export class QueuesModule {
     return {
       module: QueuesModule,
       imports: bullImports,
-      providers: [...baseProviders, ...processors],
+      providers: [...baseProviders, ...stampingServices, ...processors],
       exports: [BullModule, QueueEventsService, QueueService],
     };
   }
