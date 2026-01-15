@@ -21,10 +21,47 @@ nomina/
 │   ├── staging.conf              # Configuración de Nginx
 │   └── ssl/                      # Certificados SSL (opcional)
 ├── backend/
-│   └── Dockerfile                # Build del backend
+│   ├── Dockerfile                # Build del backend
+│   └── docker-entrypoint.sh      # Script de validación de entorno
 └── frontend/
     └── Dockerfile                # Build del frontend
 ```
+
+## Arquitectura de Contenedores
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         NGINX (proxy)                            │
+│                     Puertos: 80, 443                             │
+└─────────────────────────────────────────────────────────────────┘
+         │                                    │
+         ▼                                    ▼
+┌─────────────────────┐            ┌─────────────────────┐
+│   Backend API       │            │   Frontend          │
+│   (QUEUE_MODE=api)  │            │   (React + Nginx)   │
+│   Puerto: 3000      │            │   Puerto: 80        │
+└─────────────────────┘            └─────────────────────┘
+         │
+         │ Encola jobs
+         ▼
+┌─────────────────────┐            ┌─────────────────────┐
+│   Redis (BullMQ)    │◄───────────│   Worker            │
+│   Cola de jobs      │            │   (QUEUE_MODE=worker)│
+└─────────────────────┘            │   Procesa CFDIs     │
+         │                          └─────────────────────┘
+         │                                    │
+         ▼                                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       PostgreSQL                                 │
+│                   (Base de datos)                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Separación de responsabilidades:**
+- **Backend (QUEUE_MODE=api)**: Solo API HTTP, encola jobs en Redis
+- **Worker (QUEUE_MODE=worker)**: Solo procesa jobs, no expone API
+- **Redis**: Cola de mensajes para procesamiento asíncrono
+- **PostgreSQL**: Base de datos (NO expone puertos externamente)
 
 ## Paso 1: Configurar Variables de Entorno
 
@@ -136,7 +173,27 @@ docker compose -f docker-compose.staging.yml up -d --build
 ### Ver recursos
 
 ```bash
-docker stats nomina-staging-backend nomina-staging-db nomina-staging-redis
+docker stats nomina-staging-backend nomina-staging-worker nomina-staging-db nomina-staging-redis
+```
+
+### Ver logs del worker
+
+```bash
+# Logs del worker (procesamiento de CFDIs)
+docker compose -f docker-compose.staging.yml logs -f worker
+
+# Ver solo errores de timbrado
+docker compose -f docker-compose.staging.yml logs worker | grep -E "(ERROR|FAILED)"
+```
+
+### Escalar workers
+
+```bash
+# Escalar a 2 workers para mayor throughput
+docker compose -f docker-compose.staging.yml up -d --scale worker=2
+
+# Ver estado de workers
+docker compose -f docker-compose.staging.yml ps worker
 ```
 
 ### Backup de base de datos
@@ -228,6 +285,20 @@ CFDI_STAMP_MODE=async
 - El endpoint `/api/payroll/:id/approve` retorna inmediatamente con `batchId`
 - Frontend debe hacer polling a `/api/payroll/:id/stamping-status`
 - Los workers procesan los jobs en segundo plano
+- **Period Finalizer**: Cuando TODOS los CFDIs están timbrados (STAMP_OK),
+  el worker automáticamente cambia el período a estado `APPROVED`
+
+### Flujo de Estados del Período
+
+```
+DRAFT → CALCULATED → PROCESSING → APPROVED → PAID → CLOSED
+                          │            ▲
+                          │            │
+                          └────────────┘
+                       Period Finalizer
+                    (auto cuando todos
+                     CFDIs timbrados)
+```
 
 ### Arquitectura de Colas
 
@@ -246,7 +317,9 @@ CFDI_STAMP_MODE=async
                                             └─────────────┘
 ```
 
-En staging con `QUEUE_MODE=both`, el mismo contenedor actúa como API y worker.
+**IMPORTANTE:** En staging/producción usamos contenedores separados:
+- `backend`: `QUEUE_MODE=api` (solo encola, no procesa)
+- `worker`: `QUEUE_MODE=worker` (solo procesa, no API)
 
 ## Smoke Tests
 
