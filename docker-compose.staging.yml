@@ -89,10 +89,11 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_DB: ${REDIS_DB:-0}
 
-      # Queue mode: 'both' for staging (API + Worker in same container)
-      QUEUE_MODE: both
+      # Queue mode: 'api' for staging - only enqueue, no processing
+      # Worker container handles the processing
+      QUEUE_MODE: api
 
-      # CFDI Stamp mode: 'sync' for dev/testing, 'async' for staging/prod
+      # CFDI Stamp mode: 'async' for staging/prod (uses queue)
       CFDI_STAMP_MODE: ${CFDI_STAMP_MODE:-async}
 
       # PAC (Proveedor de Timbrado CFDI)
@@ -134,6 +135,54 @@ services:
     # Backend accessible via nginx proxy
     expose:
       - "3000"
+
+  # ======================
+  # Worker (Queue Processing)
+  # ======================
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nomina-staging-worker
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    environment:
+      NODE_ENV: staging
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+
+      # Security - Same as backend (needed for audit/encryption)
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB:-0}
+
+      # Queue mode: 'worker' - only process jobs, no API
+      QUEUE_MODE: worker
+
+      # Worker concurrency
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-3}
+
+      # PAC (Proveedor de Timbrado CFDI)
+      PAC_MODE: ${PAC_MODE:-sandbox}
+      PAC_PROVIDER: ${PAC_PROVIDER:-}
+      PAC_USER: ${PAC_USER:-}
+      PAC_PASSWORD: ${PAC_PASSWORD:-}
+
+      # Storage
+      FISCAL_STORAGE_PATH: /app/storage/fiscal
+    volumes:
+      - staging_fiscal_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nomina-staging-network
 
   # ======================
   # Frontend (React + Nginx)

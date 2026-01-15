@@ -1,20 +1,16 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { StampingService } from '../services/stamping.service';
+import { StampingService } from '@/modules/cfdi/services/stamping.service';
 import {
   StampingIdempotencyService,
   StampingErrorType,
-} from '../services/stamping-idempotency.service';
+} from '@/modules/cfdi/services/stamping-idempotency.service';
 import { AuditService } from '@/common/security/audit.service';
-import { QUEUE_NAMES } from '@/common/queues/queue.constants';
-
-/**
- * Nombre de la cola de timbrado (usar constante centralizada)
- * @deprecated Use QUEUE_NAMES.CFDI_STAMPING instead
- */
-export const STAMPING_QUEUE = QUEUE_NAMES.CFDI_STAMPING;
+import { QUEUE_NAMES } from '../queue.constants';
+import { PayrollStatus } from '@/common/types/prisma-enums';
 
 /**
  * Datos del job de timbrado
@@ -22,13 +18,14 @@ export const STAMPING_QUEUE = QUEUE_NAMES.CFDI_STAMPING;
  */
 export interface StampingJobData {
   cfdiId: string;
-  payrollDetailId?: string; // Optional for direct CFDI stamping
-  receiptVersion?: number;  // Optional, defaults to 1
-  companyId?: string;       // Can be inferred from CFDI if not provided
+  payrollDetailId?: string;
+  periodId?: string;           // For period finalizer
+  receiptVersion?: number;
+  companyId?: string;
   userId?: string;
   priority?: 'normal' | 'high' | 'low';
   retryCount?: number;
-  batchId?: string;         // For batch/bulk stamping tracking
+  batchId?: string;
 }
 
 /**
@@ -42,10 +39,14 @@ export interface StampingJobResult {
   errorType?: StampingErrorType;
   errorMessage?: string;
   attemptNumber: number;
+  periodFinalized?: boolean;
 }
 
 /**
- * HARDENING: Worker de Timbrado Asíncrono con Idempotencia y Robustez
+ * HARDENING: Worker de Timbrado Asíncrono con Idempotencia y Period Finalizer
+ *
+ * Ubicación canónica: backend/src/common/queues/processors/cfdi-stamping.processor.ts
+ * Cola: QUEUE_NAMES.CFDI_STAMPING ('cfdi-stamping')
  *
  * Implementa:
  * - Pre-check: Verifica si ya está timbrado antes de procesar
@@ -53,12 +54,13 @@ export interface StampingJobResult {
  * - Manejo de errores diferenciado:
  *   - Errores de conexión/timeout -> Reintento con backoff exponencial
  *   - Errores de validación fiscal -> Marcar como ERROR, no reintentar
+ * - Period Finalizer: Auto-cierra período cuando todos los CFDIs están timbrados
  * - Auditoría completa de cada intento
  */
 @Processor(QUEUE_NAMES.CFDI_STAMPING)
 @Injectable()
-export class StampingProcessor extends WorkerHost {
-  private readonly logger = new Logger(StampingProcessor.name);
+export class CfdiStampingProcessor extends WorkerHost {
+  private readonly logger = new Logger(CfdiStampingProcessor.name);
   private readonly workerId = `worker-${process.pid}-${Date.now()}`;
 
   constructor(
@@ -68,13 +70,22 @@ export class StampingProcessor extends WorkerHost {
     private readonly auditService: AuditService,
   ) {
     super();
+    this.logger.log(`CfdiStampingProcessor inicializado (worker: ${this.workerId})`);
   }
 
   /**
    * Procesa un job de timbrado
    */
   async process(job: Job<StampingJobData>): Promise<StampingJobResult> {
-    const { cfdiId, payrollDetailId, receiptVersion = 1, companyId, userId, batchId } = job.data;
+    const {
+      cfdiId,
+      payrollDetailId,
+      periodId,
+      receiptVersion = 1,
+      companyId,
+      userId,
+      batchId,
+    } = job.data;
     const attemptNumber = (job.attemptsMade || 0) + 1;
 
     this.logger.log(
@@ -89,12 +100,17 @@ export class StampingProcessor extends WorkerHost {
       this.logger.log(
         `[${job.id}] CFDI ${cfdiId} ya está timbrado (UUID: ${preCheck.uuid}). Terminando job exitosamente.`,
       );
+
+      // Even if already stamped, check period finalization
+      const periodFinalized = await this.checkAndFinalizePeriod(cfdiId, payrollDetailId, periodId);
+
       return {
         success: true,
         cfdiId,
         uuid: preCheck.uuid,
         fechaTimbrado: preCheck.fechaTimbrado,
         attemptNumber,
+        periodFinalized,
       };
     }
 
@@ -132,10 +148,14 @@ export class StampingProcessor extends WorkerHost {
       // ========================================
       // Obtener datos necesarios para timbrado
       // ========================================
-      const { cfdi, company, xml } = await this.prepareStampingData(
+      const { cfdi, company, xml, detectedPeriodId } = await this.prepareStampingData(
         cfdiId,
         companyId,
+        payrollDetailId,
       );
+
+      // Use detected periodId if not provided
+      const effectivePeriodId = periodId || detectedPeriodId;
 
       // ========================================
       // HARDENING: Llamar al PAC con idempotency key
@@ -154,7 +174,7 @@ export class StampingProcessor extends WorkerHost {
       // ========================================
       // Actualizar CFDI con resultado exitoso
       // ========================================
-      await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Actualizar CFDI
         await tx.cfdiNomina.update({
           where: { id: cfdiId },
@@ -195,8 +215,13 @@ export class StampingProcessor extends WorkerHost {
         userId || 'SYSTEM',
         cfdiId,
         stampResult.uuid,
-        payrollDetailId || cfdiId, // Use cfdiId as fallback for audit reference
+        payrollDetailId || cfdiId,
       );
+
+      // ========================================
+      // PERIOD FINALIZER: Verificar si cerrar período
+      // ========================================
+      const periodFinalized = await this.checkAndFinalizePeriod(cfdiId, payrollDetailId, effectivePeriodId);
 
       return {
         success: true,
@@ -204,9 +229,9 @@ export class StampingProcessor extends WorkerHost {
         uuid: stampResult.uuid,
         fechaTimbrado: stampResult.fechaTimbrado,
         attemptNumber,
+        periodFinalized,
       };
-
-    } catch (error) {
+    } catch (error: any) {
       // ========================================
       // HARDENING: Clasificar error para decidir reintento
       // ========================================
@@ -291,7 +316,11 @@ export class StampingProcessor extends WorkerHost {
    * Prepara datos necesarios para el timbrado
    * Si companyId no se proporciona, lo infiere desde el CFDI
    */
-  private async prepareStampingData(cfdiId: string, companyId?: string) {
+  private async prepareStampingData(
+    cfdiId: string,
+    companyId?: string,
+    payrollDetailId?: string,
+  ) {
     // First get CFDI with employee to infer companyId if needed
     const cfdi = await this.prisma.cfdiNomina.findUnique({
       where: { id: cfdiId },
@@ -299,6 +328,12 @@ export class StampingProcessor extends WorkerHost {
         xmlOriginal: true,
         employee: {
           select: { companyId: true },
+        },
+        payrollDetail: {
+          select: {
+            id: true,
+            payrollPeriodId: true,
+          },
         },
       },
     });
@@ -312,6 +347,9 @@ export class StampingProcessor extends WorkerHost {
     if (!effectiveCompanyId) {
       throw new Error('No se pudo determinar la empresa para el timbrado');
     }
+
+    // Get period ID from CFDI if not provided
+    const detectedPeriodId = cfdi.payrollDetail?.payrollPeriodId;
 
     const company = await this.prisma.company.findUnique({
       where: { id: effectiveCompanyId },
@@ -335,7 +373,100 @@ export class StampingProcessor extends WorkerHost {
       cfdi,
       company,
       xml: cfdi.xmlOriginal,
+      detectedPeriodId,
     };
+  }
+
+  /**
+   * PERIOD FINALIZER: Verifica y cierra el período si todos los CFDIs están timbrados
+   *
+   * Lógica:
+   * 1. Si no hay periodId, intentar obtenerlo del PayrollDetail
+   * 2. Contar PayrollDetails del período en estado != STAMP_OK
+   * 3. Si todos están en STAMP_OK, cambiar PayrollPeriod.status a APPROVED
+   */
+  private async checkAndFinalizePeriod(
+    cfdiId: string,
+    payrollDetailId?: string,
+    periodId?: string,
+  ): Promise<boolean> {
+    try {
+      // If no periodId, try to get it from PayrollDetail
+      let effectivePeriodId = periodId;
+
+      if (!effectivePeriodId && payrollDetailId) {
+        const detail = await this.prisma.payrollDetail.findUnique({
+          where: { id: payrollDetailId },
+          select: { payrollPeriodId: true },
+        });
+        effectivePeriodId = detail?.payrollPeriodId;
+      }
+
+      // If still no periodId, try to get it from CFDI
+      if (!effectivePeriodId) {
+        const cfdi = await this.prisma.cfdiNomina.findUnique({
+          where: { id: cfdiId },
+          select: {
+            payrollDetail: {
+              select: { payrollPeriodId: true },
+            },
+          },
+        });
+        effectivePeriodId = cfdi?.payrollDetail?.payrollPeriodId;
+      }
+
+      if (!effectivePeriodId) {
+        this.logger.debug(`No se pudo determinar periodId para CFDI ${cfdiId}`);
+        return false;
+      }
+
+      // Check if period is in PROCESSING state
+      const period = await this.prisma.payrollPeriod.findUnique({
+        where: { id: effectivePeriodId },
+        select: { id: true, status: true },
+      });
+
+      if (!period || period.status !== PayrollStatus.PROCESSING) {
+        this.logger.debug(
+          `Período ${effectivePeriodId} no está en PROCESSING (estado: ${period?.status}), no se finalizará`,
+        );
+        return false;
+      }
+
+      // Count PayrollDetails that are NOT STAMP_OK
+      const pendingCount = await this.prisma.payrollDetail.count({
+        where: {
+          payrollPeriodId: effectivePeriodId,
+          status: { not: 'STAMP_OK' },
+        },
+      });
+
+      if (pendingCount > 0) {
+        this.logger.debug(
+          `Período ${effectivePeriodId} tiene ${pendingCount} recibos pendientes de timbrar`,
+        );
+        return false;
+      }
+
+      // All PayrollDetails are STAMP_OK - finalize period
+      await this.prisma.payrollPeriod.update({
+        where: { id: effectivePeriodId },
+        data: {
+          status: PayrollStatus.APPROVED,
+        },
+      });
+
+      this.logger.log(
+        `✅ PERIOD FINALIZER: Período ${effectivePeriodId} finalizado automáticamente (todos los CFDIs timbrados)`,
+      );
+
+      return true;
+    } catch (error: any) {
+      this.logger.error(
+        `Error en period finalizer para CFDI ${cfdiId}: ${error.message}`,
+      );
+      return false;
+    }
   }
 
   /**
@@ -415,7 +546,7 @@ export class StampingProcessor extends WorkerHost {
     cfdiId: string,
     errorMessage: string,
   ) {
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Update PayrollDetail if provided
       if (payrollDetailId) {
         await tx.payrollDetail.update({
@@ -449,8 +580,9 @@ export class StampingProcessor extends WorkerHost {
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job<StampingJobData>, result: StampingJobResult) {
+    const finalizerMsg = result.periodFinalized ? ' [PERÍODO FINALIZADO]' : '';
     this.logger.log(
-      `[${job.id}] Completado: ${result.success ? 'SUCCESS' : 'FAILED'} - UUID: ${result.uuid || 'N/A'}`,
+      `[${job.id}] Completado: ${result.success ? 'SUCCESS' : 'FAILED'} - UUID: ${result.uuid || 'N/A'}${finalizerMsg}`,
     );
   }
 

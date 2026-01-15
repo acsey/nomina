@@ -328,17 +328,17 @@ export class PayrollService {
 
     // Determine final status and response based on mode
     if (stampingResult.mode === 'async' && 'batchId' in stampingResult) {
-      // ASYNC MODE: Update to STAMPING status and return batchId
+      // ASYNC MODE: Update to PROCESSING status and return batchId
+      // The period will be auto-finalized to APPROVED by the processor
+      // when all CFDIs are stamped (via Period Finalizer)
       const updatedPeriod = await this.prisma.payrollPeriod.update({
         where: { id: periodId },
         data: {
-          // Note: Would need to add STAMPING to PayrollStatus enum
-          // For now, keep as CALCULATED until stamping completes
-          status: PayrollStatus.CALCULATED,
+          status: PayrollStatus.PROCESSING,
         },
       });
 
-      this.logger.log(`Modo ASYNC: Batch ${stampingResult.batchId} creado para período ${periodId}`);
+      this.logger.log(`Modo ASYNC: Batch ${stampingResult.batchId} creado para período ${periodId} (status: PROCESSING)`);
 
       return {
         period: updatedPeriod,
@@ -394,18 +394,18 @@ export class PayrollService {
       _count: true,
     });
 
-    const statusCounts = stats.reduce(
-      (acc, s) => {
-        acc[s.status] = s._count;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
+    const statusCounts: Record<string, number> = {};
+    for (const s of stats) {
+      statusCounts[s.status] = s._count;
+    }
 
-    const total = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+    let total = 0;
+    for (const count of Object.values(statusCounts)) {
+      total += count;
+    }
     const stamped = statusCounts['STAMPED'] || 0;
     const pending = statusCounts['PENDING'] || 0;
-    const error = statusCounts['ERROR'] || 0;
+    const errorCount = statusCounts['ERROR'] || 0;
 
     return {
       periodId,
@@ -414,7 +414,7 @@ export class PayrollService {
         total,
         stamped,
         pending,
-        error,
+        error: errorCount,
         progress: total > 0 ? Math.round((stamped / total) * 100) : 0,
         isComplete: pending === 0 && total > 0,
       },
