@@ -10,6 +10,8 @@ import { QueueService } from './services/queue.service';
 // CfdiStampingProcessor services (for worker mode)
 import { StampingService } from '@/modules/cfdi/services/stamping.service';
 import { StampingIdempotencyService } from '@/modules/cfdi/services/stamping-idempotency.service';
+// Tenant context for job processing
+import { TenantContextService } from '@/common/tenant/tenant-context.service';
 
 // Re-exportar constantes para compatibilidad
 export { QUEUE_NAMES, RETRY_CONFIG } from './queue.constants';
@@ -106,6 +108,7 @@ export class QueuesModule {
 
     // Services needed for CfdiStampingProcessor (only in worker/both mode)
     const stampingServices = mode === 'api' ? [] : [
+      TenantContextService, // Tenant isolation for job processing
       StampingService,
       StampingIdempotencyService,
     ];

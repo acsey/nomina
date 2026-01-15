@@ -6,6 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { TenantModule } from './common/tenant/tenant.module';
 import { SecurityModule } from './common/security/security.module';
 import { FiscalModule } from './common/fiscal/fiscal.module';
 import { FormulaModule } from './common/formulas/formula.module';
@@ -79,6 +80,7 @@ import { PortalModule } from './modules/portal/portal.module';
       }),
     }),
     PrismaModule,
+    TenantModule.forRoot(), // Multi-tenant architecture (context, isolation, connection factory)
     SecurityModule, // Módulo de seguridad global (cifrado, secretos, auditoría)
     FiscalModule,   // Módulo fiscal global (UMA, SMG, tasas de riesgo)
     FormulaModule,  // Módulo de fórmulas global (evaluador seguro de expresiones)
