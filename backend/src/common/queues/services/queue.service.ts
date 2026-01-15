@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, JobsOptions } from 'bullmq';
 import { QUEUE_NAMES } from '../queue.constants';
-import { StampingJobData } from '@/modules/cfdi/processors/stamping.processor';
+import { StampingJobData } from '../processors/cfdi-stamping.processor';
 import { PayrollCalculationJobData } from '../processors/payroll-calculation.processor';
 import { QueueEventsService } from './queue-events.service';
 
