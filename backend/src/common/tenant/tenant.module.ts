@@ -93,7 +93,9 @@ export class TenantModule implements NestModule, OnModuleInit {
       { strict, debug },
     );
 
-    this.prisma.$use(isolationMiddleware);
+    // Cast to any to satisfy Prisma's strict ModelName type requirement
+    // Our middleware handles string model names which is more flexible
+    this.prisma.$use(isolationMiddleware as any);
 
     this.logger.log(
       `Tenant isolation middleware installed (strict: ${strict}, debug: ${debug})`,
@@ -101,7 +103,7 @@ export class TenantModule implements NestModule, OnModuleInit {
 
     // Add audit logging middleware (for slow queries)
     const auditMiddleware = createAuditLoggingMiddleware(this.tenantContext);
-    this.prisma.$use(auditMiddleware);
+    this.prisma.$use(auditMiddleware as any);
 
     this.logger.log('Audit logging middleware installed');
   }
