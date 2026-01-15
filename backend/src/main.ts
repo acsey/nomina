@@ -188,8 +188,15 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger documentation (solo en desarrollo o si está habilitado)
-  const enableSwagger = process.env.ENABLE_SWAGGER !== 'false';
+  // ============================================
+  // Swagger: OFF by default in staging/production
+  // Set ENABLE_SWAGGER=true to enable in non-dev environments
+  // ============================================
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const enableSwagger =
+    nodeEnv === 'development' ||
+    process.env.ENABLE_SWAGGER === 'true';
+
   if (enableSwagger) {
     const config = new DocumentBuilder()
       .setTitle('Sistema de Nómina API')
@@ -218,7 +225,11 @@ async function bootstrap() {
 
   logger.log(`=`.repeat(60));
   logger.log(`Servidor ejecutándose en: http://localhost:${port}`);
-  logger.log(`Documentación API: http://localhost:${port}/api/docs`);
+  if (enableSwagger) {
+    logger.log(`Documentación API: http://localhost:${port}/api/docs`);
+  } else {
+    logger.log(`Swagger: DESHABILITADO (set ENABLE_SWAGGER=true para habilitar)`);
+  }
   logger.log(`Health Check: http://localhost:${port}/api/health`);
   logger.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
   logger.log(`=`.repeat(60));
