@@ -170,11 +170,24 @@ services:
       REDIS_DB: ${REDIS_DB:-0}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       FISCAL_STORAGE_PATH: /app/storage/fiscal
+
+      # Queue mode: worker only processes jobs
+      QUEUE_MODE: worker
+
+      # CFDI Stamp mode: must match backend
+      CFDI_STAMP_MODE: async
+
+      # PAC configuration
       PAC_MODE: ${PAC_MODE:-production}
       PAC_PROVIDER: ${PAC_PROVIDER}
       PAC_USER: ${PAC_USER}
       PAC_PASSWORD: ${PAC_PASSWORD}
+
+      # Worker settings
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+
+      # Security (needed for audit logging)
+      JWT_SECRET: ${JWT_SECRET}
     volumes:
       - prod_fiscal_storage:/app/storage
     depends_on:
@@ -182,6 +195,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x node && nc -z redis 6379"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - nomina-prod-network
     deploy:

@@ -68,8 +68,10 @@ services:
       PAC_URL: ${PAC_URL:-https://demo-facturacion.finkok.com}
       PAC_USER: ${PAC_USER:-}
       PAC_PASSWORD: ${PAC_PASSWORD:-}
-      # Modo de cola (api = solo encola, worker procesa por separado)
-      QUEUE_MODE: ${QUEUE_MODE:-api}
+      # Modo de cola (api = solo encola, worker procesa por separado, both = ambos)
+      QUEUE_MODE: ${QUEUE_MODE:-both}
+      # Modo de timbrado CFDI (sync = bloqueante, async = cola)
+      CFDI_STAMP_MODE: ${CFDI_STAMP_MODE:-sync}
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
@@ -142,6 +144,8 @@ services:
       PAC_PASSWORD: ${PAC_PASSWORD:-}
       # Modo worker = solo procesa colas, no levanta HTTP
       QUEUE_MODE: worker
+      # Modo de timbrado CFDI (debe coincidir con backend si async)
+      CFDI_STAMP_MODE: ${CFDI_STAMP_MODE:-sync}
     command: npm run start:worker:dev
     volumes:
       - ./backend/src:/app/src

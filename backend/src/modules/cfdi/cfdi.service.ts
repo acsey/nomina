@@ -383,6 +383,16 @@ export class CfdiService {
    * En modo ASYNC: Encola todo el batch y retorna inmediatamente
    */
   async stampAllPeriod(periodId: string, userId?: string) {
+    // Get period to obtain companyId
+    const period = await this.prisma.payrollPeriod.findUnique({
+      where: { id: periodId },
+      select: { companyId: true },
+    });
+
+    if (!period) {
+      throw new NotFoundException('Período no encontrado');
+    }
+
     const cfdis = await this.prisma.cfdiNomina.findMany({
       where: {
         status: 'PENDING',
@@ -407,12 +417,14 @@ export class CfdiService {
       };
     }
 
-    // ASYNC MODE: Use batch queuing
+    // ASYNC MODE: Use batch queuing with companyId and periodId
     if (this.stampMode === 'async' && this.queueService) {
       const cfdiIds = cfdis.map((c) => c.id);
       const { batchId, jobIds } = await this.queueService.queueBatchCfdiStamping(cfdiIds, {
         userId,
         priority: 'normal',
+        companyId: period.companyId,
+        periodId,
       });
 
       this.logger.log(`Batch ${batchId} creado con ${cfdis.length} CFDIs para período ${periodId}`);
