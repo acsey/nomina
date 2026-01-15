@@ -99,6 +99,7 @@ export class QueueService {
         userId: options?.userId,
         priority: options?.priority,
         companyId: options?.companyId,
+        periodId: options?.periodId,
         batchId,
       });
       jobIds.push(jobId);
