@@ -13,6 +13,7 @@
 import { Controller, Get, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
+import { Public } from '../decorators/public.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
@@ -43,6 +44,7 @@ export interface SystemHealth {
 
 @ApiTags('Health')
 @Controller('health')
+@Public() // Health checks deben ser públicos para Docker healthchecks y monitoreo externo
 @SkipThrottle() // Health checks no deben tener rate limiting para monitoreo
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);
