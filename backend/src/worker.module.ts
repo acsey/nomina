@@ -7,6 +7,7 @@ import { SecurityModule } from './common/security/security.module';
 import { FiscalModule } from './common/fiscal/fiscal.module';
 import { FormulaModule } from './common/formulas/formula.module';
 import { UtilsModule } from './common/utils/utils.module';
+import { TenantContextService } from './common/tenant/tenant-context.service';
 import { QUEUE_NAMES, RETRY_CONFIG } from './common/queues/queue.constants';
 // CFDI Stamping processor from common/queues (canonical location)
 import { CfdiStampingProcessor } from './common/queues/processors/cfdi-stamping.processor';
@@ -77,6 +78,8 @@ import { QueueEventsService } from './common/queues/services/queue-events.servic
     ),
   ],
   providers: [
+    // Tenant context for job isolation
+    TenantContextService,
     // Servicios necesarios para CfdiStampingProcessor
     StampingService,
     StampingIdempotencyService,

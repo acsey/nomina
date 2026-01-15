@@ -9,6 +9,7 @@ import {
   StampingErrorType,
 } from '@/modules/cfdi/services/stamping-idempotency.service';
 import { AuditService } from '@/common/security/audit.service';
+import { TenantContextService } from '@/common/tenant/tenant-context.service';
 import { QUEUE_NAMES } from '../queue.constants';
 import { PayrollStatus } from '@/common/types/prisma-enums';
 
@@ -68,6 +69,7 @@ export class CfdiStampingProcessor extends WorkerHost {
     private readonly stampingService: StampingService,
     private readonly idempotencyService: StampingIdempotencyService,
     private readonly auditService: AuditService,
+    private readonly tenantContext: TenantContextService,
   ) {
     super();
     this.logger.log(`CfdiStampingProcessor inicializado (worker: ${this.workerId})`);
@@ -75,6 +77,9 @@ export class CfdiStampingProcessor extends WorkerHost {
 
   /**
    * Procesa un job de timbrado
+   *
+   * IMPORTANT: Job data MUST include companyId for proper tenant isolation.
+   * The processor wraps all operations in tenant context.
    */
   async process(job: Job<StampingJobData>): Promise<StampingJobResult> {
     const {
@@ -91,6 +96,37 @@ export class CfdiStampingProcessor extends WorkerHost {
     this.logger.log(
       `[${job.id}] Iniciando timbrado CFDI ${cfdiId} (intento ${attemptNumber})${batchId ? ` [batch: ${batchId}]` : ''}`,
     );
+
+    // ========================================
+    // TENANT CONTEXT: Initialize for this job
+    // ========================================
+    const tenantCtx = this.tenantContext.createJobContext({
+      companyId: companyId,
+      userId: userId,
+    });
+
+    // Run the entire job within tenant context
+    return this.tenantContext.runWithContextAsync(tenantCtx, async () => {
+      return this.processWithinContext(job, attemptNumber);
+    });
+  }
+
+  /**
+   * Internal processing method - runs within tenant context
+   */
+  private async processWithinContext(
+    job: Job<StampingJobData>,
+    attemptNumber: number,
+  ): Promise<StampingJobResult> {
+    const {
+      cfdiId,
+      payrollDetailId,
+      periodId,
+      receiptVersion = 1,
+      companyId,
+      userId,
+      batchId,
+    } = job.data;
 
     // ========================================
     // HARDENING: Pre-Check - Verificar si ya está timbrado
