@@ -163,6 +163,9 @@ services:
       # Queue mode: 'worker' - only process jobs, no API
       QUEUE_MODE: worker
 
+      # CFDI Stamp mode: must match backend for consistency
+      CFDI_STAMP_MODE: ${CFDI_STAMP_MODE:-async}
+
       # Worker concurrency
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-3}
 
@@ -181,6 +184,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # Worker healthcheck: verify process is running and Redis is reachable
+      test: ["CMD-SHELL", "pgrep -x node && nc -z redis 6379"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - nomina-staging-network
 
