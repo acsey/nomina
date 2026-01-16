@@ -132,6 +132,8 @@ export const authApi = {
   login: (data: { email: string; password: string; mfaCode?: string }) =>
     api.post('/auth/login', data),
   getProfile: () => api.get('/auth/profile'),
+  updateProfile: (data: { firstName?: string; lastName?: string; email?: string }) =>
+    api.patch('/auth/profile', data),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.post('/auth/change-password', data),
   // Microsoft Auth

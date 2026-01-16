@@ -33,6 +33,7 @@ import AuthCallbackPage from './pages/AuthCallbackPage';
 import WebTimeclockPage from './pages/WebTimeclockPage';
 import SurveysManagementPage from './pages/SurveysManagementPage';
 import DocumentsManagementPage from './pages/DocumentsManagementPage';
+import ProfilePage from './pages/ProfilePage';
 
 // Employee Portal pages
 import {
@@ -128,6 +129,7 @@ function App() {
               <Route path="help" element={<HelpPage />} />
               <Route path="org-chart" element={<OrgChartPage />} />
               <Route path="timeclock" element={<WebTimeclockPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               </Route>
 
               {/* Employee Portal Routes - Protected by PortalGuard */}
