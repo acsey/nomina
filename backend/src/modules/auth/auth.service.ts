@@ -191,4 +191,108 @@ export class AuthService {
 
     return { message: 'Contraseña actualizada correctamente' };
   }
+
+  /**
+   * Actualizar perfil del usuario actual
+   */
+  async updateProfile(
+    userId: string,
+    data: { firstName?: string; lastName?: string; email?: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // Si se cambia el email, verificar que no exista
+    if (data.email && data.email !== user.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('El correo electrónico ya está en uso');
+      }
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.firstName && { firstName: data.firstName }),
+        ...(data.lastName && { lastName: data.lastName }),
+        ...(data.email && { email: data.email }),
+      },
+      include: { role: true, company: true },
+    });
+
+    return {
+      message: 'Perfil actualizado correctamente',
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        role: updatedUser.role.name,
+        companyId: updatedUser.companyId,
+        company: updatedUser.company
+          ? {
+              id: updatedUser.company.id,
+              name: updatedUser.company.name,
+            }
+          : null,
+      },
+    };
+  }
+
+  /**
+   * Obtener perfil completo del usuario actual
+   */
+  async getFullProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+        company: true,
+        employee: {
+          select: {
+            id: true,
+            employeeNumber: true,
+            department: { select: { id: true, name: true } },
+            jobPosition: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // Check MFA status
+    const mfaEnabled = await this.mfaService.isMfaEnabled(userId);
+
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role.name,
+      permissions: user.role.permissions,
+      companyId: user.companyId,
+      company: user.company
+        ? {
+            id: user.company.id,
+            name: user.company.name,
+            logo: user.company.logo,
+            primaryColor: user.company.primaryColor,
+          }
+        : null,
+      employee: user.employee,
+      mfaEnabled,
+      createdAt: user.createdAt,
+    };
+  }
 }

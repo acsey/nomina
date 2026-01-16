@@ -36,7 +36,21 @@ function isSuperAdmin(user: { role: string; companyId?: string | null }): boolea
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private canManageRole(currentUserRole: string, targetRole: string): boolean {
+  /**
+   * Check if current user can view/edit target role (same or lower level)
+   * e.g., company_admin can view/edit other company_admin in their company
+   */
+  private canViewOrEditRole(currentUserRole: string, targetRole: string): boolean {
+    const currentLevel = ROLE_HIERARCHY[currentUserRole] || 0;
+    const targetLevel = ROLE_HIERARCHY[targetRole] || 0;
+    return currentLevel >= targetLevel;
+  }
+
+  /**
+   * Check if current user can create/assign target role (lower level only)
+   * e.g., company_admin cannot create another company_admin
+   */
+  private canAssignRole(currentUserRole: string, targetRole: string): boolean {
     const currentLevel = ROLE_HIERARCHY[currentUserRole] || 0;
     const targetLevel = ROLE_HIERARCHY[targetRole] || 0;
     return currentLevel > targetLevel;
@@ -61,8 +75,8 @@ export class UsersService {
       throw new NotFoundException('Rol no encontrado');
     }
 
-    // Check role hierarchy
-    if (!this.canManageRole(currentUser.role, targetRole.name)) {
+    // Check role hierarchy - can only create users with LOWER level roles
+    if (!this.canAssignRole(currentUser.role, targetRole.name)) {
       throw new ForbiddenException('No tiene permisos para crear usuarios con este rol');
     }
 
@@ -180,7 +194,7 @@ export class UsersService {
       }
 
       // Can only view users with lower or equal hierarchy
-      if (!this.canManageRole(currentUser.role, user.role.name)) {
+      if (!this.canViewOrEditRole(currentUser.role, user.role.name)) {
         throw new ForbiddenException('No tiene permisos para ver este usuario');
       }
     }
@@ -203,7 +217,8 @@ export class UsersService {
         throw new NotFoundException('Rol no encontrado');
       }
 
-      if (!this.canManageRole(currentUser.role, targetRole.name)) {
+      // Can only assign LOWER level roles
+      if (!this.canAssignRole(currentUser.role, targetRole.name)) {
         throw new ForbiddenException('No tiene permisos para asignar este rol');
       }
     }

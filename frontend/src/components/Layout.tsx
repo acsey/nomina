@@ -376,6 +376,14 @@ export default function Layout() {
                       </NavLink>
                     )}
                     <NavLink
+                      to="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Cog8ToothIcon className="h-4 w-4" />
+                      {t('nav.user.profile')}
+                    </NavLink>
+                    <NavLink
                       to="/help"
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"

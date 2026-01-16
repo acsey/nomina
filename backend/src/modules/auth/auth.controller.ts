@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, UseGuards, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, Query, UseGuards, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
@@ -8,6 +8,7 @@ import { SystemConfigService } from '../system-config/system-config.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SuperAdminGuard } from './guards/super-admin.guard';
 import { CurrentUser } from '@/common/decorators';
@@ -42,8 +43,19 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener perfil del usuario actual' })
-  async getProfile(@CurrentUser() user: any) {
-    return user;
+  async getProfile(@CurrentUser('sub') userId: string) {
+    return this.authService.getFullProfile(userId);
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar perfil del usuario actual' })
+  async updateProfile(
+    @CurrentUser('sub') userId: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(userId, updateProfileDto);
   }
 
   @Post('change-password')
