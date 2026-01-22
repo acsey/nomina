@@ -21,7 +21,7 @@ import { WhatsAppService } from './whatsapp.service';
 import { GeofenceService } from './geofence.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { RequireRoles } from '../../common/decorators/roles.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { ModuleEnabledGuard, RequireModule } from '../../common/guards/module-enabled.guard';
 import {
   CreateWhatsAppConfigDto,
@@ -51,7 +51,7 @@ export class WhatsAppController {
   // =============================================
 
   @Get('config/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Obtener configuración de WhatsApp' })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   getConfig(@Param('companyId') companyId: string) {
@@ -59,7 +59,7 @@ export class WhatsAppController {
   }
 
   @Post('config/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Crear configuración de WhatsApp' })
   createConfig(
     @Param('companyId') companyId: string,
@@ -69,7 +69,7 @@ export class WhatsAppController {
   }
 
   @Patch('config/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Actualizar configuración de WhatsApp' })
   updateConfig(
     @Param('companyId') companyId: string,
@@ -83,14 +83,14 @@ export class WhatsAppController {
   // =============================================
 
   @Get('employees/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Listar empleados con WhatsApp registrado' })
   getEmployeeList(@Param('companyId') companyId: string) {
     return this.whatsappService.getEmployeeWhatsAppList(companyId);
   }
 
   @Post('employees/:companyId/register')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Registrar WhatsApp de un empleado' })
   registerEmployee(
     @Param('companyId') companyId: string,
@@ -100,7 +100,7 @@ export class WhatsAppController {
   }
 
   @Post('employees/verify/:employeeWhatsAppId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Verificar código de WhatsApp del empleado' })
   verifyEmployee(
     @Param('employeeWhatsAppId') id: string,
@@ -114,21 +114,21 @@ export class WhatsAppController {
   // =============================================
 
   @Get('geofences/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Listar geocercas de la empresa' })
   getGeofences(@Param('companyId') companyId: string) {
     return this.geofenceService.findAll(companyId);
   }
 
   @Get('geofences/detail/:id')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Obtener detalle de geocerca' })
   getGeofence(@Param('id') id: string) {
     return this.geofenceService.findOne(id);
   }
 
   @Post('geofences/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Crear geocerca' })
   createGeofence(
     @Param('companyId') companyId: string,
@@ -138,21 +138,21 @@ export class WhatsAppController {
   }
 
   @Patch('geofences/:id')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Actualizar geocerca' })
   updateGeofence(@Param('id') id: string, @Body() dto: UpdateGeofenceDto) {
     return this.geofenceService.update(id, dto);
   }
 
   @Delete('geofences/:id')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Eliminar geocerca' })
   deleteGeofence(@Param('id') id: string) {
     return this.geofenceService.delete(id);
   }
 
   @Post('geofences/:geofenceId/assign')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Asignar empleado a geocerca' })
   assignEmployeeToGeofence(
     @Param('geofenceId') geofenceId: string,
@@ -162,7 +162,7 @@ export class WhatsAppController {
   }
 
   @Delete('geofences/:geofenceId/unassign/:employeeId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Desasignar empleado de geocerca' })
   unassignEmployee(
     @Param('geofenceId') geofenceId: string,
@@ -172,7 +172,7 @@ export class WhatsAppController {
   }
 
   @Get('geofences/employee/:employeeId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Obtener geocercas asignadas a un empleado' })
   getEmployeeGeofences(@Param('employeeId') employeeId: string) {
     return this.geofenceService.getEmployeeGeofences(employeeId);
@@ -183,7 +183,7 @@ export class WhatsAppController {
   // =============================================
 
   @Get('logs/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Obtener logs de asistencia por WhatsApp' })
   @ApiQuery({ name: 'startDate', required: false })
   @ApiQuery({ name: 'endDate', required: false })
@@ -198,7 +198,7 @@ export class WhatsAppController {
   }
 
   @Post('logs/:companyId/manual')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Crear registro de asistencia manual' })
   createManualLog(
     @Param('companyId') companyId: string,
@@ -208,7 +208,7 @@ export class WhatsAppController {
   }
 
   @Patch('logs/:logId/approve')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Aprobar log de asistencia pendiente' })
   approveLog(
     @Param('logId') logId: string,
@@ -218,7 +218,7 @@ export class WhatsAppController {
   }
 
   @Patch('logs/:logId/reject')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Rechazar log de asistencia' })
   rejectLog(
     @Param('logId') logId: string,
@@ -232,7 +232,7 @@ export class WhatsAppController {
   // =============================================
 
   @Post('validate-location/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN')
   @ApiOperation({ summary: 'Validar ubicación contra geocercas' })
   validateLocation(
     @Param('companyId') companyId: string,
