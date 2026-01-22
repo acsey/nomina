@@ -14,7 +14,7 @@ import {
   AttendanceLogQueryDto,
 } from './dto';
 import { GeofenceService } from './geofence.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, AttendanceLogStatus } from '@prisma/client';
 
 @Injectable()
 export class WhatsAppService {
@@ -379,20 +379,20 @@ export class WhatsAppService {
 
   private determineLogStatus(
     geofenceValidation: { isInside: boolean; allowOutside: boolean } | null
-  ): string {
+  ): AttendanceLogStatus {
     if (!geofenceValidation) {
-      return 'PROCESSED'; // Sin validación de geocerca
+      return AttendanceLogStatus.PROCESSED; // Sin validación de geocerca
     }
 
     if (geofenceValidation.isInside) {
-      return 'PROCESSED';
+      return AttendanceLogStatus.PROCESSED;
     }
 
     if (geofenceValidation.allowOutside) {
-      return 'PROCESSED'; // Permitido pero con advertencia
+      return AttendanceLogStatus.PROCESSED; // Permitido pero con advertencia
     }
 
-    return 'MANUAL_REVIEW'; // Requiere revisión
+    return AttendanceLogStatus.MANUAL_REVIEW; // Requiere revisión
   }
 
   private async syncWithAttendanceRecord(logId: string) {
@@ -493,8 +493,15 @@ export class WhatsAppService {
     message: string
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      // Importar Twilio dinámicamente
-      const twilio = await import('twilio');
+      // Importar Twilio dinámicamente (solo si está instalado)
+      let twilio: any;
+      try {
+        twilio = await import('twilio');
+      } catch {
+        this.logger.warn('Twilio SDK no instalado. Ejecuta: npm install twilio');
+        return { success: false, error: 'Twilio SDK no instalado' };
+      }
+
       const client = twilio.default(config.accountSid, config.authToken);
 
       const result = await client.messages.create({
