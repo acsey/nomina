@@ -111,8 +111,8 @@ export class WhatsAppWebhookController {
       const result = await this.messageProcessor.processN8nWebhook(body);
 
       res.status(HttpStatus.OK).json({
-        success: true,
         ...result,
+        success: true,
       });
     } catch (error: any) {
       this.logger.error(`Error processing n8n webhook: ${error.message}`);

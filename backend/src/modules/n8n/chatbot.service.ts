@@ -3,7 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { N8nService } from './n8n.service';
 import { ChatbotIntent, ChatbotMessageDto } from './dto';
 
-interface ChatbotResponse {
+export interface ChatbotResponse {
   message: string;
   intent: ChatbotIntent;
   confidence: number;
@@ -272,10 +272,11 @@ export class ChatbotService {
       });
 
       if (balance) {
+        const availableDays = Number(balance.earnedDays) - Number(balance.usedDays) - Number(balance.pendingDays);
         return {
           intent: ChatbotIntent.CHECK_VACATION_BALANCE,
           message: `📊 *Tu saldo de vacaciones:*\n\n` +
-            `• Días disponibles: *${balance.availableDays}*\n` +
+            `• Días disponibles: *${availableDays}*\n` +
             `• Días usados: ${balance.usedDays}\n` +
             `• Días pendientes: ${balance.pendingDays}\n\n` +
             `¿Deseas solicitar vacaciones?`,
@@ -341,7 +342,7 @@ export class ChatbotService {
         },
         orderBy: { createdAt: 'desc' },
         include: {
-          period: true,
+          payrollPeriod: true,
         },
       });
 
@@ -349,7 +350,7 @@ export class ChatbotService {
         return {
           intent: ChatbotIntent.CHECK_PAYROLL,
           message: `💰 *Último recibo de nómina*\n\n` +
-            `Período: ${lastPayroll.period.name}\n` +
+            `Período: ${lastPayroll.payrollPeriod.name}\n` +
             `Percepciones: $${Number(lastPayroll.totalPerceptions).toLocaleString()}\n` +
             `Deducciones: $${Number(lastPayroll.totalDeductions).toLocaleString()}\n` +
             `*Neto a pagar: $${Number(lastPayroll.netPay).toLocaleString()}*\n\n` +

@@ -12,7 +12,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger'
 import { SystemModulesService } from './system-modules.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { RequireRoles } from '../auth/decorators/roles.decorator';
+import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { CreateSystemModuleDto, UpdateSystemModuleDto, UpdateCompanyModuleDto } from './dto';
 
 @ApiTags('System Modules')

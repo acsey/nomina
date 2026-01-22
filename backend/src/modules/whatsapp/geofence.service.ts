@@ -7,7 +7,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateGeofenceDto, UpdateGeofenceDto, AssignGeofenceDto } from './dto';
 import { Prisma } from '@prisma/client';
 
-interface GeofenceValidationResult {
+export interface GeofenceValidationResult {
   isInside: boolean;
   distance: number; // metros
   geofenceId: string | null;

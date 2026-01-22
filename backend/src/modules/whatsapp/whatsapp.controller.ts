@@ -21,7 +21,7 @@ import { WhatsAppService } from './whatsapp.service';
 import { GeofenceService } from './geofence.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { RequireRoles } from '../auth/decorators/roles.decorator';
+import { RequireRoles } from '../../common/decorators/roles.decorator';
 import { ModuleEnabledGuard, RequireModule } from '../../common/guards/module-enabled.guard';
 import {
   CreateWhatsAppConfigDto,
