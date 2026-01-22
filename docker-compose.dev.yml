@@ -72,6 +72,17 @@ services:
       QUEUE_MODE: ${QUEUE_MODE:-both}
       # Modo de timbrado CFDI (sync = bloqueante, async = cola)
       CFDI_STAMP_MODE: ${CFDI_STAMP_MODE:-sync}
+      # WhatsApp (Twilio)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-nomina_verify_token}
+      # n8n Integration
+      N8N_BASE_URL: http://n8n:5678
+      N8N_WEBHOOK_BASE_URL: http://n8n:5678/webhook
+      N8N_API_KEY: ${N8N_API_KEY:-}
+      # Claude API (para ChatBot IA)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
@@ -161,10 +172,49 @@ services:
     networks:
       - nomina-network-dev
 
+  # n8n - Automatización y ChatBot IA
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: nomina-n8n-dev
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Autenticación
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      # Configuración de host
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      # Timezone
+      - GENERIC_TIMEZONE=America/Mexico_City
+      # Guardar ejecuciones
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      # Variables de entorno para conectar con el backend
+      - BACKEND_URL=http://backend:3000
+      - BACKEND_API_KEY=${N8N_BACKEND_API_KEY:-dev-api-key}
+    volumes:
+      - n8n_data_dev:/home/node/.n8n
+      - ./n8n-workflows:/home/node/.n8n/workflows:ro
+    networks:
+      - nomina-network-dev
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres_data_dev:
     driver: local
   redis_data_dev:
+    driver: local
+  n8n_data_dev:
     driver: local
 
 networks:
