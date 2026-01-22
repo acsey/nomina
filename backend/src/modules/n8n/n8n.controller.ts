@@ -14,7 +14,7 @@ import { N8nService } from './n8n.service';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { RequireRoles } from '../../common/decorators/roles.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { ModuleEnabledGuard, RequireModule } from '../../common/guards/module-enabled.guard';
 import {
   CreateN8nConfigDto,
@@ -39,7 +39,7 @@ export class N8nController {
   // =============================================
 
   @Get('config/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Obtener configuración de n8n' })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   getConfig(@Param('companyId') companyId: string) {
@@ -47,7 +47,7 @@ export class N8nController {
   }
 
   @Post('config/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Crear configuración de n8n' })
   createConfig(
     @Param('companyId') companyId: string,
@@ -57,7 +57,7 @@ export class N8nController {
   }
 
   @Patch('config/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Actualizar configuración de n8n' })
   updateConfig(
     @Param('companyId') companyId: string,
@@ -67,7 +67,7 @@ export class N8nController {
   }
 
   @Delete('config/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Eliminar configuración de n8n' })
   deleteConfig(@Param('companyId') companyId: string) {
     return this.n8nService.deleteConfig(companyId);
@@ -78,7 +78,7 @@ export class N8nController {
   // =============================================
 
   @Get('health/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Verificar conexión con n8n' })
   healthCheck(@Param('companyId') companyId: string) {
     return this.n8nService.healthCheck(companyId);
@@ -89,7 +89,7 @@ export class N8nController {
   // =============================================
 
   @Post('trigger/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Ejecutar un workflow de n8n' })
   triggerWorkflow(
     @Param('companyId') companyId: string,
@@ -104,7 +104,7 @@ export class N8nController {
 
   @Post('chatbot/:companyId/:employeeId')
   @RequireModule('ai_chatbot')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'EMPLOYEE')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN', 'HR_ADMIN', 'EMPLOYEE')
   @ApiOperation({ summary: 'Enviar mensaje al chatbot de RRHH' })
   chatbotMessage(
     @Param('companyId') companyId: string,
@@ -125,7 +125,7 @@ export class N8nController {
   // =============================================
 
   @Get('logs/:companyId')
-  @RequireRoles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
+  @Roles('SYSTEM_ADMIN', 'COMPANY_ADMIN')
   @ApiOperation({ summary: 'Obtener logs de webhooks' })
   getWebhookLogs(
     @Param('companyId') companyId: string,

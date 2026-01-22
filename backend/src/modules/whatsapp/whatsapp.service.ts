@@ -494,15 +494,16 @@ export class WhatsAppService {
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       // Importar Twilio dinámicamente (solo si está instalado)
-      let twilio: any;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      let twilioModule: any;
       try {
-        twilio = await import('twilio');
+        twilioModule = require('twilio');
       } catch {
         this.logger.warn('Twilio SDK no instalado. Ejecuta: npm install twilio');
         return { success: false, error: 'Twilio SDK no instalado' };
       }
 
-      const client = twilio.default(config.accountSid, config.authToken);
+      const client = twilioModule(config.accountSid, config.authToken);
 
       const result = await client.messages.create({
         from: config.phoneNumber,
