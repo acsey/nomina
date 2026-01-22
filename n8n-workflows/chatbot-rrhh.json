@@ -1,0 +1,148 @@
+{
+  "name": "HR Chatbot - Sistema de Nómina",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook - Recibir Mensaje",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "chatbot-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer datos del mensaje entrante\nconst input = $input.first().json;\n\nconst employeeId = input.employeeId;\nconst sessionId = input.sessionId;\nconst message = input.message;\nconst phoneNumber = input.phoneNumber;\nconst context = input.context || {};\n\n// Construir el prompt del sistema\nconst systemPrompt = `Eres un asistente de Recursos Humanos amigable y profesional para una empresa mexicana.\nTu nombre es \"Asistente RRHH\".\n\nPuedes ayudar a los empleados con:\n1. Consultas de vacaciones y saldo de días\n2. Solicitudes de permisos\n3. Consultas de nómina y recibos\n4. Registro de asistencia\n5. Preguntas generales sobre políticas de la empresa\n\nContexto del empleado:\n- ID: ${employeeId}\n- Días de vacaciones disponibles: ${context.vacationBalance || 'No disponible'}\n- Último checado: ${context.lastAttendance || 'No disponible'}\n\nResponde siempre en español de manera clara y concisa.\nSi necesitas información que no tienes, indica amablemente que el empleado debe contactar a RH directamente.\nNo inventes información sobre políticas o saldos.`;\n\nreturn {\n  json: {\n    employeeId,\n    sessionId,\n    phoneNumber,\n    userMessage: message,\n    systemPrompt,\n    context\n  }\n};"
+      },
+      "id": "code-prepare",
+      "name": "Preparar Contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $json.systemPrompt }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.userMessage }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.7
+        }
+      },
+      "id": "claude-ai",
+      "name": "Claude AI - Generar Respuesta",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "anthropicApi": {
+          "id": "1",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Procesar la respuesta de Claude\nconst input = $input.first().json;\nconst prevData = $('Preparar Contexto').first().json;\n\n// Extraer la respuesta de Claude\nconst aiResponse = input.message?.content || input.text || 'Lo siento, hubo un error procesando tu mensaje.';\n\n// Detectar intención básica de la respuesta\nlet intent = 'general';\nconst lowerMessage = prevData.userMessage.toLowerCase();\n\nif (lowerMessage.includes('vacacion') || lowerMessage.includes('días')) {\n  intent = 'vacation_query';\n} else if (lowerMessage.includes('permiso')) {\n  intent = 'permission_request';\n} else if (lowerMessage.includes('nómina') || lowerMessage.includes('sueldo') || lowerMessage.includes('pago')) {\n  intent = 'payroll_query';\n} else if (lowerMessage.includes('entrada') || lowerMessage.includes('salida') || lowerMessage.includes('checado')) {\n  intent = 'attendance';\n}\n\nreturn {\n  json: {\n    response: aiResponse,\n    intent: intent,\n    confidence: 0.85,\n    sessionId: prevData.sessionId,\n    employeeId: prevData.employeeId,\n    phoneNumber: prevData.phoneNumber,\n    suggestions: getSuggestions(intent)\n  }\n};\n\nfunction getSuggestions(intent) {\n  const suggestions = {\n    vacation_query: ['Solicitar vacaciones', 'Ver historial', 'Menú principal'],\n    permission_request: ['Permiso personal', 'Cita médica', 'Cancelar'],\n    payroll_query: ['Descargar PDF', 'Ver CFDI', 'Nóminas anteriores'],\n    attendance: ['Ver mi horario', 'Historial de asistencia', 'Menú principal'],\n    general: ['Vacaciones', 'Nómina', 'Permisos', 'Ayuda']\n  };\n  return suggestions[intent] || suggestions.general;\n}"
+      },
+      "id": "code-process",
+      "name": "Procesar Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Responder al Backend",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Recibir Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Preparar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Contexto": {
+      "main": [
+        [
+          {
+            "node": "Claude AI - Generar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude AI - Generar Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Procesar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder al Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "RRHH",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "WhatsApp",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
