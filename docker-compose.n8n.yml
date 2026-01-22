@@ -1,0 +1,77 @@
+version: '3.8'
+
+# Docker Compose para n8n (desarrollo local)
+# Ejecutar: docker compose -f docker-compose.n8n.yml up -d
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: nomina-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Autenticación básica
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-admin123}
+
+      # Configuración de host
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678/}
+
+      # Timezone
+      - GENERIC_TIMEZONE=America/Mexico_City
+
+      # API Key para integraciones externas
+      - N8N_API_KEY=${N8N_API_KEY:-}
+
+      # Configuración de ejecuciones
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+
+      # Configuración de workflows
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+
+      # Base de datos (SQLite por defecto, cambiar a PostgreSQL en producción)
+      # - DB_TYPE=postgresdb
+      # - DB_POSTGRESDB_HOST=postgres
+      # - DB_POSTGRESDB_DATABASE=n8n
+      # - DB_POSTGRESDB_USER=n8n
+      # - DB_POSTGRESDB_PASSWORD=n8n_password
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/home/node/.n8n/workflows:ro
+    networks:
+      - nomina-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Opcional: Redis para colas (si se necesita procesamiento distribuido)
+  # redis-n8n:
+  #   image: redis:7-alpine
+  #   container_name: nomina-redis-n8n
+  #   restart: unless-stopped
+  #   volumes:
+  #     - redis_n8n_data:/data
+  #   networks:
+  #     - nomina-network
+
+volumes:
+  n8n_data:
+    driver: local
+  # redis_n8n_data:
+  #   driver: local
+
+networks:
+  nomina-network:
+    external: true
+    name: nomina_default  # Conectar a la red del sistema de nómina

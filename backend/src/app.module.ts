@@ -37,6 +37,9 @@ import { PacModule } from './modules/pac/pac.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EmailModule } from './modules/email/email.module';
 import { PortalModule } from './modules/portal/portal.module';
+import { SystemModulesModule } from './modules/system-modules/system-modules.module';
+import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
+import { N8nModule } from './modules/n8n/n8n.module';
 
 @Module({
   imports: [
@@ -110,6 +113,9 @@ import { PortalModule } from './modules/portal/portal.module';
     EmailModule,    // Servicio de correo electrónico con SMTP
     HealthModule,   // Endpoints de health check para monitoreo
     PortalModule,   // Portal del empleado (documentos, reconocimientos, encuestas, etc.)
+    SystemModulesModule, // Sistema modular (habilitar/deshabilitar módulos por empresa)
+    WhatsAppModule,      // Checador por WhatsApp con geocercas
+    N8nModule,           // Integración con n8n y ChatBot IA
   ],
   controllers: [AppController],
   providers: [

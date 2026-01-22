@@ -245,6 +245,16 @@ model Company {
   // HARDENING: Reglas fiscales personalizadas
   fiscalRules FiscalRule[]
 
+  // Sistema Modular
+  modules     CompanyModule[]
+
+  // WhatsApp Integration
+  whatsappConfig WhatsAppConfig?
+  geofences   Geofence[]
+
+  // n8n Integration
+  n8nConfig   N8nConfig?
+
   @@map("companies")
 }
 
@@ -378,6 +388,10 @@ model Employee {
   courseEnrollments    CourseEnrollment[]
   badges               EmployeeBadge[]
   surveyResponses      SurveyResponse[]
+
+  // WhatsApp Integration
+  whatsappProfile     EmployeeWhatsApp?
+  geofenceAssignments GeofenceEmployee[]
 
   @@map("employees")
 }
@@ -2654,5 +2668,407 @@ model SurveyAnswer {
   answerOption String?  @map("answer_option") // Para multiple choice
 
   @@map("survey_answers")
+}
+
+// ============================================
+// MÓDULO: SISTEMA MODULAR (Feature Flags por Empresa)
+// ============================================
+
+model SystemModule {
+  id          String   @id @default(uuid())
+  code        String   @unique // attendance, vacations, benefits, portal, cfdi, whatsapp_attendance, ai_chatbot, etc.
+  name        String
+  description String?
+  category    ModuleCategory @default(CORE)
+  isCore      Boolean  @default(false) @map("is_core") // Módulos esenciales que no se pueden desactivar
+  defaultEnabled Boolean @default(true) @map("default_enabled") // Habilitado por defecto para nuevas empresas
+  icon        String?  // Icono para el UI (heroicon name)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  companyModules CompanyModule[]
+
+  @@map("system_modules")
+}
+
+model CompanyModule {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id])
+  moduleId    String   @map("module_id")
+  module      SystemModule @relation(fields: [moduleId], references: [id])
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  config      Json?    // Configuración específica del módulo para la empresa
+  enabledAt   DateTime? @map("enabled_at")
+  disabledAt  DateTime? @map("disabled_at")
+  enabledById String?  @map("enabled_by_id") // Usuario que habilitó
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, moduleId])
+  @@map("company_modules")
+}
+
+enum ModuleCategory {
+  CORE        // Módulos esenciales (empleados, usuarios)
+  PAYROLL     // Nómina y fiscalidad
+  HR          // Recursos Humanos
+  ATTENDANCE  // Asistencia
+  PORTAL      // Portal del empleado
+  INTEGRATION // Integraciones externas (WhatsApp, n8n)
+  REPORTS     // Reportes
+}
+
+// ============================================
+// MÓDULO: WHATSAPP ATTENDANCE (Checador por WhatsApp)
+// ============================================
+
+model WhatsAppConfig {
+  id                String   @id @default(uuid())
+  companyId         String   @unique @map("company_id")
+  company           Company  @relation(fields: [companyId], references: [id])
+
+  // Configuración de proveedor
+  provider          WhatsAppProvider @default(TWILIO)
+  accountSid        String?  @map("account_sid") // Twilio Account SID
+  authToken         String?  @map("auth_token")  // Twilio Auth Token (encriptado)
+  phoneNumber       String?  @map("phone_number") // Número de WhatsApp Business
+  webhookSecret     String?  @map("webhook_secret") // Para verificar webhooks
+
+  // Configuración de comportamiento
+  requireLocation   Boolean  @default(true) @map("require_location")
+  requirePhoto      Boolean  @default(false) @map("require_photo")
+  allowVoiceReport  Boolean  @default(false) @map("allow_voice_report") // Reporte por voz
+  autoResponseEnabled Boolean @default(true) @map("auto_response_enabled")
+
+  // Mensajes personalizados
+  welcomeMessage    String?  @map("welcome_message") @db.Text
+  checkInMessage    String?  @map("check_in_message") @db.Text
+  checkOutMessage   String?  @map("check_out_message") @db.Text
+  errorMessage      String?  @map("error_message") @db.Text
+
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("whatsapp_configs")
+}
+
+enum WhatsAppProvider {
+  TWILIO          // Twilio WhatsApp Business API
+  META            // Meta WhatsApp Business API directo
+  DIALOG_360      // 360Dialog
+  WATI            // WATI.io
+}
+
+model EmployeeWhatsApp {
+  id            String   @id @default(uuid())
+  employeeId    String   @map("employee_id")
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  phoneNumber   String   @map("phone_number") // Número de WhatsApp del empleado
+  isVerified    Boolean  @default(false) @map("is_verified")
+  verificationCode String? @map("verification_code")
+  verifiedAt    DateTime? @map("verified_at")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  attendanceLogs WhatsAppAttendanceLog[]
+  chatSessions   WhatsAppChatSession[]
+
+  @@unique([employeeId])
+  @@unique([phoneNumber])
+  @@map("employee_whatsapp")
+}
+
+model WhatsAppAttendanceLog {
+  id              String   @id @default(uuid())
+  employeeWhatsAppId String @map("employee_whatsapp_id")
+  employeeWhatsApp EmployeeWhatsApp @relation(fields: [employeeWhatsAppId], references: [id])
+
+  // Tipo de registro
+  eventType       AttendanceEventType @map("event_type")
+
+  // Datos del registro
+  timestamp       DateTime @default(now())
+
+  // Ubicación
+  latitude        Decimal? @db.Decimal(10, 8)
+  longitude       Decimal? @db.Decimal(11, 8)
+  locationAccuracy Decimal? @map("location_accuracy") @db.Decimal(10, 2) // metros
+  locationAddress String?  @map("location_address") @db.Text
+
+  // Validación de geocerca
+  geofenceId      String?  @map("geofence_id")
+  geofence        Geofence? @relation(fields: [geofenceId], references: [id])
+  isInsideGeofence Boolean? @map("is_inside_geofence")
+  distanceFromGeofence Decimal? @map("distance_from_geofence") @db.Decimal(10, 2) // metros
+
+  // Foto/Facial
+  photoUrl        String?  @map("photo_url")
+  facialValidation Boolean? @map("facial_validation")
+  facialConfidence Decimal? @map("facial_confidence") @db.Decimal(5, 4) // 0.0000 - 1.0000
+
+  // Reporte por voz
+  voiceNoteUrl    String?  @map("voice_note_url")
+  voiceTranscription String? @map("voice_transcription") @db.Text
+
+  // Metadata del mensaje
+  whatsappMessageId String? @map("whatsapp_message_id")
+  rawPayload      Json?    @map("raw_payload")
+
+  // Estado
+  status          AttendanceLogStatus @default(PENDING)
+  processedAt     DateTime? @map("processed_at")
+  linkedAttendanceRecordId String? @map("linked_attendance_record_id")
+
+  // Notas y observaciones
+  notes           String?  @db.Text
+  adminNotes      String?  @map("admin_notes") @db.Text
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([employeeWhatsAppId])
+  @@index([timestamp])
+  @@index([eventType])
+  @@index([status])
+  @@map("whatsapp_attendance_logs")
+}
+
+enum AttendanceEventType {
+  CHECK_IN        // Entrada / Inicio de jornada
+  BREAK_START     // Salida a comer
+  BREAK_END       // Regreso de comer
+  CHECK_OUT       // Salida / Fin de jornada
+}
+
+enum AttendanceLogStatus {
+  PENDING         // Pendiente de procesar
+  PROCESSED       // Procesado exitosamente
+  REJECTED        // Rechazado (fuera de geocerca, horario inválido, etc.)
+  MANUAL_REVIEW   // Requiere revisión manual
+  ERROR           // Error en procesamiento
+}
+
+// Geocercas para validación de ubicación
+model Geofence {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  description String?
+
+  // Ubicación central
+  latitude    Decimal  @db.Decimal(10, 8)
+  longitude   Decimal  @db.Decimal(11, 8)
+
+  // Radio en metros
+  radius      Int      @default(100) // metros
+
+  // Tipo de geocerca
+  type        GeofenceType @default(OFFICE)
+
+  // Dirección física
+  address     String?  @db.Text
+
+  // Configuración
+  isDefault   Boolean  @default(false) @map("is_default") // Geocerca principal de la empresa
+  allowCheckInOutside Boolean @default(false) @map("allow_check_in_outside") // Permitir checado fuera pero con advertencia
+
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Empleados asignados (si null, aplica a todos)
+  assignedEmployees GeofenceEmployee[]
+
+  attendanceLogs WhatsAppAttendanceLog[]
+
+  @@map("geofences")
+}
+
+enum GeofenceType {
+  OFFICE          // Oficina principal
+  BRANCH          // Sucursal
+  WAREHOUSE       // Almacén
+  CONSTRUCTION    // Obra/Sitio de construcción
+  HOME_OFFICE     // Home office (por empleado)
+  CLIENT_SITE     // Sitio del cliente
+  OTHER           // Otro
+}
+
+// Asignación de geocercas específicas a empleados
+model GeofenceEmployee {
+  id          String   @id @default(uuid())
+  geofenceId  String   @map("geofence_id")
+  geofence    Geofence @relation(fields: [geofenceId], references: [id])
+  employeeId  String   @map("employee_id")
+  employee    Employee @relation(fields: [employeeId], references: [id])
+
+  // Configuración específica del empleado
+  customRadius Int?     @map("custom_radius") // Radio personalizado para este empleado
+  validFrom   DateTime? @map("valid_from")
+  validUntil  DateTime? @map("valid_until")
+
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([geofenceId, employeeId])
+  @@map("geofence_employees")
+}
+
+// ============================================
+// MÓDULO: CHATBOT IA / N8N INTEGRATION
+// ============================================
+
+model WhatsAppChatSession {
+  id              String   @id @default(uuid())
+  employeeWhatsAppId String @map("employee_whatsapp_id")
+  employeeWhatsApp EmployeeWhatsApp @relation(fields: [employeeWhatsAppId], references: [id])
+
+  // Estado de la conversación
+  currentContext  String?  @map("current_context") // vacations, permissions, payroll_query, etc.
+  conversationState Json?  @map("conversation_state") // Estado del flujo
+
+  // Última actividad
+  lastMessageAt   DateTime @map("last_message_at")
+  lastMessageDirection String @map("last_message_direction") // inbound, outbound
+
+  // Métricas
+  messageCount    Int      @default(0) @map("message_count")
+
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  messages WhatsAppMessage[]
+
+  @@map("whatsapp_chat_sessions")
+}
+
+model WhatsAppMessage {
+  id              String   @id @default(uuid())
+  sessionId       String   @map("session_id")
+  session         WhatsAppChatSession @relation(fields: [sessionId], references: [id])
+
+  // Dirección
+  direction       MessageDirection
+
+  // Contenido
+  messageType     MessageType @map("message_type")
+  content         String?  @db.Text
+  mediaUrl        String?  @map("media_url")
+
+  // IDs externos
+  whatsappMessageId String? @map("whatsapp_message_id")
+
+  // Procesamiento IA
+  intent          String?  // Intención detectada (check_in, request_vacation, query_balance, etc.)
+  intentConfidence Decimal? @map("intent_confidence") @db.Decimal(5, 4)
+  entities        Json?    // Entidades extraídas (fechas, números, etc.)
+  aiResponse      String?  @map("ai_response") @db.Text
+
+  // n8n tracking
+  n8nExecutionId  String?  @map("n8n_execution_id")
+  n8nWorkflowId   String?  @map("n8n_workflow_id")
+
+  // Estado
+  status          MessageStatus @default(SENT)
+  deliveredAt     DateTime? @map("delivered_at")
+  readAt          DateTime? @map("read_at")
+  errorMessage    String?  @map("error_message")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("whatsapp_messages")
+}
+
+enum MessageDirection {
+  INBOUND         // Del empleado al sistema
+  OUTBOUND        // Del sistema al empleado
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  AUDIO           // Nota de voz
+  LOCATION
+  DOCUMENT
+  BUTTON_REPLY
+  LIST_REPLY
+  INTERACTIVE
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// Configuración de integración con n8n
+model N8nConfig {
+  id              String   @id @default(uuid())
+  companyId       String   @unique @map("company_id")
+  company         Company  @relation(fields: [companyId], references: [id])
+
+  // URL del n8n
+  baseUrl         String   @map("base_url") // https://n8n.tudominio.com
+  apiKey          String?  @map("api_key") // API Key para autenticación
+
+  // Webhooks
+  webhookBaseUrl  String?  @map("webhook_base_url") // URL base para webhooks de n8n
+
+  // Workflows configurados
+  attendanceWorkflowId String? @map("attendance_workflow_id")
+  chatbotWorkflowId    String? @map("chatbot_workflow_id")
+  vacationWorkflowId   String? @map("vacation_workflow_id")
+  notificationWorkflowId String? @map("notification_workflow_id")
+
+  // Estado
+  isActive        Boolean  @default(true) @map("is_active")
+  lastHealthCheck DateTime? @map("last_health_check")
+  healthStatus    String?  @map("health_status") // healthy, unhealthy, unknown
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("n8n_configs")
+}
+
+// Webhook logs para debugging y auditoría
+model WebhookLog {
+  id              String   @id @default(uuid())
+  companyId       String?  @map("company_id")
+
+  // Información del webhook
+  source          String   // whatsapp, n8n, external
+  endpoint        String   // URL del endpoint que recibió
+  method          String   // POST, GET, etc.
+
+  // Payload
+  headers         Json?
+  body            Json?
+  queryParams     Json?    @map("query_params")
+
+  // Respuesta
+  responseStatus  Int?     @map("response_status")
+  responseBody    Json?    @map("response_body")
+
+  // Procesamiento
+  processingTimeMs Int?    @map("processing_time_ms")
+  error           String?  @db.Text
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([companyId])
+  @@index([source])
+  @@index([createdAt])
+  @@map("webhook_logs")
 }
 
