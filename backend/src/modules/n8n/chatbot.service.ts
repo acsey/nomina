@@ -347,10 +347,12 @@ export class ChatbotService {
       });
 
       if (lastPayroll) {
+        const periodName = lastPayroll.payrollPeriod.description ||
+          `${lastPayroll.payrollPeriod.periodType} ${lastPayroll.payrollPeriod.periodNumber}/${lastPayroll.payrollPeriod.year}`;
         return {
           intent: ChatbotIntent.CHECK_PAYROLL,
           message: `💰 *Último recibo de nómina*\n\n` +
-            `Período: ${lastPayroll.payrollPeriod.name}\n` +
+            `Período: ${periodName}\n` +
             `Percepciones: $${Number(lastPayroll.totalPerceptions).toLocaleString()}\n` +
             `Deducciones: $${Number(lastPayroll.totalDeductions).toLocaleString()}\n` +
             `*Neto a pagar: $${Number(lastPayroll.netPay).toLocaleString()}*\n\n` +
