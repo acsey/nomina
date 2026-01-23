@@ -2042,6 +2042,9 @@ async function main() {
 
 main()
   .then(async () => {
+    // Ejecutar seed de módulos del sistema
+    console.log('\n🌱 Ejecutando seed de módulos del sistema...');
+    await seedSystemModules();
     // Ejecutar seed del portal del empleado
     console.log('\n🌱 Ejecutando seed del portal del empleado...');
     await seedPortal();
@@ -2053,6 +2056,72 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+// ============================================
+// SEED DE MÓDULOS DEL SISTEMA
+// ============================================
+
+async function seedSystemModules() {
+  console.log('📦 Creando módulos del sistema...');
+
+  const systemModules = [
+    // CORE - Módulos esenciales (no se pueden desactivar)
+    { code: 'employees', name: 'Empleados', description: 'Gestión de empleados', category: 'CORE', isCore: true, defaultEnabled: true, icon: 'users', sortOrder: 1 },
+    { code: 'users', name: 'Usuarios', description: 'Gestión de usuarios del sistema', category: 'CORE', isCore: true, defaultEnabled: true, icon: 'user-circle', sortOrder: 2 },
+    { code: 'departments', name: 'Departamentos', description: 'Estructura organizacional', category: 'CORE', isCore: true, defaultEnabled: true, icon: 'building-office', sortOrder: 3 },
+
+    // PAYROLL - Nómina
+    { code: 'payroll', name: 'Nómina', description: 'Procesamiento de nómina', category: 'PAYROLL', isCore: false, defaultEnabled: true, icon: 'currency-dollar', sortOrder: 10 },
+    { code: 'cfdi', name: 'Timbrado CFDI', description: 'Generación y timbrado de recibos fiscales', category: 'PAYROLL', isCore: false, defaultEnabled: true, icon: 'document-check', sortOrder: 11 },
+
+    // ATTENDANCE - Asistencia
+    { code: 'attendance', name: 'Control de Asistencia', description: 'Registro de entradas y salidas', category: 'ATTENDANCE', isCore: false, defaultEnabled: true, icon: 'clock', sortOrder: 20 },
+    { code: 'biometric', name: 'Dispositivos Biométricos', description: 'Integración con dispositivos biométricos', category: 'ATTENDANCE', isCore: false, defaultEnabled: false, icon: 'finger-print', sortOrder: 21 },
+    { code: 'whatsapp_attendance', name: 'Checador por WhatsApp', description: 'Registro de asistencia vía WhatsApp', category: 'INTEGRATION', isCore: false, defaultEnabled: false, icon: 'chat-bubble-left-right', sortOrder: 22 },
+
+    // HR - Recursos Humanos
+    { code: 'vacations', name: 'Vacaciones y Permisos', description: 'Gestión de vacaciones y permisos', category: 'HR', isCore: false, defaultEnabled: true, icon: 'sun', sortOrder: 30 },
+    { code: 'benefits', name: 'Beneficios', description: 'Gestión de beneficios para empleados', category: 'HR', isCore: false, defaultEnabled: true, icon: 'gift', sortOrder: 31 },
+    { code: 'incidents', name: 'Incidencias', description: 'Gestión de incidencias laborales', category: 'HR', isCore: false, defaultEnabled: true, icon: 'exclamation-triangle', sortOrder: 32 },
+
+    // PORTAL - Portal del empleado
+    { code: 'portal', name: 'Portal del Empleado', description: 'Autoservicio para empleados', category: 'PORTAL', isCore: false, defaultEnabled: true, icon: 'user-group', sortOrder: 40 },
+
+    // REPORTS - Reportes
+    { code: 'reports', name: 'Reportes Avanzados', description: 'Reportes y análisis avanzados', category: 'REPORTS', isCore: false, defaultEnabled: true, icon: 'chart-bar', sortOrder: 50 },
+
+    // INTEGRATION - Integraciones
+    { code: 'ai_chatbot', name: 'ChatBot IA para RRHH', description: 'Asistente de IA para consultas de empleados', category: 'INTEGRATION', isCore: false, defaultEnabled: false, icon: 'sparkles', sortOrder: 60 },
+    { code: 'n8n_integration', name: 'Integración n8n', description: 'Automatización de workflows con n8n', category: 'INTEGRATION', isCore: false, defaultEnabled: false, icon: 'puzzle-piece', sortOrder: 61 },
+  ];
+
+  for (const module of systemModules) {
+    await prisma.systemModule.upsert({
+      where: { code: module.code },
+      update: {
+        name: module.name,
+        description: module.description,
+        category: module.category as any,
+        isCore: module.isCore,
+        defaultEnabled: module.defaultEnabled,
+        icon: module.icon,
+        sortOrder: module.sortOrder,
+      },
+      create: {
+        code: module.code,
+        name: module.name,
+        description: module.description,
+        category: module.category as any,
+        isCore: module.isCore,
+        defaultEnabled: module.defaultEnabled,
+        icon: module.icon,
+        sortOrder: module.sortOrder,
+      },
+    });
+  }
+
+  console.log(`✅ ${systemModules.length} módulos del sistema creados/actualizados`);
+}
 
 // ============================================
 // SEED DEL PORTAL DEL EMPLEADO
