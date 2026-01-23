@@ -49,13 +49,7 @@
       "name": "Claude AI - Generar Respuesta",
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1,
-      "position": [680, 300],
-      "credentials": {
-        "anthropicApi": {
-          "id": "1",
-          "name": "Anthropic API"
-        }
-      }
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -130,19 +124,5 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "tags": [
-    {
-      "name": "RRHH",
-      "createdAt": "2025-01-01T00:00:00.000Z",
-      "updatedAt": "2025-01-01T00:00:00.000Z"
-    },
-    {
-      "name": "WhatsApp",
-      "createdAt": "2025-01-01T00:00:00.000Z",
-      "updatedAt": "2025-01-01T00:00:00.000Z"
-    }
-  ],
-  "triggerCount": 0,
-  "updatedAt": "2025-01-01T00:00:00.000Z",
-  "versionId": "1"
+  "triggerCount": 0
 }

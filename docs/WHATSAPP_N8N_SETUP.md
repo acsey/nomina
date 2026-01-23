@@ -293,7 +293,38 @@ Method: POST
 }
 ```
 
-### 3. Configurar Credenciales en n8n
+### 3. Importar el Workflow del ChatBot
+
+El proyecto incluye un workflow pre-configurado en `n8n-workflows/chatbot-rrhh.json`.
+
+**Pasos para importar:**
+
+1. **Primero crear las credenciales** (antes de importar el workflow)
+   - Ir a **Settings > Credentials > Add Credential**
+   - Tipo: **Anthropic**
+   - Nombre: "Anthropic API"
+   - API Key: `sk-ant-xxx` (tu API key de Anthropic)
+   - Guardar
+
+2. **Importar el workflow**
+   - Ir a **Workflows**
+   - Click en **Import from File**
+   - Seleccionar `n8n-workflows/chatbot-rrhh.json`
+   - Click en **Import**
+
+3. **Conectar las credenciales**
+   - Abrir el workflow importado
+   - En el nodo "Claude AI - Generar Respuesta"
+   - Click en el nodo > Select Credential > "Anthropic API"
+   - Guardar
+
+4. **Activar el workflow**
+   - En la esquina superior derecha, activar el toggle
+   - El webhook quedará disponible en: `http://localhost:5678/webhook/chatbot`
+
+**Nota importante**: Si intentas importar el workflow sin crear las credenciales primero, obtendrás errores de `FOREIGN KEY constraint failed`. Esto es porque n8n intenta vincular referencias que no existen.
+
+### 4. Configurar Credenciales en n8n
 
 1. **Anthropic (Claude)**
    - Settings > Credentials > New

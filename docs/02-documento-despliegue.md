@@ -1,702 +1,651 @@
 # Documento de Despliegue - Sistema de Nómina
 
+Guía completa de despliegue para todos los ambientes del Sistema de Nómina.
+
+## Tabla de Contenidos
+
+1. [Requisitos del Sistema](#1-requisitos-del-sistema)
+2. [Ambientes Disponibles](#2-ambientes-disponibles)
+3. [Desarrollo Local](#3-desarrollo-local)
+4. [Staging](#4-staging)
+5. [Producción](#5-producción)
+6. [Archivos de Configuración](#6-archivos-de-configuración)
+7. [Variables de Entorno](#7-variables-de-entorno)
+8. [Scripts de Deploy](#8-scripts-de-deploy)
+9. [SSL y Certificados](#9-ssl-y-certificados)
+10. [Backups](#10-backups)
+11. [Monitoreo](#11-monitoreo)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Checklist de Despliegue](#13-checklist-de-despliegue)
+
+---
+
 ## 1. Requisitos del Sistema
 
-### 1.1 Requisitos de Hardware (Producción)
+### 1.1 Requisitos de Hardware
 
-| Componente | Mínimo | Recomendado |
-|------------|--------|-------------|
-| CPU | 2 cores | 4+ cores |
-| RAM | 4 GB | 8+ GB |
-| Almacenamiento | 40 GB SSD | 100+ GB SSD |
-| Red | 100 Mbps | 1 Gbps |
+| Componente | Desarrollo | Staging | Producción |
+|------------|------------|---------|------------|
+| CPU | 2 cores | 2 cores | 4+ cores |
+| RAM | 4 GB | 4 GB | 8+ GB |
+| Almacenamiento | 20 GB | 40 GB SSD | 100+ GB SSD |
+| Red | - | 100 Mbps | 1 Gbps |
 
 ### 1.2 Requisitos de Software
 
-| Software | Versión Mínima |
-|----------|----------------|
-| Docker | 24.x |
-| Docker Compose | 2.x |
-| Node.js (sin Docker) | 20.x |
-| PostgreSQL (sin Docker) | 15.x |
-| Redis (sin Docker) | 7.x |
+| Software | Versión Mínima | Notas |
+|----------|----------------|-------|
+| Docker | 24.x | Obligatorio |
+| Docker Compose | 2.x | Plugin de Docker |
+| Git | 2.x | Para clonar repositorio |
+| OpenSSL | 3.x | Para generar certificados |
 
-### 1.3 Puertos Requeridos
+### 1.3 Sistemas Operativos Soportados
 
-| Puerto | Servicio |
-|--------|----------|
-| 80 | HTTP (redirige a HTTPS) |
-| 443 | HTTPS |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 3000 | Backend API |
-| 5173 | Frontend (desarrollo) |
+| SO | Versión | Estado |
+|----|---------|--------|
+| Ubuntu | 22.04 LTS, 24.04 LTS | Recomendado |
+| Debian | 11, 12 | Soportado |
+| CentOS/RHEL | 8, 9 | Soportado |
+| Windows | 10/11 con WSL2 | Desarrollo |
+| macOS | 12+ | Desarrollo |
+
+### 1.4 Puertos Requeridos
+
+| Puerto | Servicio | Ambiente |
+|--------|----------|----------|
+| 80 | HTTP | Staging, Producción |
+| 443 | HTTPS | Staging, Producción |
+| 5173 | Vite Dev Server | Desarrollo |
+| 3000 | Backend API | Todos |
+| 5432 / 5435 | PostgreSQL | Interno |
+| 6379 | Redis | Interno |
+| 9090 | Adminer | Desarrollo |
+| 5678 | n8n | Desarrollo |
 
 ---
 
-## 2. Despliegue con Docker (Recomendado)
+## 2. Ambientes Disponibles
 
-### 2.1 Estructura de Archivos Docker
+### 2.1 Resumen de Ambientes
 
-```
-nomina/
-├── docker-compose.yml          # Producción
-├── docker-compose.dev.yml      # Desarrollo
-├── .env.example                # Variables de entorno
-├── storage/                    # Evidencias fiscales (volumen)
-│   └── fiscal/
-├── backend/
-│   └── Dockerfile
-└── frontend/
-    └── Dockerfile
-```
+| Ambiente | Archivo Compose | Archivo Env | Propósito |
+|----------|-----------------|-------------|-----------|
+| **Desarrollo** | `docker-compose.dev.yml` | `.env` | Hot-reload, debugging |
+| **Staging** | `docker-compose.staging.yml` | `.env.staging` | QA, pre-producción |
+| **Producción** | `docker-compose.production.yml` | `.env.production` | Ambiente productivo |
 
-### 2.2 Despliegue en Desarrollo
+### 2.2 Diferencias entre Ambientes
 
-#### Paso 1: Clonar el repositorio
+| Característica | Desarrollo | Staging | Producción |
+|----------------|------------|---------|------------|
+| Hot-reload | Si | No | No |
+| Swagger | Habilitado | Deshabilitado* | Deshabilitado |
+| Adminer | Habilitado | No | No |
+| n8n | Habilitado | No | Opcional |
+| Worker separado | Opcional | Si | Si |
+| SSL | No | Recomendado | Obligatorio |
+| Límites recursos | No | Si | Si |
+| Backups auto | No | Recomendado | Obligatorio |
+
+*Se puede habilitar temporalmente con `ENABLE_SWAGGER=true`
+
+---
+
+## 3. Desarrollo Local
+
+### 3.1 Inicio Rápido
+
 ```bash
+# 1. Clonar repositorio
 git clone https://github.com/tu-usuario/nomina.git
 cd nomina
-```
 
-#### Paso 2: Configurar variables de entorno
-```bash
+# 2. Copiar variables de entorno
 cp .env.example .env
-# Editar .env con configuraciones de desarrollo
-```
 
-#### Paso 3: Crear directorio de storage
-```bash
+# 3. Crear directorio de storage
 mkdir -p storage/fiscal
-chmod 755 storage
-```
 
-#### Paso 4: Levantar servicios
-```bash
+# 4. Levantar servicios
 docker compose -f docker-compose.dev.yml up --build
-```
 
-#### Paso 5: Ejecutar migraciones
-```bash
+# 5. En otra terminal, ejecutar migraciones
 docker exec nomina-backend-dev npx prisma migrate dev
-```
 
-#### Paso 6: Crear datos iniciales (seed)
-```bash
+# 6. Cargar datos de prueba
 docker exec nomina-backend-dev npx prisma db seed
 ```
 
-### 2.3 Despliegue en Producción
+### 3.2 Script Automatizado
 
-#### Paso 1: Preparar variables de entorno
 ```bash
-cp .env.example .env
-# IMPORTANTE: Editar .env con valores seguros de producción
-# Ver sección "Variables de Entorno de Producción"
+# Hace todo automáticamente
+./deploy-fresh.sh
 ```
 
-#### Paso 2: Generar claves seguras
+### 3.3 URLs de Desarrollo
+
+| Servicio | URL |
+|----------|-----|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:3000 |
+| Swagger | http://localhost:3000/api/docs |
+| Adminer | http://localhost:9090 |
+| n8n | http://localhost:5678 |
+
+### 3.4 Credenciales de Prueba
+
+| Rol | Email | Password |
+|-----|-------|----------|
+| Super Admin | admin@sistema.com | admin123 |
+| Admin BFS | admin@bfs.com.mx | admin123 |
+| RH BFS | rh@bfs.com.mx | admin123 |
+
+### 3.5 Comandos Make
+
 ```bash
-# Generar JWT_SECRET
-openssl rand -base64 32
-
-# Generar ENCRYPTION_KEY
-openssl rand -base64 32
-
-# Generar REDIS_PASSWORD
-openssl rand -base64 24
+make dev           # Iniciar desarrollo
+make dev-d         # Desarrollo en background
+make dev-down      # Detener
+make logs          # Ver logs
+make migrate       # Ejecutar migraciones
+make seed          # Ejecutar seed
+make studio        # Abrir Prisma Studio
 ```
 
-#### Paso 3: Configurar storage de evidencias fiscales
-```bash
-# Crear directorio de storage
-mkdir -p storage/fiscal
+---
 
-# Asegurar permisos (el contenedor corre como node user, UID 1000)
-chown -R 1000:1000 storage
-chmod -R 755 storage
+## 4. Staging
+
+### 4.1 Prerrequisitos
+
+- Servidor Ubuntu 24.04 LTS (ver [Guía Ubuntu 24.04](11-GUIA-DESPLIEGUE-UBUNTU-24.md))
+- Docker y Docker Compose instalados
+- Puerto 80 y 443 disponibles
+- Dominio configurado (opcional pero recomendado)
+
+### 4.2 Configuración
+
+```bash
+# 1. Clonar repositorio
+git clone https://github.com/tu-usuario/nomina.git
+cd nomina
+
+# 2. Crear archivo de configuración
+cp .env.staging.example .env.staging
+
+# 3. Editar con valores reales
+nano .env.staging
+
+# 4. Generar claves seguras
+openssl rand -base64 48  # JWT_SECRET
+openssl rand -base64 48  # ENCRYPTION_KEY
+openssl rand -base64 32  # REDIS_PASSWORD
 ```
 
-#### Paso 4: Construir y levantar servicios
-```bash
-# Servicios básicos
-docker compose up -d --build
+### 4.3 Despliegue
 
-# Con worker enterprise (alto volumen de timbrado)
-docker compose --profile enterprise up -d --build
+```bash
+# Opción 1: Script automatizado
+./deploy-staging.sh
+
+# Opción 2: Con SSL auto-firmado
+./deploy-staging.sh --ssl-self
+
+# Opción 3: Con Let's Encrypt
+./deploy-staging.sh --ssl staging.tu-dominio.com
+
+# Opción 4: Desde cero (borra datos)
+./deploy-staging.sh --fresh
 ```
 
-#### Paso 5: Ejecutar migraciones de producción
-```bash
-# IMPORTANTE: Usar 'migrate deploy' en producción, NO 'migrate dev'
-docker exec nomina-backend npx prisma migrate deploy
-```
+### 4.4 Verificación
 
-#### Paso 6: Verificar despliegue
 ```bash
 # Health check
-curl http://localhost:3000/api/health
+curl http://localhost/api/health
 
 # Ver logs
-docker compose logs -f backend
+docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f
 ```
 
-#### Comandos de Producción
-```bash
-# Construir y levantar
-docker compose up -d --build
+### 4.5 Documentación Detallada
 
-# Ver logs
-docker compose logs -f
-
-# Ejecutar migraciones
-docker exec nomina-backend npx prisma migrate deploy
-
-# Reiniciar servicios
-docker compose restart
-
-# Detener servicios
-docker compose down
-
-# Backup de volúmenes
-docker run --rm -v nomina_fiscal_storage:/data -v $(pwd):/backup alpine tar czf /backup/fiscal-backup.tar.gz /data
-```
+Ver [Guía de Despliegue Ubuntu 24.04](11-GUIA-DESPLIEGUE-UBUNTU-24.md) para instrucciones paso a paso.
 
 ---
 
-## 3. Servicios y Componentes
+## 5. Producción
 
-### 3.1 PostgreSQL (Base de Datos)
+### 5.1 Prerrequisitos
 
-Base de datos principal del sistema.
+- Todo lo de staging, más:
+- Certificado SSL válido (Let's Encrypt o comercial)
+- Dominio público configurado
+- Backup automatizado
+- Monitoreo configurado
 
-```yaml
-# Verificar estado
-docker exec nomina-db pg_isready -U nomina -d nomina_db
-
-# Backup
-docker exec nomina-db pg_dump -U nomina nomina_db > backup.sql
-
-# Restore
-cat backup.sql | docker exec -i nomina-db psql -U nomina -d nomina_db
-```
-
-### 3.2 Redis (Colas de Procesamiento)
-
-Cola de procesamiento asíncrono para timbrado masivo y tareas en background.
-
-```yaml
-# Verificar estado
-docker exec nomina-redis redis-cli ping
-
-# Monitorear colas
-docker exec nomina-redis redis-cli monitor
-```
-
-### 3.3 Backend API (NestJS)
-
-API REST con endpoints para todas las operaciones del sistema.
-
-```yaml
-# Ver logs
-docker logs -f nomina-backend
-
-# Ejecutar comando dentro del contenedor
-docker exec -it nomina-backend sh
-```
-
-### 3.4 Worker (Enterprise)
-
-Procesador de colas para timbrado masivo y operaciones asíncronas.
-
-#### Modos de Operación (QUEUE_MODE)
-
-El sistema soporta 3 modos de operación para escalar horizontalmente:
-
-| Modo | Descripción | Uso |
-|------|-------------|-----|
-| `api` | Solo API (enqueue jobs, no procesa) | Backend en producción |
-| `worker` | Solo Worker (procesa jobs, no API) | Workers dedicados |
-| `both` | API + Worker en mismo proceso | Desarrollo o instancias pequeñas |
-
-**Arquitectura Recomendada para Producción:**
-
-```
-                    ┌─────────────┐
-                    │   Nginx     │
-                    │   (LB)      │
-                    └──────┬──────┘
-                           │
-           ┌───────────────┼───────────────┐
-           │               │               │
-    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
-    │  Backend    │ │  Backend    │ │  Backend    │
-    │ QUEUE_MODE  │ │ QUEUE_MODE  │ │ QUEUE_MODE  │
-    │   =api      │ │   =api      │ │   =api      │
-    └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
-           │               │               │
-           └───────────────┼───────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │    Redis    │
-                    │   (Colas)   │
-                    └──────┬──────┘
-                           │
-           ┌───────────────┼───────────────┐
-           │               │               │
-    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
-    │   Worker    │ │   Worker    │ │   Worker    │
-    │  (node      │ │  (node      │ │  (node      │
-    │ dist/worker)│ │ dist/worker)│ │ dist/worker)│
-    └─────────────┘ └─────────────┘ └─────────────┘
-```
-
-#### Comandos de Despliegue
+### 5.2 Configuración
 
 ```bash
-# Levantar solo API (sin procesadores)
-docker compose up -d backend  # Ya usa QUEUE_MODE=api por defecto
+# 1. Crear configuración de producción
+cp .env.production.example .env.production
 
-# Levantar worker separado (perfil enterprise)
-docker compose --profile enterprise up -d worker
+# 2. Configurar con valores seguros
+nano .env.production
 
-# Ver logs del worker
-docker logs -f nomina-worker
-
-# Escalar workers
-docker compose --profile enterprise up -d --scale worker=3
+# 3. Generar claves seguras
+openssl rand -base64 48  # JWT_SECRET
+openssl rand -base64 48  # ENCRYPTION_KEY
+openssl rand -base64 32  # REDIS_PASSWORD
+openssl rand -base64 32  # DB_PASSWORD
 ```
 
-#### Configuración en docker-compose.yml
-
-```yaml
-# Backend API (solo enqueue)
-backend:
-  environment:
-    QUEUE_MODE: api  # Solo registra colas, no procesa
-
-# Worker (solo procesa)
-worker:
-  command: ["node", "dist/worker.js"]
-  environment:
-    WORKER_CONCURRENCY: 5  # Jobs concurrentes por worker
-```
-
-#### Scripts npm Disponibles
-
-```bash
-# Iniciar API en modo producción
-npm run start:prod         # Usa QUEUE_MODE del entorno
-
-# Iniciar API forzando modo api
-npm run start:api          # QUEUE_MODE=api
-
-# Iniciar worker standalone
-npm run start:worker       # Ejecuta dist/worker.js
-```
-
-### 3.5 Storage de Evidencias Fiscales
-
-Almacenamiento persistente para documentos fiscales (XML, PDF, acuses).
-
-**Estructura de directorios:**
-```
-storage/fiscal/
-├── {companyId}/
-│   └── {year}/
-│       └── {period}/
-│           ├── {detailId}_xml_original_v1.xml
-│           ├── {detailId}_xml_timbrado_v1.xml
-│           └── {detailId}_pdf_recibo_v1.pdf
-```
-
-**Verificación de integridad:**
-El sistema almacena hash SHA256 de cada documento para verificar integridad.
-
----
-
-## 4. Variables de Entorno de Producción
-
-### 4.1 Archivo .env Completo
+### 5.3 Variables Obligatorias para Producción
 
 ```env
-# Base de datos
-DB_USER=nomina_prod
-DB_PASSWORD=<password-seguro-generado>
-DB_NAME=nomina_db
+# Seguridad (CAMBIAR OBLIGATORIAMENTE)
+JWT_SECRET=<clave-generada-min-48-chars>
+ENCRYPTION_KEY=<clave-generada-min-48-chars>
+DB_PASSWORD=<password-seguro>
+REDIS_PASSWORD=<password-seguro>
 
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=<password-redis-generado>
-REDIS_DB=0
-
-# JWT - IMPORTANTE: Usar clave única generada
-JWT_SECRET=<clave-jwt-generada-min-32-chars>
-JWT_EXPIRES_IN=8h
-
-# Cifrado - IMPORTANTE: Usar clave única generada
-ENCRYPTION_KEY=<clave-cifrado-generada-min-32-chars>
-
-# Storage fiscal
-FISCAL_STORAGE_PATH=/app/storage/fiscal
-
-# Frontend URL (CORS)
+# URLs
 FRONTEND_URL=https://nomina.tu-empresa.com
 
-# PAC (Proveedor de Timbrado)
-PAC_URL=https://facturacion.finkok.com
-PAC_USER=tu_usuario_pac_produccion
-PAC_PASSWORD=<password-pac>
-
-# Modo de procesamiento de colas
-# api: Solo API (enqueue, no procesa) - usar con workers separados
-# worker: Solo Worker (procesa, no API) - usado por el servicio worker
-# both: API + Worker juntos - desarrollo o instancias pequeñas
-QUEUE_MODE=api
-WORKER_CONCURRENCY=5
+# PAC (producción)
+PAC_MODE=production
+PAC_PROVIDER=finkok
+PAC_USER=tu_usuario_pac
+PAC_PASSWORD=tu_password_pac
 ```
 
-### 4.2 Variables Críticas de Seguridad
-
-| Variable | Descripción | Cómo Generar |
-|----------|-------------|--------------|
-| JWT_SECRET | Firma de tokens JWT | `openssl rand -base64 32` |
-| ENCRYPTION_KEY | Cifrado de datos sensibles | `openssl rand -base64 32` |
-| DB_PASSWORD | Password PostgreSQL | `openssl rand -base64 24` |
-| REDIS_PASSWORD | Password Redis | `openssl rand -base64 24` |
-
----
-
-## 5. Despliegue Manual (Sin Docker)
-
-### 5.1 Preparación del Servidor
-
-#### Ubuntu/Debian
-```bash
-# Actualizar sistema
-sudo apt update && sudo apt upgrade -y
-
-# Instalar Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Instalar PostgreSQL
-sudo apt install -y postgresql postgresql-contrib
-
-# Instalar Redis
-sudo apt install -y redis-server
-sudo systemctl enable redis-server
-
-# Instalar Nginx
-sudo apt install -y nginx
-
-# Instalar PM2 (gestor de procesos)
-sudo npm install -g pm2
-```
-
-### 5.2 Configuración de PostgreSQL
+### 5.4 Despliegue
 
 ```bash
-# Acceder a PostgreSQL
-sudo -u postgres psql
+# Con SSL (obligatorio)
+./deploy-production.sh --ssl nomina.tu-empresa.com
 
-# Crear usuario y base de datos
-CREATE USER nomina_user WITH PASSWORD 'tu_password_seguro';
-CREATE DATABASE nomina OWNER nomina_user;
-GRANT ALL PRIVILEGES ON DATABASE nomina TO nomina_user;
-\q
+# Con backup previo
+./deploy-production.sh --ssl nomina.tu-empresa.com --backup
+
+# Actualizar sin recrear
+./deploy-production.sh --update
 ```
 
-### 5.3 Configuración de Redis
+### 5.5 Escalar Workers
 
 ```bash
-# Editar configuración
-sudo nano /etc/redis/redis.conf
-
-# Agregar password
-requirepass tu_password_redis_seguro
-
-# Reiniciar Redis
-sudo systemctl restart redis-server
-```
-
-### 5.4 Crear Directorio de Storage
-
-```bash
-# Crear directorio para evidencias fiscales
-sudo mkdir -p /var/www/nomina/storage/fiscal
-sudo chown -R www-data:www-data /var/www/nomina/storage
-sudo chmod -R 755 /var/www/nomina/storage
-```
-
-### 5.5 Despliegue del Backend
-
-```bash
-# Clonar y navegar
-cd /var/www
-git clone https://github.com/tu-usuario/nomina.git
-cd nomina/backend
-
-# Instalar dependencias
-npm install
-
-# Configurar variables de entorno
-cp .env.example .env
-nano .env  # Editar con valores de producción
-
-# Generar cliente Prisma
-npx prisma generate
-
-# Ejecutar migraciones (IMPORTANTE: usar deploy, no dev)
-npx prisma migrate deploy
-
-# Compilar TypeScript
-npm run build
-
-# Iniciar con PM2
-pm2 start dist/main.js --name nomina-backend
-pm2 save
-pm2 startup
-```
-
-### 5.6 Configuración de Nginx
-
-```nginx
-# /etc/nginx/sites-available/nomina
-server {
-    listen 80;
-    server_name tu-dominio.com;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name tu-dominio.com;
-
-    ssl_certificate /etc/ssl/certs/tu-certificado.crt;
-    ssl_certificate_key /etc/ssl/private/tu-certificado.key;
-
-    # Frontend
-    location / {
-        root /var/www/nomina/frontend/dist;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Backend API
-    location /api {
-        rewrite ^/api/(.*) /$1 break;
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-```
-
-```bash
-# Habilitar sitio
-sudo ln -s /etc/nginx/sites-available/nomina /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+# Escalar a 3 workers
+./deploy-production.sh --scale-workers 3
 ```
 
 ---
 
-## 6. Configuración de SSL
+## 6. Archivos de Configuración
 
-### 6.1 Con Let's Encrypt (Recomendado)
+### 6.1 Estructura de Docker Compose
+
+```
+nomina/
+├── docker-compose.yml              # Base (no usar directamente)
+├── docker-compose.dev.yml          # Desarrollo
+├── docker-compose.staging.yml      # Staging
+├── docker-compose.production.yml   # Producción
+└── docker-compose.n8n.yml          # n8n separado
+```
+
+### 6.2 Archivos de Entorno
+
+```
+nomina/
+├── .env.example                    # Plantilla desarrollo
+├── .env.staging.example            # Plantilla staging
+├── .env.production.example         # Plantilla producción
+├── .env                            # Desarrollo (no commitear)
+├── .env.staging                    # Staging (no commitear)
+└── .env.production                 # Producción (no commitear)
+```
+
+### 6.3 Configuraciones Nginx
+
+```
+nomina/nginx/
+├── staging.conf                    # Nginx para staging
+├── production.conf                 # Nginx para producción
+└── ssl/
+    ├── fullchain.pem              # Certificado SSL
+    └── privkey.pem                # Llave privada SSL
+```
+
+### 6.4 Scripts de Deploy
+
+```
+nomina/
+├── deploy-fresh.sh                 # Desarrollo desde cero
+├── deploy-staging.sh               # Deploy staging
+├── deploy-production.sh            # Deploy producción
+└── scripts/
+    ├── verify-staging.sh           # Verificar staging
+    └── init-n8n.sh                 # Inicializar n8n
+```
+
+---
+
+## 7. Variables de Entorno
+
+### 7.1 Variables de Base de Datos
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `DB_USER` | Usuario PostgreSQL | `nomina_prod` |
+| `DB_PASSWORD` | Password PostgreSQL | `secure-password` |
+| `DB_NAME` | Nombre de la BD | `nomina_db` |
+
+### 7.2 Variables de Seguridad
+
+| Variable | Descripción | Generar con |
+|----------|-------------|-------------|
+| `JWT_SECRET` | Firma tokens JWT | `openssl rand -base64 48` |
+| `JWT_EXPIRES_IN` | Expiración JWT | `24h`, `8h` |
+| `ENCRYPTION_KEY` | Cifrado datos | `openssl rand -base64 48` |
+
+### 7.3 Variables de Redis
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `REDIS_HOST` | Host de Redis | `redis` |
+| `REDIS_PORT` | Puerto Redis | `6379` |
+| `REDIS_PASSWORD` | Password Redis | `secure-password` |
+| `REDIS_DB` | Número de BD | `0` |
+
+### 7.4 Variables de PAC (Timbrado)
+
+| Variable | Descripción | Valores |
+|----------|-------------|---------|
+| `PAC_MODE` | Modo de operación | `sandbox`, `production`, `disabled` |
+| `PAC_PROVIDER` | Proveedor PAC | `finkok`, `solucion_factible` |
+| `PAC_USER` | Usuario PAC | - |
+| `PAC_PASSWORD` | Password PAC | - |
+
+### 7.5 Variables de Procesamiento
+
+| Variable | Descripción | Valores |
+|----------|-------------|---------|
+| `QUEUE_MODE` | Modo de colas | `api`, `worker`, `both`, `sync` |
+| `CFDI_STAMP_MODE` | Modo timbrado | `sync`, `async` |
+| `WORKER_CONCURRENCY` | Jobs paralelos | `3`, `5` |
+
+---
+
+## 8. Scripts de Deploy
+
+### 8.1 deploy-fresh.sh (Desarrollo)
 
 ```bash
-# Instalar Certbot
-sudo apt install -y certbot python3-certbot-nginx
+# Uso
+./deploy-fresh.sh
+
+# Qué hace:
+# 1. Detiene contenedores existentes
+# 2. Elimina volúmenes de desarrollo
+# 3. Reconstruye imágenes
+# 4. Inicia base de datos
+# 5. Ejecuta migraciones
+# 6. Ejecuta seed
+# 7. Inicia todos los servicios
+# 8. Muestra credenciales de prueba
+```
+
+### 8.2 deploy-staging.sh
+
+```bash
+# Uso básico
+./deploy-staging.sh
+
+# Opciones
+./deploy-staging.sh --ssl dominio.com    # Con Let's Encrypt
+./deploy-staging.sh --ssl-self           # Con SSL auto-firmado
+./deploy-staging.sh --fresh              # Desde cero (borra datos)
+./deploy-staging.sh --migrate-only       # Solo migraciones
+./deploy-staging.sh --help               # Ver ayuda
+
+# Ver logs
+./deploy-staging.sh logs
+./deploy-staging.sh logs backend
+```
+
+### 8.3 deploy-production.sh
+
+```bash
+# Uso básico (SSL obligatorio)
+./deploy-production.sh --ssl nomina.empresa.com
+
+# Opciones
+./deploy-production.sh --ssl dominio.com --backup    # Con backup previo
+./deploy-production.sh --update                       # Solo actualizar
+./deploy-production.sh --migrate-only                 # Solo migraciones
+./deploy-production.sh --scale-workers 3              # Escalar workers
+./deploy-production.sh --restore backup.sql.gz        # Restaurar backup
+
+# Ver logs
+./deploy-production.sh logs
+```
+
+---
+
+## 9. SSL y Certificados
+
+### 9.1 SSL Auto-firmado (Staging/Pruebas)
+
+```bash
+mkdir -p nginx/ssl
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout nginx/ssl/privkey.pem \
+    -out nginx/ssl/fullchain.pem \
+    -subj "/C=MX/ST=Estado/L=Ciudad/O=Empresa/CN=localhost"
+```
+
+### 9.2 Let's Encrypt (Producción)
+
+```bash
+# Instalar certbot
+sudo apt install -y certbot
 
 # Obtener certificado
-sudo certbot --nginx -d tu-dominio.com
+sudo certbot certonly --standalone -d tu-dominio.com
 
-# Renovación automática (cron)
-sudo crontab -e
-# Agregar: 0 12 * * * /usr/bin/certbot renew --quiet
+# Copiar a nginx/ssl/
+sudo cp /etc/letsencrypt/live/tu-dominio.com/fullchain.pem nginx/ssl/
+sudo cp /etc/letsencrypt/live/tu-dominio.com/privkey.pem nginx/ssl/
+```
+
+### 9.3 Renovación Automática
+
+```bash
+# Cron para renovación
+echo "0 3 * * * certbot renew --quiet && docker restart nomina-prod-nginx" | sudo crontab -
 ```
 
 ---
 
-## 7. Backups
+## 10. Backups
 
-### 7.1 Backup de Base de Datos
+### 10.1 Backup Manual de Base de Datos
 
-#### Script de Backup
 ```bash
-#!/bin/bash
-# /opt/scripts/backup-db.sh
+# Staging
+docker compose -f docker-compose.staging.yml --env-file .env.staging exec db \
+    pg_dump -U nomina_staging nomina_staging_db > backup_$(date +%Y%m%d).sql
 
+# Producción
+docker compose -f docker-compose.production.yml --env-file .env.production exec db \
+    pg_dump -U nomina_prod nomina_db | gzip > backup_$(date +%Y%m%d).sql.gz
+```
+
+### 10.2 Restaurar Backup
+
+```bash
+# Descomprimir si es necesario
+gunzip backup_20250123.sql.gz
+
+# Restaurar
+docker compose -f docker-compose.production.yml --env-file .env.production exec -T db \
+    psql -U nomina_prod nomina_db < backup_20250123.sql
+```
+
+### 10.3 Backup Automatizado (Cron)
+
+```bash
+# Script de backup
+cat > /opt/scripts/backup-nomina.sh << 'EOF'
+#!/bin/bash
+cd /home/nomina/proyectos/nomina
 BACKUP_DIR="/var/backups/nomina"
 DATE=$(date +%Y%m%d_%H%M%S)
-DB_NAME="nomina"
-DB_USER="nomina_user"
 
 mkdir -p $BACKUP_DIR
 
-# Backup base de datos
-PGPASSWORD="tu_password" pg_dump -U $DB_USER -h localhost $DB_NAME | gzip > $BACKUP_DIR/nomina_db_$DATE.sql.gz
+docker compose -f docker-compose.production.yml --env-file .env.production exec -T db \
+    pg_dump -U nomina_prod nomina_db | gzip > $BACKUP_DIR/db_$DATE.sql.gz
 
-# Eliminar backups mayores a 30 días
-find $BACKUP_DIR -type f -name "*.sql.gz" -mtime +30 -delete
+find $BACKUP_DIR -type f -mtime +30 -delete
+EOF
 
-echo "Backup DB completado: nomina_db_$DATE.sql.gz"
-```
+chmod +x /opt/scripts/backup-nomina.sh
 
-### 7.2 Backup de Evidencias Fiscales
-
-```bash
-#!/bin/bash
-# /opt/scripts/backup-fiscal.sh
-
-BACKUP_DIR="/var/backups/nomina"
-STORAGE_DIR="/var/www/nomina/storage/fiscal"
-DATE=$(date +%Y%m%d_%H%M%S)
-
-mkdir -p $BACKUP_DIR
-
-# Backup incremental de evidencias fiscales
-tar czf $BACKUP_DIR/fiscal_$DATE.tar.gz -C $STORAGE_DIR .
-
-# Eliminar backups mayores a 90 días (requerimiento SAT: 5 años)
-find $BACKUP_DIR -type f -name "fiscal_*.tar.gz" -mtime +90 -delete
-
-echo "Backup fiscal completado: fiscal_$DATE.tar.gz"
-```
-
-### 7.3 Programar Backups
-
-```bash
-sudo chmod +x /opt/scripts/backup-db.sh
-sudo chmod +x /opt/scripts/backup-fiscal.sh
-sudo crontab -e
-# Agregar:
-# 0 2 * * * /opt/scripts/backup-db.sh
-# 0 3 * * * /opt/scripts/backup-fiscal.sh
+# Cron diario a las 2 AM
+echo "0 2 * * * /opt/scripts/backup-nomina.sh" | sudo crontab -
 ```
 
 ---
 
-## 8. Monitoreo
+## 11. Monitoreo
 
-### 8.1 Health Checks
+### 11.1 Health Checks
 
 ```bash
-# Backend API
-curl https://tu-dominio.com/api/health
+# API Health
+curl -s http://localhost/api/health | jq
 
-# PostgreSQL
-docker exec nomina-db pg_isready -U nomina
-
-# Redis
-docker exec nomina-redis redis-cli ping
+# Respuesta esperada:
+# {
+#   "status": "ok",
+#   "timestamp": "2025-01-23T...",
+#   "version": "2.0.0"
+# }
 ```
 
-### 8.2 Logs
+### 11.2 Estado de Servicios
 
-| Componente | Comando |
-|------------|---------|
-| Backend | `docker logs -f nomina-backend` |
-| Worker | `docker logs -f nomina-worker` |
-| PostgreSQL | `docker logs -f nomina-db` |
-| Redis | `docker logs -f nomina-redis` |
-| Nginx | `/var/log/nginx/access.log` |
-
----
-
-## 9. Troubleshooting
-
-### 9.1 Problemas Comunes
-
-#### Error de conexión a base de datos
 ```bash
-# Verificar que PostgreSQL esté corriendo
-docker exec nomina-db pg_isready -U nomina
+# Ver estado
+docker compose -f docker-compose.staging.yml --env-file .env.staging ps
 
-# Verificar conexión desde backend
-docker exec nomina-backend npx prisma db push --accept-data-loss
+# Recursos utilizados
+docker stats
 ```
 
-#### Error de conexión a Redis
+### 11.3 Logs
+
 ```bash
-# Verificar Redis
-docker exec nomina-redis redis-cli ping
+# Todos los logs
+docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f
 
-# Verificar password
-docker exec nomina-redis redis-cli -a tu_password ping
-```
+# Solo errores
+docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f 2>&1 | grep -i error
 
-#### Migraciones fallidas
-```bash
-# Ver estado de migraciones
-docker exec nomina-backend npx prisma migrate status
+# Logs del backend
+docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f backend
 
-# Forzar sincronización (¡SOLO EN EMERGENCIAS!)
-docker exec nomina-backend npx prisma db push
-```
-
-#### Permisos de storage
-```bash
-# Verificar permisos
-ls -la storage/fiscal/
-
-# Corregir permisos
-sudo chown -R 1000:1000 storage
-sudo chmod -R 755 storage
+# Logs del worker
+docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f worker
 ```
 
 ---
 
-## 10. Checklist de Despliegue
+## 12. Troubleshooting
 
-### Pre-despliegue
-- [ ] Backup de base de datos existente
-- [ ] Backup de evidencias fiscales existentes
-- [ ] Verificar requisitos de hardware
-- [ ] Obtener certificados SSL
-- [ ] Configurar DNS
-- [ ] Generar claves seguras (JWT_SECRET, ENCRYPTION_KEY)
-- [ ] Configurar credenciales PAC de producción
-- [ ] Preparar variables de entorno (.env)
+### 12.1 Problemas Comunes
 
-### Despliegue
-- [ ] Clonar repositorio
-- [ ] Crear directorio de storage: `mkdir -p storage/fiscal`
-- [ ] Configurar permisos: `chown -R 1000:1000 storage`
-- [ ] Configurar .env con valores de producción
-- [ ] Construir imágenes: `docker compose build`
-- [ ] Levantar servicios: `docker compose up -d`
-- [ ] Ejecutar migraciones: `npx prisma migrate deploy`
-- [ ] Configurar Nginx/proxy reverso
-- [ ] Configurar SSL
+| Problema | Causa | Solución |
+|----------|-------|----------|
+| Puerto en uso | Otro servicio | `sudo lsof -i :80` y detener |
+| Permiso denegado Docker | Usuario no en grupo | `sudo usermod -aG docker $USER` |
+| Sin espacio | Disco lleno | `docker system prune -a` |
+| Migraciones fallan | BD inconsistente | `npx prisma migrate reset` |
+| Frontend blanco | API no accesible | Verificar CORS y logs |
 
-### Post-despliegue
-- [ ] Verificar health check: `curl /api/health`
-- [ ] Probar login con usuario admin
-- [ ] Verificar conexión a Redis
-- [ ] Probar timbrado en modo sandbox
-- [ ] Verificar escritura en storage fiscal
-- [ ] Configurar backups automáticos (DB + fiscal)
-- [ ] Configurar monitoreo
-- [ ] Documentar accesos y credenciales (seguro)
-- [ ] Probar restauración de backup
+### 12.2 Comandos de Diagnóstico
 
-### Validación Fiscal (antes de producción)
-- [ ] Verificar certificados CSD vigentes
-- [ ] Probar timbrado con PAC en sandbox
-- [ ] Verificar generación correcta de XML CFDI 4.0
-- [ ] Verificar complemento nómina 1.2
-- [ ] Probar cancelación de CFDI
-- [ ] Validar evidencias fiscales almacenadas
+```bash
+# Ver estado de Docker
+docker info
+systemctl status docker
+
+# Ver uso de disco
+df -h
+docker system df
+
+# Ver procesos Docker
+docker ps -a
+docker stats
+
+# Logs del sistema
+journalctl -u docker -f
+```
+
+### 12.3 Documentación Detallada
+
+Ver [Guía de Despliegue Ubuntu 24.04](11-GUIA-DESPLIEGUE-UBUNTU-24.md) para solución detallada de problemas.
 
 ---
 
-*Documento generado: Diciembre 2024*
-*Versión del documento: 2.0*
+## 13. Checklist de Despliegue
+
+### 13.1 Pre-despliegue
+
+- [ ] Requisitos de hardware verificados
+- [ ] Docker y Docker Compose instalados
+- [ ] Puerto 80 y 443 disponibles
+- [ ] Repositorio clonado
+- [ ] Archivo .env configurado con claves seguras
+- [ ] Certificados SSL preparados (si aplica)
+
+### 13.2 Despliegue
+
+- [ ] Imágenes construidas exitosamente
+- [ ] Base de datos iniciada y healthy
+- [ ] Redis iniciado y healthy
+- [ ] Migraciones ejecutadas
+- [ ] Seed ejecutado (si primera vez)
+- [ ] Backend iniciado y healthy
+- [ ] Worker iniciado y healthy
+- [ ] Frontend iniciado
+- [ ] Nginx iniciado
+
+### 13.3 Post-despliegue
+
+- [ ] Health check API responde OK
+- [ ] Login funciona correctamente
+- [ ] Frontend carga sin errores
+- [ ] SSL funcionando (si aplica)
+- [ ] Backup configurado (producción)
+- [ ] Monitoreo configurado (producción)
+- [ ] Documentación actualizada
+
+### 13.4 Validación Fiscal (Pre-producción)
+
+- [ ] Certificados CSD vigentes
+- [ ] Timbrado PAC en sandbox probado
+- [ ] XML CFDI 4.0 válido
+- [ ] Complemento nómina 1.2 correcto
+- [ ] Cancelación de CFDI probada
+- [ ] Evidencias fiscales almacenadas correctamente
+
+---
+
+*Documento actualizado: Enero 2025*
+*Versión: 2.0*

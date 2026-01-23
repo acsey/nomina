@@ -1,242 +1,224 @@
 # Despliegue en Staging
 
-Guía para desplegar el Sistema de Nómina en un entorno de staging.
+Guía rápida para desplegar el Sistema de Nómina en ambiente de staging.
 
-## Requisitos Previos
+## Requisitos
 
-- Docker >= 20.10
-- Docker Compose >= 2.0
+- Ubuntu 24.04 LTS (o sistema compatible)
+- Docker >= 24.x
+- Docker Compose >= 2.x
 - 4GB RAM mínimo (8GB recomendado)
-- 20GB espacio en disco
-- Puerto 80 y 443 disponibles
+- 40GB espacio en disco
+- Puertos 80 y 443 disponibles
+
+## Inicio Rápido
+
+### 1. Clonar y Configurar
+
+```bash
+# Clonar repositorio
+git clone https://github.com/tu-usuario/nomina.git
+cd nomina
+
+# Crear archivo de configuración
+cp .env.staging.example .env.staging
+
+# Editar con tus valores
+nano .env.staging
+```
+
+### 2. Generar Claves Seguras
+
+```bash
+# JWT_SECRET
+echo "JWT_SECRET: $(openssl rand -base64 48)"
+
+# ENCRYPTION_KEY
+echo "ENCRYPTION_KEY: $(openssl rand -base64 48)"
+
+# REDIS_PASSWORD
+echo "REDIS_PASSWORD: $(openssl rand -base64 32)"
+
+# DB_PASSWORD
+echo "DB_PASSWORD: $(openssl rand -base64 24)"
+```
+
+Copia estos valores al archivo `.env.staging`.
+
+### 3. Desplegar
+
+```bash
+# Dar permisos al script
+chmod +x deploy-staging.sh
+
+# Desplegar (sin SSL)
+./deploy-staging.sh
+
+# Desplegar con SSL auto-firmado
+./deploy-staging.sh --ssl-self
+
+# Desplegar con Let's Encrypt
+./deploy-staging.sh --ssl tu-dominio.com
+
+# Desplegar desde cero (borra datos)
+./deploy-staging.sh --fresh
+```
+
+### 4. Verificar
+
+```bash
+# Health check
+curl http://localhost/api/health
+
+# Ver estado de contenedores
+docker compose -f docker-compose.staging.yml --env-file .env.staging ps
+
+# Ver logs
+docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f
+```
 
 ## Estructura de Archivos
 
 ```
 nomina/
 ├── docker-compose.staging.yml    # Configuración de servicios
-├── .env.staging.example          # Variables de entorno (plantilla)
-├── .env.staging                   # Variables de entorno (crear)
+├── .env.staging.example          # Plantilla de variables
+├── .env.staging                  # Variables (crear manualmente)
+├── deploy-staging.sh             # Script de despliegue
 ├── nginx/
-│   ├── staging.conf              # Configuración de Nginx
-│   └── ssl/                      # Certificados SSL (opcional)
-├── backend/
-│   ├── Dockerfile                # Build del backend
-│   └── docker-entrypoint.sh      # Script de validación de entorno
-└── frontend/
-    └── Dockerfile                # Build del frontend
+│   ├── staging.conf              # Configuración Nginx
+│   └── ssl/                      # Certificados SSL
+└── scripts/
+    └── verify-staging.sh         # Script de verificación
 ```
 
-## Arquitectura de Contenedores
+## Arquitectura
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         NGINX (proxy)                            │
-│                     Puertos: 80, 443                             │
+│                         NGINX (proxy)                           │
+│                     Puertos: 80, 443                            │
 └─────────────────────────────────────────────────────────────────┘
          │                                    │
          ▼                                    ▼
 ┌─────────────────────┐            ┌─────────────────────┐
 │   Backend API       │            │   Frontend          │
 │   (QUEUE_MODE=api)  │            │   (React + Nginx)   │
-│   Puerto: 3000      │            │   Puerto: 80        │
 └─────────────────────┘            └─────────────────────┘
          │
-         │ Encola jobs
+         │ BullMQ
          ▼
 ┌─────────────────────┐            ┌─────────────────────┐
-│   Redis (BullMQ)    │◄───────────│   Worker            │
-│   Cola de jobs      │            │   (QUEUE_MODE=worker)│
-└─────────────────────┘            │   Procesa CFDIs     │
+│   Redis (Colas)     │◄───────────│   Worker            │
+└─────────────────────┘            │   (QUEUE_MODE=worker)│
          │                          └─────────────────────┘
-         │                                    │
-         ▼                                    ▼
+         ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                       PostgreSQL                                 │
-│                   (Base de datos)                                │
+│                       PostgreSQL 16                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Separación de responsabilidades:**
-- **Backend (QUEUE_MODE=api)**: Solo API HTTP, encola jobs en Redis
-- **Worker (QUEUE_MODE=worker)**: Solo procesa jobs, no expone API
-- **Redis**: Cola de mensajes para procesamiento asíncrono
-- **PostgreSQL**: Base de datos (NO expone puertos externamente)
+## Variables de Entorno Requeridas
 
-## Paso 1: Configurar Variables de Entorno
-
-```bash
-# Copiar plantilla
-cp .env.staging.example .env.staging
-
-# Editar con valores reales
-nano .env.staging
-```
-
-### Variables Requeridas
-
-| Variable | Descripción |
-|----------|-------------|
-| `DB_USER` | Usuario de PostgreSQL |
-| `DB_PASSWORD` | Contraseña de PostgreSQL |
-| `DB_NAME` | Nombre de la base de datos |
-| `JWT_SECRET` | Secreto para tokens JWT (mín 32 chars) |
-| `ENCRYPTION_KEY` | Clave de cifrado (mín 32 chars) |
-| `REDIS_PASSWORD` | Contraseña de Redis |
-| `FRONTEND_URL` | URL del frontend para CORS |
-
-### Generar Secretos Seguros
-
-```bash
-# Generar JWT_SECRET
-openssl rand -base64 48
-
-# Generar ENCRYPTION_KEY
-openssl rand -base64 48
-
-# Generar REDIS_PASSWORD
-openssl rand -base64 32
-```
-
-## Paso 2: Configurar SSL (Opcional pero Recomendado)
-
-```bash
-# Crear directorio para certificados
-mkdir -p nginx/ssl
-
-# Opción A: Let's Encrypt con certbot
-certbot certonly --standalone -d staging.nomina.example.com
-
-# Copiar certificados
-cp /etc/letsencrypt/live/staging.nomina.example.com/fullchain.pem nginx/ssl/
-cp /etc/letsencrypt/live/staging.nomina.example.com/privkey.pem nginx/ssl/
-
-# Descomentar configuración SSL en nginx/staging.conf
-```
-
-## Paso 3: Verificar y Desplegar
-
-### Opción A: Verificación Automática (Recomendado)
-
-```bash
-# Ejecutar script de verificación (build, start, healthcheck)
-./scripts/verify-staging.sh
-
-# O especificar archivo de entorno:
-./scripts/verify-staging.sh --env-file .env.staging
-```
-
-El script verifica:
-1. Variables de entorno críticas
-2. Docker disponible
-3. Configuración de compose válida
-4. Construye imágenes
-5. Inicia servicios
-6. Espera a que todos los servicios estén healthy
-
-### Opción B: Manual
-
-```bash
-# Build y despliegue
-docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build
-
-# Ver logs
-docker compose -f docker-compose.staging.yml logs -f
-
-# Ver estado de los servicios
-docker compose -f docker-compose.staging.yml ps
-```
-
-## Paso 4: Ejecutar Migraciones
-
-```bash
-# Acceder al contenedor del backend
-docker exec -it nomina-staging-backend sh
-
-# Ejecutar migraciones
-npx prisma migrate deploy
-
-# Ejecutar seeds (opcional)
-npx prisma db seed
-
-# Salir del contenedor
-exit
-```
+| Variable | Descripción | Generar |
+|----------|-------------|---------|
+| `DB_USER` | Usuario PostgreSQL | - |
+| `DB_PASSWORD` | Password PostgreSQL | `openssl rand -base64 24` |
+| `DB_NAME` | Nombre de BD | - |
+| `JWT_SECRET` | Firma de tokens | `openssl rand -base64 48` |
+| `ENCRYPTION_KEY` | Cifrado de datos | `openssl rand -base64 48` |
+| `REDIS_PASSWORD` | Password Redis | `openssl rand -base64 32` |
+| `FRONTEND_URL` | URL del frontend | URL pública |
 
 ## Comandos Útiles
 
-### Ver logs de un servicio específico
+### Gestión de Servicios
 
 ```bash
-docker compose -f docker-compose.staging.yml logs -f backend
-docker compose -f docker-compose.staging.yml logs -f nginx
+# Alias útil (agregar a ~/.bashrc)
+alias dc='docker compose -f docker-compose.staging.yml --env-file .env.staging'
+
+# Iniciar
+dc up -d
+
+# Detener
+dc down
+
+# Reiniciar
+dc restart
+
+# Ver estado
+dc ps
+
+# Ver logs
+dc logs -f
+
+# Logs de un servicio
+dc logs -f backend
 ```
 
-### Reiniciar servicios
+### Base de Datos
 
 ```bash
-# Reiniciar todo
-docker compose -f docker-compose.staging.yml restart
+# Ejecutar migraciones
+dc exec backend npx prisma migrate deploy
 
-# Reiniciar servicio específico
-docker compose -f docker-compose.staging.yml restart backend
+# Ejecutar seed
+dc exec backend npx prisma db seed
+
+# Conectar a PostgreSQL
+dc exec db psql -U nomina_staging -d nomina_staging_db
+
+# Backup
+dc exec db pg_dump -U nomina_staging nomina_staging_db > backup.sql
+
+# Restaurar
+dc exec -T db psql -U nomina_staging nomina_staging_db < backup.sql
 ```
 
-### Actualizar deployment
+### Escalar Workers
 
 ```bash
-# Pull cambios y rebuild
-git pull
-docker compose -f docker-compose.staging.yml up -d --build
+# Escalar a 2 workers
+dc up -d --scale worker=2
+
+# Ver workers
+dc ps worker
 ```
 
-### Ver recursos
+## Modo de Timbrado CFDI
 
-```bash
-docker stats nomina-staging-backend nomina-staging-worker nomina-staging-db nomina-staging-redis
+El sistema soporta dos modos:
+
+### Modo Sync (desarrollo)
+```env
+CFDI_STAMP_MODE=sync
+```
+- Timbrado directo y bloqueante
+- Ideal para pruebas rápidas
+
+### Modo Async (staging/producción)
+```env
+CFDI_STAMP_MODE=async
+```
+- Timbrado via colas BullMQ/Redis
+- Workers procesan en segundo plano
+- Retorna `batchId` inmediatamente
+- Frontend hace polling a `/api/payroll/:id/stamping-status`
+
+## Flujo de Estados del Período
+
+```
+DRAFT → CALCULATED → PROCESSING → APPROVED → PAID → CLOSED
+                          │            ▲
+                          │            │
+                          └────────────┘
+                       Period Finalizer
+                    (auto cuando todos
+                     CFDIs timbrados)
 ```
 
-### Ver logs del worker
-
-```bash
-# Logs del worker (procesamiento de CFDIs)
-docker compose -f docker-compose.staging.yml logs -f worker
-
-# Ver solo errores de timbrado
-docker compose -f docker-compose.staging.yml logs worker | grep -E "(ERROR|FAILED)"
-```
-
-### Escalar workers
-
-```bash
-# Escalar a 2 workers para mayor throughput
-docker compose -f docker-compose.staging.yml up -d --scale worker=2
-
-# Ver estado de workers
-docker compose -f docker-compose.staging.yml ps worker
-```
-
-### Backup de base de datos
-
-```bash
-# Crear backup
-docker exec nomina-staging-db pg_dump -U $DB_USER $DB_NAME > backup_$(date +%Y%m%d).sql
-
-# Restaurar backup
-docker exec -i nomina-staging-db psql -U $DB_USER $DB_NAME < backup_20260113.sql
-```
-
-## Detener Servicios
-
-```bash
-# Detener sin eliminar datos
-docker compose -f docker-compose.staging.yml down
-
-# Detener y eliminar volúmenes (CUIDADO: borra datos)
-docker compose -f docker-compose.staging.yml down -v
-```
-
-## Healthchecks
+## Health Checks
 
 | Endpoint | Descripción |
 |----------|-------------|
@@ -249,184 +231,74 @@ docker compose -f docker-compose.staging.yml down -v
 
 ```bash
 # Ver logs detallados
-docker compose -f docker-compose.staging.yml logs backend
+dc logs backend
 
 # Verificar variables de entorno
-docker exec nomina-staging-backend env | grep -E "(DATABASE_URL|JWT_SECRET)"
+dc exec backend env | grep -E "(DATABASE_URL|JWT_SECRET)"
 ```
 
-### Error de conexión a base de datos
+### Error de conexión a BD
 
 ```bash
 # Verificar que db esté healthy
-docker compose -f docker-compose.staging.yml ps db
+dc ps db
 
 # Probar conexión
-docker exec nomina-staging-db pg_isready -U $DB_USER -d $DB_NAME
+dc exec db pg_isready -U nomina_staging -d nomina_staging_db
 ```
 
 ### Error de migraciones
 
 ```bash
-# Ver estado de migraciones
-docker exec nomina-staging-backend npx prisma migrate status
+# Ver estado
+dc exec backend npx prisma migrate status
 
-# Resolver migraciones pendientes
-docker exec nomina-staging-backend npx prisma migrate deploy
+# Aplicar forzadamente
+dc exec backend npx prisma migrate deploy
 ```
 
-### Limpiar caché de Docker
+### Limpiar Docker
 
 ```bash
-# Limpiar builds anteriores
+# Limpiar builds
 docker builder prune -f
 
 # Limpiar todo (CUIDADO)
 docker system prune -a
 ```
 
-## Arquitectura de Timbrado CFDI
-
-El sistema soporta dos modos de timbrado controlados por `CFDI_STAMP_MODE`:
-
-### Modo Sync (desarrollo)
-```env
-CFDI_STAMP_MODE=sync
-```
-- Timbrado directo y bloqueante
-- El endpoint `/api/payroll/:id/approve` espera a que todos los CFDIs se timbren
-- Ideal para desarrollo y pruebas rápidas
-
-### Modo Async (staging/producción)
-```env
-CFDI_STAMP_MODE=async
-```
-- Timbrado via cola de BullMQ/Redis
-- El endpoint `/api/payroll/:id/approve` retorna inmediatamente con `batchId`
-- Frontend debe hacer polling a `/api/payroll/:id/stamping-status`
-- Los workers procesan los jobs en segundo plano
-- **Period Finalizer**: Cuando TODOS los CFDIs están timbrados (STAMP_OK),
-  el worker automáticamente cambia el período a estado `APPROVED`
-
-### Flujo de Estados del Período
-
-```
-DRAFT → CALCULATED → PROCESSING → APPROVED → PAID → CLOSED
-                          │            ▲
-                          │            │
-                          └────────────┘
-                       Period Finalizer
-                    (auto cuando todos
-                     CFDIs timbrados)
-```
-
-### Arquitectura de Colas
-
-```
-┌─────────────────┐     ┌─────────────┐     ┌─────────────────┐
-│   Backend API   │────▶│    Redis    │────▶│ StampingWorker  │
-│  (QUEUE_MODE:   │     │  (BullMQ)   │     │ (QUEUE_MODE:    │
-│      api)       │     │             │     │    worker)      │
-└─────────────────┘     └─────────────┘     └─────────────────┘
-                                                    │
-                                                    ▼
-                                            ┌─────────────┐
-                                            │   PAC (SAT) │
-                                            │   FINKOK    │
-                                            │   SW_SAPIEN │
-                                            └─────────────┘
-```
-
-**IMPORTANTE:** En staging/producción usamos contenedores separados:
-- `backend`: `QUEUE_MODE=api` (solo encola, no procesa)
-- `worker`: `QUEUE_MODE=worker` (solo procesa, no API)
-
 ## Smoke Tests
 
-### 1. Verificar servicios arriba
 ```bash
-# Health check de todos los servicios
+# 1. Health check
 curl -s http://localhost/api/health | jq
-# Esperado: { "status": "ok", "version": "..." }
-```
 
-### 2. Verificar autenticación
-```bash
-# Login
+# 2. Login
 curl -s -X POST http://localhost/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@demo.com","password":"password"}' | jq
+  -d '{"email":"admin@empresa.com","password":"admin123"}' | jq
 
-# Esperado: { "accessToken": "...", "user": {...} }
-```
-
-### 3. Verificar Redis y colas
-```bash
-# Verificar conexión a Redis
-docker exec nomina-staging-backend sh -c "redis-cli -h redis -a \$REDIS_PASSWORD ping"
-# Esperado: PONG
-
-# Verificar estadísticas de colas
-curl -s -X GET http://localhost/api/queues/stats \
-  -H "Authorization: Bearer <token>" | jq
-# Esperado: { "cfdiStamping": {...}, "payrollCalculation": {...} }
-```
-
-### 4. Verificar modo de timbrado
-```bash
-# Consultar configuración
-docker exec nomina-staging-backend sh -c "echo \$CFDI_STAMP_MODE"
-# Esperado: async (en staging)
-```
-
-### 5. Test completo de nómina (con datos de prueba)
-```bash
-# 1. Crear período de prueba
-curl -s -X POST http://localhost/api/payroll/periods \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"companyId":"...","periodType":"WEEKLY",...}'
-
-# 2. Calcular nómina
-curl -s -X POST http://localhost/api/payroll/periods/<id>/calculate \
-  -H "Authorization: Bearer <token>"
-
-# 3. Aprobar (dispara timbrado)
-curl -s -X POST http://localhost/api/payroll/periods/<id>/approve \
-  -H "Authorization: Bearer <token>"
-
-# 4. Verificar estado de timbrado (modo async)
-curl -s http://localhost/api/payroll/periods/<id>/stamping-status \
-  -H "Authorization: Bearer <token>" | jq
-# Esperado: { "stamping": { "total": N, "stamped": X, "pending": Y, "progress": Z } }
+# 3. Verificar Redis
+dc exec redis redis-cli -a $REDIS_PASSWORD ping
 ```
 
 ## Seguridad
 
 - Cambiar todas las contraseñas por defecto
-- Usar SSL/TLS en producción
-- Mantener el firewall configurado (solo puertos 80/443)
+- Usar SSL/TLS (mínimo auto-firmado)
+- No exponer puertos internos (5432, 6379)
 - Rotar secretos periódicamente
 - Realizar backups regulares
-- Monitorear logs de acceso
 
-### Swagger API Documentation
+## Documentación Adicional
 
-**Por defecto, Swagger está DESHABILITADO en staging/producción** por seguridad.
-
-Para habilitar temporalmente (debugging):
-```bash
-# En .env.staging
-ENABLE_SWAGGER=true
-```
-
-Luego reiniciar el backend:
-```bash
-docker compose -f docker-compose.staging.yml restart backend
-```
-
-**IMPORTANTE:** Nunca dejar Swagger habilitado en producción sin autenticación adicional.
+- [Guía Completa Ubuntu 24.04](docs/11-GUIA-DESPLIEGUE-UBUNTU-24.md)
+- [Documento de Despliegue](docs/02-documento-despliegue.md)
+- [Documento Técnico](docs/01-documento-tecnico.md)
 
 ## Soporte
 
-Para problemas o preguntas, contactar al equipo de desarrollo.
+Para problemas o preguntas, revisar la documentación en `docs/` o contactar al equipo de desarrollo.
+
+---
+*Última actualización: Enero 2025*

@@ -344,5 +344,39 @@ Para problemas con:
 
 ---
 
-*Manual del Portal del Empleado v1.0*
-*Ultima actualizacion: Diciembre 2024*
+---
+
+## 13. Nuevas Funcionalidades
+
+### 13.1 Notificaciones por WhatsApp
+Si tu empresa tiene habilitada esta funcion:
+- Recibiras avisos cuando tu recibo de nomina este listo
+- Te notificaran cuando aprueben o rechacen vacaciones
+- Puedes consultar tu saldo de vacaciones por WhatsApp
+
+### 13.2 Autenticacion de Dos Factores (MFA)
+Para mayor seguridad:
+1. Ve a tu perfil
+2. Haz clic en **"Activar 2FA"**
+3. Escanea el codigo QR con Google Authenticator o Authy
+4. Ingresa el codigo para confirmar
+5. En cada inicio de sesion, te pedira el codigo de tu app
+
+### 13.3 Inicio de Sesion con Microsoft
+Si tu empresa lo tiene habilitado:
+1. En la pantalla de login
+2. Haz clic en **"Iniciar sesion con Microsoft"**
+3. Usa tu cuenta corporativa de Microsoft
+
+### 13.4 Tu Foto de Perfil
+Puedes agregar una foto a tu perfil:
+1. Ve a **Mi Portal**
+2. Haz clic en el icono de camara
+3. Selecciona una foto de tu computadora
+4. Recorta si es necesario
+5. Guardar
+
+---
+
+*Manual del Portal del Empleado v2.0*
+*Ultima actualizacion: Enero 2025*

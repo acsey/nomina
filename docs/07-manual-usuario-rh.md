@@ -469,5 +469,43 @@ R: En el modulo de Incidencias, crear incidencia tipo "Tiempo Extra" con las hor
 
 ---
 
-*Manual de Usuario RH v1.0*
-*Ultima actualizacion: Diciembre 2024*
+---
+
+## 15. Funcionalidades Adicionales
+
+### 15.1 Dispositivos Biometricos
+Si la empresa tiene checadores biometricos:
+1. Los registros se sincronizan automaticamente
+2. Ir a **Asistencia** > **Dispositivos** para ver estado
+3. Marcas soportadas: ZKTECO, ANVIZ, Suprema
+
+### 15.2 Notificaciones por WhatsApp
+Si esta habilitado:
+- Los empleados reciben notificaciones de:
+  - Recibos de nomina listos
+  - Solicitudes de vacaciones aprobadas/rechazadas
+  - Recordatorios de asistencia
+
+### 15.3 Timbrado Asincrono
+Para nominas grandes:
+- El timbrado se procesa en segundo plano
+- Ver progreso en **Nomina** > **Estado de Timbrado**
+- Recibiras notificacion cuando termine
+
+### 15.4 Control Dual (Empresas Enterprise)
+Para mayor seguridad en el timbrado:
+- Una persona calcula la nomina
+- Otra persona autoriza el timbrado
+- Configurable en **Config. Sistema** > **Seguridad**
+
+### 15.5 Snapshots de Reglas Fiscales
+El sistema guarda automaticamente:
+- Tablas de ISR usadas
+- Tasas de IMSS aplicadas
+- Valor de UMA/SMG del periodo
+- Permite auditar calculos historicos
+
+---
+
+*Manual de Usuario RH v2.0*
+*Ultima actualizacion: Enero 2025*

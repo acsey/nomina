@@ -221,5 +221,41 @@ gunzip -c /var/backups/nomina/backup.sql.gz | psql -U nomina_user -d nomina
 
 ---
 
-*Manual de Administrador v1.0*
-*Última actualización: Diciembre 2024*
+---
+
+## 11. Configuraciones Avanzadas
+
+### 11.1 Autenticación Multi-Factor (MFA)
+1. Ir a **Config. Sistema** > **Seguridad**
+2. Habilitar MFA para la empresa
+3. Los usuarios podrán activar MFA desde su perfil
+4. Soporta apps como Google Authenticator, Authy
+
+### 11.2 Integración con Azure AD (SSO)
+1. En **Config. Sistema** > **Autenticación**
+2. Configurar:
+   - Client ID de Azure
+   - Tenant ID
+   - Client Secret
+3. Los usuarios podrán usar "Iniciar sesión con Microsoft"
+
+### 11.3 Modo de Timbrado CFDI
+| Modo | Descripción | Uso |
+|------|-------------|-----|
+| `sync` | Timbrado directo | Pocas nóminas |
+| `async` | Cola de procesamiento | Alto volumen |
+
+### 11.4 Configuración de Workers
+- **QUEUE_MODE=api**: Solo encola trabajos
+- **QUEUE_MODE=worker**: Solo procesa trabajos
+- **QUEUE_MODE=both**: Ambos (desarrollo)
+
+### 11.5 Integraciones Opcionales
+- **WhatsApp**: Notificaciones vía Twilio
+- **n8n**: Automatización de workflows
+- **ChatBot IA**: Consultas por WhatsApp
+
+---
+
+*Manual de Administrador v2.0*
+*Última actualización: Enero 2025*
