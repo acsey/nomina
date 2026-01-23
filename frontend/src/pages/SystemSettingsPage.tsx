@@ -6,6 +6,7 @@ import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { systemConfigApi, emailApi, authApi } from '../services/api';
 import AIConfigurationSection from '../components/settings/AIConfigurationSection';
+import SystemModulesSection from '../components/settings/SystemModulesSection';
 import { LANGUAGES, changeLanguage, getCurrentLanguage, type LanguageCode } from '../i18n';
 import toast from 'react-hot-toast';
 import {
@@ -578,6 +579,9 @@ export default function SystemSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* System Modules Section */}
+      <SystemModulesSection />
 
       {/* AI Configuration Section */}
       <AIConfigurationSection />

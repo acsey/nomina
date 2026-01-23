@@ -202,5 +202,40 @@
       "title": "Important Information",
       "description": "API keys are stored encrypted in the database. Make sure to obtain keys from official provider websites."
     }
+  },
+
+  "modules": {
+    "title": "System Modules",
+    "subtitle": "Manage the modules available for companies",
+    "total": "Total",
+    "enabledByDefault": "Enabled by default",
+    "core": "Core modules",
+    "modulesCount": "modules",
+    "coreLabel": "Core",
+    "code": "Code",
+    "defaultEnabled": "Default enabled",
+    "cannotDisableCore": "Core modules cannot be disabled",
+    "noModules": "No modules configured in the system",
+    "initializeModules": "Initialize Modules",
+    "seedSuccess": "Created {{created}} modules. {{existing}} already existed.",
+    "seedError": "Error initializing modules",
+    "updated": "Module updated successfully",
+    "updateError": "Error updating module",
+    "loadError": "Error loading modules. You may need to initialize them.",
+    "info": {
+      "title": "Module Information",
+      "defaultEnabled": "Modules enabled by default are automatically activated for new companies.",
+      "coreModules": "Core modules (Employees, Users, Departments) are essential and cannot be disabled.",
+      "companyOverride": "Each company can customize which modules are active from their individual settings."
+    },
+    "categories": {
+      "CORE": "Core",
+      "PAYROLL": "Payroll",
+      "ATTENDANCE": "Attendance",
+      "HR": "Human Resources",
+      "PORTAL": "Portal",
+      "REPORTS": "Reports",
+      "INTEGRATION": "Integrations"
+    }
   }
 }
