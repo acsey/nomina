@@ -610,6 +610,26 @@ export const systemConfigApi = {
   validateAzureAd: () => api.get('/system-config/azure-ad/validate'),
 };
 
+// AI Configuration API
+export const aiConfigApi = {
+  // Get current AI configuration
+  getConfig: () => api.get('/ai-config'),
+  // Get AI providers status
+  getStatus: () => api.get('/ai-config/status'),
+  // Update provider configuration
+  updateProvider: (provider: string, apiKey: string, model: string) =>
+    api.patch(`/ai-config/provider/${provider}`, { apiKey, model }),
+  // Set default provider
+  setDefaultProvider: (provider: string) =>
+    api.post('/ai-config/default', { provider }),
+  // Test provider connection
+  testConnection: (provider: string) =>
+    api.post(`/ai-config/test/${provider}`),
+  // Get available models for provider
+  getModels: (provider: string) =>
+    api.get(`/ai-config/models/${provider}`),
+};
+
 export const hierarchyApi = {
   // Organizational chart
   getOrgChart: (companyId?: string) =>
