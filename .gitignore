@@ -63,3 +63,6 @@ data/
 
 # n8n local data
 .n8n/
+
+# Local testing (security, pentesting, etc.)
+tests-security/
