@@ -7,13 +7,13 @@ import {
   DEFAULT_MODELS,
 } from '../../common/ai-providers';
 
-interface ProviderConfig {
+export interface ProviderConfig {
   apiKey: string;
   model: string;
   isConfigured: boolean;
 }
 
-interface AIConfigResponse {
+export interface AIConfigResponse {
   defaultProvider: string | null;
   providers: Record<string, ProviderConfig>;
 }

@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { AIConfigService } from './ai-config.service';
+import { AIConfigService, AIConfigResponse } from './ai-config.service';
 
 class UpdateProviderDto {
   apiKey: string;
@@ -35,7 +35,7 @@ export class AIConfigController {
   @Roles('SYSTEM_ADMIN', 'admin')
   @ApiOperation({ summary: 'Get AI configuration status' })
   @ApiResponse({ status: 200, description: 'AI configuration retrieved' })
-  async getConfig() {
+  async getConfig(): Promise<AIConfigResponse> {
     return this.aiConfigService.getConfig();
   }
 
