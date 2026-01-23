@@ -834,3 +834,47 @@ export const portalApi = {
   // Benefits
   getMyBenefits: (employeeId: string) => api.get(`/portal/benefits/${employeeId}`),
 };
+
+// System Modules API - Module management for super admin
+export const systemModulesApi = {
+  // Get all system modules
+  getAll: () => api.get('/system-modules'),
+  // Create new system module
+  create: (data: {
+    code: string;
+    name: string;
+    description?: string;
+    category?: string;
+    isCore?: boolean;
+    defaultEnabled?: boolean;
+    icon?: string;
+    sortOrder?: number;
+  }) => api.post('/system-modules', data),
+  // Update system module
+  update: (id: string, data: {
+    name?: string;
+    description?: string;
+    category?: string;
+    isCore?: boolean;
+    defaultEnabled?: boolean;
+    icon?: string;
+    sortOrder?: number;
+  }) => api.patch(`/system-modules/${id}`, data),
+  // Seed default modules
+  seed: () => api.post('/system-modules/seed'),
+  // Get companies with a specific module
+  getCompaniesWithModule: (moduleCode: string) =>
+    api.get(`/system-modules/${moduleCode}/companies`),
+
+  // Company-specific module management
+  getCompanyModules: (companyId: string) =>
+    api.get(`/system-modules/company/${companyId}`),
+  checkModuleEnabled: (companyId: string, moduleCode: string) =>
+    api.get(`/system-modules/company/${companyId}/check/${moduleCode}`),
+  toggleCompanyModule: (companyId: string, moduleCode: string, data: {
+    isEnabled: boolean;
+    config?: Record<string, any>;
+  }) => api.patch(`/system-modules/company/${companyId}/${moduleCode}`, data),
+  initializeCompanyModules: (companyId: string) =>
+    api.post(`/system-modules/company/${companyId}/initialize`),
+};

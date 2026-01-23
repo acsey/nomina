@@ -202,5 +202,40 @@
         "description": "Modelos Gemini de Google. Tier gratuito generoso disponible."
       }
     }
+  },
+
+  "modules": {
+    "title": "Módulos del Sistema",
+    "subtitle": "Administre los módulos disponibles para las empresas",
+    "total": "Total",
+    "enabledByDefault": "Habilitados por defecto",
+    "core": "Módulos núcleo",
+    "modulesCount": "módulos",
+    "coreLabel": "Núcleo",
+    "code": "Código",
+    "defaultEnabled": "Habilitado por defecto",
+    "cannotDisableCore": "Los módulos núcleo no pueden deshabilitarse",
+    "noModules": "No hay módulos configurados en el sistema",
+    "initializeModules": "Inicializar Módulos",
+    "seedSuccess": "Se crearon {{created}} módulos. {{existing}} ya existían.",
+    "seedError": "Error al inicializar módulos",
+    "updated": "Módulo actualizado correctamente",
+    "updateError": "Error al actualizar el módulo",
+    "loadError": "Error al cargar los módulos. Es posible que necesite inicializarlos.",
+    "info": {
+      "title": "Información sobre Módulos",
+      "defaultEnabled": "Los módulos habilitados por defecto se activan automáticamente para nuevas empresas.",
+      "coreModules": "Los módulos núcleo (Empleados, Usuarios, Departamentos) son esenciales y no pueden deshabilitarse.",
+      "companyOverride": "Cada empresa puede personalizar qué módulos tiene activos desde su configuración individual."
+    },
+    "categories": {
+      "CORE": "Núcleo",
+      "PAYROLL": "Nómina",
+      "ATTENDANCE": "Asistencia",
+      "HR": "Recursos Humanos",
+      "PORTAL": "Portal",
+      "REPORTS": "Reportes",
+      "INTEGRATION": "Integraciones"
+    }
   }
 }
