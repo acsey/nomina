@@ -40,6 +40,7 @@ import { PortalModule } from './modules/portal/portal.module';
 import { SystemModulesModule } from './modules/system-modules/system-modules.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { N8nModule } from './modules/n8n/n8n.module';
+import { RolesModule } from './modules/roles/roles.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { N8nModule } from './modules/n8n/n8n.module';
     SystemModulesModule, // Sistema modular (habilitar/deshabilitar módulos por empresa)
     WhatsAppModule,      // Checador por WhatsApp con geocercas
     N8nModule,           // Integración con n8n y ChatBot IA
+    RolesModule,         // Gestión de roles y permisos
   ],
   controllers: [AppController],
   providers: [

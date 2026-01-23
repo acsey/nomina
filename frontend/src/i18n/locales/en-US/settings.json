@@ -237,5 +237,44 @@
       "REPORTS": "Reports",
       "INTEGRATION": "Integrations"
     }
+  },
+
+  "roles": {
+    "title": "Roles & Permissions",
+    "subtitle": "Configure permissions for each system role",
+    "selectRole": "Select role",
+    "selectRolePrompt": "Select a role to edit its permissions",
+    "permissionsCount": "permissions",
+    "syncRoles": "Sync Roles",
+    "syncSuccess": "Roles synchronized: {{created}} created, {{updated}} updated",
+    "syncError": "Error synchronizing roles",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "resetToDefault": "Reset to Default",
+    "permissionsUpdated": "Permissions updated successfully",
+    "permissionsReset": "Permissions reset to defaults",
+    "updateError": "Error updating permissions",
+    "resetError": "Error resetting permissions",
+    "systemAdminWarning": "Protected System Role",
+    "systemAdminDescription": "System Administrator permissions cannot be modified. This role has full access to all features.",
+    "info": {
+      "permissionFormat": "Permissions follow the format:"
+    },
+    "categories": {
+      "system": "System",
+      "companies": "Companies",
+      "users": "Users",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "incidents": "Incidents",
+      "vacations": "Vacations",
+      "benefits": "Benefits",
+      "attendance": "Attendance",
+      "reports": "Reports",
+      "settings": "Settings",
+      "audit": "Audit",
+      "profile": "Profile",
+      "documents": "Documents"
+    }
   }
 }

@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { systemConfigApi, emailApi, authApi } from '../services/api';
 import AIConfigurationSection from '../components/settings/AIConfigurationSection';
 import SystemModulesSection from '../components/settings/SystemModulesSection';
+import RolesPermissionsSection from '../components/settings/RolesPermissionsSection';
 import { LANGUAGES, changeLanguage, getCurrentLanguage, type LanguageCode } from '../i18n';
 import toast from 'react-hot-toast';
 import {
@@ -582,6 +583,9 @@ export default function SystemSettingsPage() {
 
       {/* System Modules Section */}
       <SystemModulesSection />
+
+      {/* Roles & Permissions Section */}
+      <RolesPermissionsSection />
 
       {/* AI Configuration Section */}
       <AIConfigurationSection />

@@ -237,5 +237,44 @@
       "REPORTS": "Reportes",
       "INTEGRATION": "Integraciones"
     }
+  },
+
+  "roles": {
+    "title": "Roles y Permisos",
+    "subtitle": "Configure los permisos para cada rol del sistema",
+    "selectRole": "Seleccionar rol",
+    "selectRolePrompt": "Seleccione un rol para editar sus permisos",
+    "permissionsCount": "permisos",
+    "syncRoles": "Sincronizar Roles",
+    "syncSuccess": "Roles sincronizados: {{created}} creados, {{updated}} actualizados",
+    "syncError": "Error al sincronizar roles",
+    "saveChanges": "Guardar Cambios",
+    "saving": "Guardando...",
+    "resetToDefault": "Restaurar Predeterminados",
+    "permissionsUpdated": "Permisos actualizados correctamente",
+    "permissionsReset": "Permisos restaurados a valores predeterminados",
+    "updateError": "Error al actualizar permisos",
+    "resetError": "Error al restaurar permisos",
+    "systemAdminWarning": "Rol de Sistema Protegido",
+    "systemAdminDescription": "Los permisos del Administrador del Sistema no pueden ser modificados. Este rol tiene acceso completo a todas las funcionalidades.",
+    "info": {
+      "permissionFormat": "Los permisos siguen el formato:"
+    },
+    "categories": {
+      "system": "Sistema",
+      "companies": "Empresas",
+      "users": "Usuarios",
+      "employees": "Empleados",
+      "payroll": "Nómina",
+      "incidents": "Incidencias",
+      "vacations": "Vacaciones",
+      "benefits": "Beneficios",
+      "attendance": "Asistencia",
+      "reports": "Reportes",
+      "settings": "Configuración",
+      "audit": "Auditoría",
+      "profile": "Perfil",
+      "documents": "Documentos"
+    }
   }
 }
