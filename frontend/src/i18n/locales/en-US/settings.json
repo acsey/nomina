@@ -154,5 +154,53 @@
     "justificationPlaceholder": "Explain the reason for these changes...",
     "justificationRequired": "Justification is required for critical changes",
     "confirm": "Confirm Changes"
+  },
+
+  "ai": {
+    "title": "Artificial Intelligence Configuration",
+    "subtitle": "Configure AI providers for ChatBot and automations",
+    "currentDefault": "Current default provider",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your API key",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "testConnection": "Test Connection",
+    "testing": "Testing...",
+    "setAsDefault": "Set as Default",
+    "currentlyDefault": "Currently Default",
+    "testSuccess": "Connection successful",
+    "testFailed": "Connection failed",
+    "defaultSet": "Default provider changed",
+    "defaultSetError": "Error changing default provider",
+    "noProviders": "No AI providers configured",
+    "noProvidersDescription": "Set up at least one AI provider to enable ChatBot and automation features.",
+    "getApiKey": "Get API Key",
+    "documentation": "Documentation",
+    "providers": {
+      "anthropic": {
+        "name": "Anthropic Claude",
+        "description": "Claude models with advanced reasoning and coding capabilities",
+        "keyUrl": "https://console.anthropic.com/settings/keys",
+        "docsUrl": "https://docs.anthropic.com/en/docs/intro-to-claude"
+      },
+      "openai": {
+        "name": "OpenAI GPT",
+        "description": "GPT models with wide capabilities for various tasks",
+        "keyUrl": "https://platform.openai.com/api-keys",
+        "docsUrl": "https://platform.openai.com/docs/introduction"
+      },
+      "gemini": {
+        "name": "Google Gemini",
+        "description": "Gemini models with multimodal AI capabilities",
+        "keyUrl": "https://aistudio.google.com/app/apikey",
+        "docsUrl": "https://ai.google.dev/docs"
+      }
+    },
+    "info": {
+      "title": "Important Information",
+      "description": "API keys are stored encrypted in the database. Make sure to obtain keys from official provider websites."
+    }
   }
 }

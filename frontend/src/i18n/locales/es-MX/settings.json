@@ -154,5 +154,53 @@
     "justificationPlaceholder": "Explique el motivo de estos cambios...",
     "justificationRequired": "Se requiere justificación para cambios críticos",
     "confirm": "Confirmar Cambios"
+  },
+
+  "ai": {
+    "title": "Configuración de Inteligencia Artificial",
+    "subtitle": "Configure los proveedores de IA para el ChatBot y automatizaciones",
+    "currentDefault": "Proveedor actual por defecto",
+    "configured": "Configurado",
+    "notConfigured": "No configurado",
+    "model": "Modelo",
+    "getApiKey": "Obtener API Key",
+    "docs": "Documentación",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "saved": "Configuración de IA guardada correctamente",
+    "saveError": "Error al guardar la configuración",
+    "saveFirst": "Guarda la configuración primero",
+    "testConnection": "Probar conexión",
+    "testSuccess": "Conexión exitosa",
+    "testFailed": "Error de conexión",
+    "setAsDefault": "Establecer como predeterminado",
+    "isDefault": "Proveedor predeterminado",
+    "defaultSet": "Proveedor predeterminado actualizado",
+    "defaultError": "Error al establecer proveedor predeterminado",
+    "apiKeyRequired": "Se requiere una API Key",
+    "securityNote": {
+      "title": "Nota de Seguridad",
+      "description": "Las API Keys se almacenan de forma segura y cifrada en la base de datos. Nunca comparta sus claves de API con terceros."
+    },
+    "features": {
+      "title": "Funcionalidades de IA",
+      "chatbot": "ChatBot de RH vía WhatsApp y web",
+      "fallback": "Sistema de respaldo automático entre proveedores",
+      "n8n": "Integración con workflows de n8n"
+    },
+    "providers": {
+      "anthropic": {
+        "name": "Anthropic Claude",
+        "description": "Modelos Claude de Anthropic. Excelente para tareas de razonamiento y análisis."
+      },
+      "openai": {
+        "name": "OpenAI GPT",
+        "description": "Modelos GPT de OpenAI. Ampliamente utilizado y documentado."
+      },
+      "gemini": {
+        "name": "Google Gemini",
+        "description": "Modelos Gemini de Google. Tier gratuito generoso disponible."
+      }
+    }
   }
 }
