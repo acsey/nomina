@@ -54,13 +54,16 @@ show_help() {
   echo "  --ssl-self         Generar certificado SSL auto-firmado"
   echo "  --fresh            Despliegue desde cero (borra datos existentes)"
   echo "  --migrate-only     Solo ejecutar migraciones"
+  echo "  --seed             Ejecutar seed de datos (después de migraciones)"
+  echo "  --pull             Actualizar código desde git antes del deploy"
   echo "  --help             Mostrar esta ayuda"
   echo ""
   echo "Ejemplos:"
   echo "  $0                              # Deploy normal"
   echo "  $0 --ssl staging.midominio.com  # Deploy con Let's Encrypt"
   echo "  $0 --ssl-self                   # Deploy con SSL auto-firmado"
-  echo "  $0 --fresh                      # Borrar y recrear todo"
+  echo "  $0 --fresh --seed               # Borrar, recrear y sembrar datos"
+  echo "  $0 --pull                       # Actualizar código y redesplegar"
 }
 
 # Generar certificado auto-firmado
@@ -316,6 +319,32 @@ run_migrations() {
   info "Migraciones completadas"
 }
 
+# Ejecutar seed de datos
+run_seed() {
+  header "Ejecutando seed de datos"
+
+  info "Sembrando datos iniciales..."
+  dc exec -T backend npx prisma db seed
+
+  info "Seed completado"
+}
+
+# Actualizar código desde git
+git_pull() {
+  header "Actualizando código desde git"
+
+  local current_branch=$(git branch --show-current)
+  info "Branch actual: $current_branch"
+
+  info "Obteniendo cambios..."
+  git fetch origin
+
+  info "Aplicando cambios..."
+  git pull origin "$current_branch"
+
+  info "Código actualizado"
+}
+
 # Despliegue principal
 deploy() {
   header "Iniciando despliegue de Staging"
@@ -388,6 +417,8 @@ FRESH=false
 SSL_MODE=""
 SSL_DOMAIN=""
 MIGRATE_ONLY=false
+DO_SEED=false
+DO_PULL=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -406,6 +437,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --migrate-only)
       MIGRATE_ONLY=true
+      shift
+      ;;
+    --seed)
+      DO_SEED=true
+      shift
+      ;;
+    --pull)
+      DO_PULL=true
       shift
       ;;
     --help)
@@ -432,6 +471,11 @@ echo -e "${NC}"
 
 check_prerequisites
 
+# Actualizar código si se solicitó
+if [ "$DO_PULL" = true ]; then
+  git_pull
+fi
+
 # Generar SSL si se solicitó
 if [ "$SSL_MODE" = "letsencrypt" ]; then
   generate_letsencrypt_ssl "$SSL_DOMAIN"
@@ -445,6 +489,11 @@ if [ "$MIGRATE_ONLY" = true ]; then
   dc up -d db
   sleep 5
   run_migrations
+  if [ "$DO_SEED" = true ]; then
+    dc up -d backend
+    sleep 10
+    run_seed
+  fi
   exit 0
 fi
 
@@ -453,4 +502,10 @@ if [ "$FRESH" = true ]; then
 fi
 
 deploy
+
+# Ejecutar seed si se solicitó
+if [ "$DO_SEED" = true ]; then
+  run_seed
+fi
+
 show_final_info

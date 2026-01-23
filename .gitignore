@@ -41,3 +41,25 @@ coverage/
 *.pfx
 *.p12
 .env.certificados
+
+# Claude Code (IDE)
+.claude/
+
+# SSL certificates (generated)
+nginx/ssl/*.pem
+nginx/ssl/*.crt
+nginx/ssl/*.key
+
+# Storage local
+storage/
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Docker volumes data (if mounted locally)
+data/
+
+# n8n local data
+.n8n/

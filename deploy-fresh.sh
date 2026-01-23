@@ -92,11 +92,20 @@ info "Creando datos iniciales (empresas, empleados, usuarios, asistencia, etc.).
 dc -f docker-compose.dev.yml run --rm backend npx prisma db seed
 
 # ============================================
-# 7. Iniciar todos los servicios
+# 7. Iniciar todos los servicios (incluyendo n8n)
 # ============================================
 header "7. Iniciando servicios"
-info "Levantando todos los contenedores..."
+info "Levantando todos los contenedores (incluyendo n8n)..."
 dc -f docker-compose.dev.yml up -d
+
+# Esperar a que n8n esté listo
+info "Esperando a que n8n esté listo..."
+sleep 10
+until dc -f docker-compose.dev.yml exec -T n8n wget --spider -q http://localhost:5678/healthz 2>/dev/null; do
+  warn "n8n no está listo aún, esperando..."
+  sleep 3
+done
+info "n8n está listo!"
 
 # ============================================
 # 8. Mostrar información del sistema

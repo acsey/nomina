@@ -57,6 +57,8 @@ show_help() {
   echo "  --backup           Hacer backup de BD antes del deploy"
   echo "  --restore <file>   Restaurar backup antes del deploy"
   echo "  --migrate-only     Solo ejecutar migraciones"
+  echo "  --seed             Ejecutar seed de datos (solo para setup inicial)"
+  echo "  --pull             Actualizar código desde git antes del deploy"
   echo "  --scale-workers N  Escalar workers a N instancias"
   echo "  --help             Mostrar esta ayuda"
   echo ""
@@ -64,6 +66,7 @@ show_help() {
   echo "  $0 --ssl nomina.empresa.com           # Deploy completo con SSL"
   echo "  $0 --ssl nomina.empresa.com --backup  # Deploy con backup previo"
   echo "  $0 --update                           # Solo actualizar código"
+  echo "  $0 --pull --update                    # Git pull + actualizar"
   echo "  $0 --scale-workers 3                  # Escalar a 3 workers"
 }
 
@@ -384,6 +387,39 @@ run_migrations() {
   info "Migraciones completadas"
 }
 
+# Ejecutar seed de datos (solo para setup inicial)
+run_seed() {
+  header "Ejecutando seed de datos"
+
+  warn "⚠️  El seed sobrescribirá datos existentes"
+  read -p "¿Está seguro? (escriba 'si' para confirmar): " confirm
+  if [ "$confirm" != "si" ]; then
+    info "Seed cancelado"
+    return
+  fi
+
+  info "Sembrando datos iniciales..."
+  dc exec -T backend npx prisma db seed
+
+  info "Seed completado"
+}
+
+# Actualizar código desde git
+git_pull() {
+  header "Actualizando código desde git"
+
+  local current_branch=$(git branch --show-current)
+  info "Branch actual: $current_branch"
+
+  info "Obteniendo cambios..."
+  git fetch origin
+
+  info "Aplicando cambios..."
+  git pull origin "$current_branch"
+
+  info "Código actualizado"
+}
+
 # Despliegue completo
 deploy_full() {
   header "Iniciando despliegue de Producción"
@@ -481,6 +517,8 @@ DO_BACKUP=false
 RESTORE_FILE=""
 MIGRATE_ONLY=false
 SCALE_WORKERS=""
+DO_SEED=false
+DO_PULL=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -507,6 +545,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --migrate-only)
       MIGRATE_ONLY=true
+      shift
+      ;;
+    --seed)
+      DO_SEED=true
+      shift
+      ;;
+    --pull)
+      DO_PULL=true
       shift
       ;;
     --scale-workers)
@@ -538,6 +584,11 @@ echo -e "${NC}"
 
 check_prerequisites
 
+# Actualizar código si se solicitó
+if [ "$DO_PULL" = true ]; then
+  git_pull
+fi
+
 # SSL es obligatorio en producción
 if [ -z "$SSL_MODE" ] && [ ! -f "$SSL_DIR/fullchain.pem" ]; then
   error "SSL es obligatorio en producción. Use --ssl <dominio> o --ssl-self"
@@ -563,6 +614,11 @@ if [ "$MIGRATE_ONLY" = true ]; then
   dc up -d db
   sleep 5
   run_migrations
+  if [ "$DO_SEED" = true ]; then
+    dc up -d backend
+    sleep 10
+    run_seed
+  fi
   exit 0
 fi
 
@@ -585,6 +641,11 @@ if [ "$UPDATE_ONLY" = true ]; then
   deploy_update
 else
   deploy_full
+fi
+
+# Ejecutar seed si se solicitó (solo para setup inicial)
+if [ "$DO_SEED" = true ]; then
+  run_seed
 fi
 
 show_final_info
