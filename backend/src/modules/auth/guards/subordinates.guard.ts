@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { RoleName } from '@/common/constants/roles';
 
 /**
  * SubordinatesGuard - Ensures managers can only access/modify their subordinates
@@ -12,10 +13,42 @@ import { PrismaService } from '@/common/prisma/prisma.service';
  */
 @Injectable()
 export class SubordinatesGuard implements CanActivate {
+  // Roles that have access to all employees in their scope (no subordinate restriction)
+  private readonly FULL_ACCESS_ROLES = [
+    RoleName.SYSTEM_ADMIN,
+    RoleName.COMPANY_ADMIN,
+    RoleName.HR_ADMIN,
+    RoleName.PAYROLL_ADMIN,
+    RoleName.AUDITOR,
+    // Legacy role names for backward compatibility
+    'admin',
+    'company_admin',
+    'rh',
+    'payroll',
+    'auditor',
+  ];
+
+  // Roles that need subordinate validation
+  private readonly MANAGER_ROLES = [
+    RoleName.MANAGER,
+    'manager',
+  ];
+
+  // Roles that can only access their own data
+  private readonly EMPLOYEE_ROLES = [
+    RoleName.EMPLOYEE,
+    'employee',
+  ];
+
   constructor(
     private reflector: Reflector,
     private readonly prisma: PrismaService,
   ) {}
+
+  private getUserRole(user: any): string {
+    // Try to get the role from different possible locations
+    return user.roleName || user.role?.name || user.role || '';
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -25,13 +58,15 @@ export class SubordinatesGuard implements CanActivate {
       return false;
     }
 
-    // Super admin, company_admin, and rh can access all employees in their scope
-    if (['admin', 'company_admin', 'rh'].includes(user.role)) {
+    const userRole = this.getUserRole(user);
+
+    // Super admin, company_admin, HR, payroll and auditor can access all employees in their scope
+    if (this.FULL_ACCESS_ROLES.includes(userRole)) {
       return true;
     }
 
     // Manager role needs subordinate validation
-    if (user.role === 'manager') {
+    if (this.MANAGER_ROLES.includes(userRole)) {
       const employeeId = request.params.employeeId || request.body?.employeeId;
 
       if (!employeeId) {
@@ -61,7 +96,7 @@ export class SubordinatesGuard implements CanActivate {
     }
 
     // Employee role - can only access own data
-    if (user.role === 'employee') {
+    if (this.EMPLOYEE_ROLES.includes(userRole)) {
       const employeeId = request.params.employeeId || request.body?.employeeId;
 
       if (!employeeId) {

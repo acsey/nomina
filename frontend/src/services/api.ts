@@ -878,3 +878,28 @@ export const systemModulesApi = {
   initializeCompanyModules: (companyId: string) =>
     api.post(`/system-modules/company/${companyId}/initialize`),
 };
+
+// Roles API - Role and permission management for super admin
+export const rolesApi = {
+  // Get all roles
+  getAll: () => api.get('/roles'),
+  // Get role by ID
+  getById: (id: string) => api.get(`/roles/${id}`),
+  // Get role by name
+  getByName: (name: string) => api.get(`/roles/name/${name}`),
+  // Update role description
+  update: (id: string, data: { description?: string }) =>
+    api.patch(`/roles/${id}`, data),
+  // Update role permissions
+  updatePermissions: (id: string, permissions: string[]) =>
+    api.patch(`/roles/${id}/permissions`, { permissions }),
+  // Reset to default permissions
+  resetPermissions: (id: string) =>
+    api.post(`/roles/${id}/reset-permissions`),
+  // Sync roles (create missing, update empty)
+  sync: () => api.post('/roles/sync'),
+  // Get permissions catalog
+  getPermissionsCatalog: () => api.get('/roles/permissions/catalog'),
+  // Get default permissions per role
+  getDefaultPermissions: () => api.get('/roles/permissions/defaults'),
+};
