@@ -1,0 +1,8 @@
+# Robots.txt for Sistema de Nomina
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://nomina.example.com/sitemap.xml
